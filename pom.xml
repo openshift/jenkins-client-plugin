@@ -23,7 +23,7 @@
     </parent>
 
     <groupId>com.openshift.jenkins.plugins</groupId>
-    <artifactId>openshift-jenkins-pipeline-dsl</artifactId>
+    <artifactId>openshift-client</artifactId>
     <version>1.0-SNAPSHOT</version>
     <packaging>hpi</packaging>
 
@@ -41,35 +41,31 @@
         -->
     </properties>
 
-    <name>OpenShift Plugin</name>
-    <description>Jenkins Pipeline DSL enablement for OpenShift</description>
-    <url></url>
-
-    <!-- The default licence for Jenkins OSS Plugins is MIT. Substitute for the applicable one if needed. -->
+    <name>OpenShift Client Jenkins Plugin</name>
+    <description>A Jenkins plugin which leverages the OpenShift client binary (oc) to enable powerful Pipeline DSL based interactions with OpenShift clusters.</description>
+    <url>https://github.com/openshift/jenkins-client-plugin</url>
 
     <licenses>
         <license>
-            <name>MIT License</name>
-            <url>http://opensource.org/licenses/MIT</url>
+            <name>Apache License</name>
+            <url>http://www.apache.org/licenses/LICENSE-2.0</url>
         </license>
     </licenses>
 
-    <!-- If you want this to appear on the wiki page:
     <developers>
       <developer>
-        <id>bhacker</id>
-        <name>Bob Q. Hacker</name>
-        <email>bhacker@nowhere.net</email>
+        <id>jupierce</id>
+        <name>Justin Pierce</name>
+        <email>jupierce@redhat.com</email>
       </developer>
     </developers>
-    -->
-    <!-- Assuming you want to host on @jenkinsci:
+
     <scm>
       <connection>scm:git:git://github.com/jenkinsci/${project.artifactId}-plugin.git</connection>
       <developerConnection>scm:git:git@github.com:jenkinsci/${project.artifactId}-plugin.git</developerConnection>
       <url>http://github.com/jenkinsci/${project.artifactId}-plugin</url>
     </scm>
-     -->
+
     <repositories>
         <repository>
             <id>repo.jenkins-ci.org</id>
