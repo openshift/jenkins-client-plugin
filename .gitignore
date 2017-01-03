@@ -1,0 +1,6 @@
+.idea
+target
+openshift-jenkins-pipeline-dsl.iml
+.classpath
+.project
+.settings

@@ -1,0 +1,11 @@
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout"
+         xmlns:t="/lib/hudson" xmlns:f="/lib/form">
+
+    <f:section title="${%OpenShift Pipeline DSL}" name="openshift">
+        <f:entry title="${%Cluster Configurations}" field="clusterConfigs">
+            <f:repeatableProperty field="clusterConfigs" minimum="0"/>
+        </f:entry>
+    </f:section>
+
+</j:jelly>
