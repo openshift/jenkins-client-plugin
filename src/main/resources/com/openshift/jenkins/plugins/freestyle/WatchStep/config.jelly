@@ -7,7 +7,7 @@
         <f:textbox/>
     </f:entry>
 
-    <f:entry title="${%Teminate on Match}" field="successPattern" >
+    <f:entry title="${%Terminate on Match}" field="successPattern" >
         <f:textbox/>
     </f:entry>
 
@@ -15,7 +15,7 @@
         <f:textbox/>
     </f:entry>
 
-    <f:entry title="${%Resource(s) to Watch}" field="selector">
+    <f:entry title="${%Resources to Watch}" field="selector">
         <f:property field="selector"/>
     </f:entry>
 
