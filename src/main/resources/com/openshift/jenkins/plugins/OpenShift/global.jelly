@@ -4,7 +4,7 @@
 
     <f:section title="${%OpenShift Pipeline DSL}" name="openshift">
         <f:entry title="${%Cluster Configurations}" field="clusterConfigs">
-            <f:repeatableProperty field="clusterConfigs" minimum="0"/>
+            <f:repeatableHeteroProperty field="clusterConfigs" addCaption="Add OpenShift Cluster" hasHeader="true" />
         </f:entry>
     </f:section>
 
