@@ -1,10 +1,12 @@
 package com.openshift.jenkins.plugins.util;
 
+import com.openshift.jenkins.plugins.OpenShift;
+
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
-public class OcCmdBuilder implements Serializable {
+public class ClientCommandBuilder implements Serializable {
 
     public final String server;
     public final String project;
@@ -17,7 +19,7 @@ public class OcCmdBuilder implements Serializable {
     public final int logLevel;
 
 
-    public OcCmdBuilder(String server, String project, String verb, List verbArgs, List userArgs, List options, List verboseOptions, String token, int logLevel ) {
+    public ClientCommandBuilder(String server, String project, String verb, List verbArgs, List userArgs, List options, List verboseOptions, String token, int logLevel ) {
         this.server = server;
         this.project = project;
         this.verb = verb==null?"help":verb;
@@ -52,35 +54,37 @@ public class OcCmdBuilder implements Serializable {
      * @param redacted Requests the command line be constructed for logging purposes. Sensitive
      *                 information will be stripped. Verbose information wil be stripped unless
      *                 we are in logLevel mode.
-     * @return A string representing the command to invoke.
+     * @return A list of command line arguments for the 'oc' command.
      */
-    public String build(boolean redacted ) {
-        ArrayList<String> args = new ArrayList<String>();
+    public List<String> buildCommand(boolean redacted ) {
+        ArrayList<String> cmd = new ArrayList<String>();
 
-        args.add( verb );
+        String toolName = (new OpenShift.DescriptorImpl()).getClientToolName();
+        cmd.add( toolName );
+        cmd.add( verb );
 
-        fixNull(userArgs).forEach( e -> args.add( e.toString() ) );
+        fixNull(userArgs).forEach( e -> cmd.add( e.toString() ) );
 
-        fixNull(verbArgs).forEach( e -> args.add( e.toString() ) );
+        fixNull(verbArgs).forEach( e -> cmd.add( e.toString() ) );
 
-        fixNull(options).forEach( e -> args.add( e.toString() ) );
+        fixNull(options).forEach( e -> cmd.add( e.toString() ) );
 
         if ( this.server != null ) {
-            args.add("--server=" + server );
+            cmd.add("--server=" + server );
         }
 
         if ( this.project != null ) {
-            if ( !hasArg( args, "-n", "--namespace" ) ) { // only set namespace if user has not supplied it directly
-                args.add("--namespace=" + project );
+            if ( !hasArg( cmd, "-n", "--namespace" ) ) { // only set namespace if user has not supplied it directly
+                cmd.add("--namespace=" + project );
             }
         }
 
         // Some arguments may be long and provide little value (e.g. the path of the server CA),
         // so hide them unless we are in logLevel mode.
         if ( !redacted || logLevel>0) {
-            fixNull(verboseOptions).forEach( e -> args.add( e.toString() ) );
-            if ( !hasArg(args,"--loglevel")) {
-                args.add( "--loglevel=" + logLevel );
+            fixNull(verboseOptions).forEach( e -> cmd.add( e.toString() ) );
+            if ( !hasArg(cmd,"--loglevel")) {
+                cmd.add( "--loglevel=" + logLevel );
             }
         }
 
@@ -90,18 +94,21 @@ public class OcCmdBuilder implements Serializable {
         }
 
         if ( token != null ) {
-            if ( !hasArg( args, "--token" ) ) { // only set if not specified
-                args.add("--token=" + token);
+            if ( !hasArg( cmd, "--token" ) ) { // only set if not specified
+                cmd.add("--token=" + token);
             }
         }
 
-        StringBuilder sb = new StringBuilder( "oc " );
-        for ( String arg : args ) {
+        return cmd;
+    }
+
+    public String asString( boolean redacted) {
+        StringBuffer sb = new StringBuffer();
+        for ( String arg : buildCommand(redacted) ) {
             sb.append( arg );
             sb.append( " " );
         }
         return sb.toString();
     }
-
 
 }

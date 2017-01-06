@@ -1,6 +1,6 @@
 package com.openshift.jenkins.plugins.pipeline;
 
-import com.openshift.jenkins.plugins.util.OcCmdBuilder;
+import com.openshift.jenkins.plugins.util.ClientCommandBuilder;
 import com.openshift.jenkins.plugins.util.QuietTaskListenerFactory;
 import hudson.*;
 import hudson.model.TaskListener;
@@ -23,11 +23,11 @@ public class OcWatch extends AbstractStepImpl {
 
     public static final String FUNCTION_NAME = "_OcWatch";
 
-    private final OcCmdBuilder cmdBuilder;
+    private final ClientCommandBuilder cmdBuilder;
 
     @DataBoundConstructor
     public OcWatch(String server, String project, String verb, List verbArgs, List userArgs, List options, List verboseOptions, String token, int logLevel ) {
-        this.cmdBuilder = new OcCmdBuilder( server,project,verb,verbArgs,userArgs,options,verboseOptions,token,logLevel);
+        this.cmdBuilder = new ClientCommandBuilder( server,project,verb,verbArgs,userArgs,options,verboseOptions,token,logLevel);
     }
 
     @Extension
@@ -97,7 +97,7 @@ public class OcWatch extends AbstractStepImpl {
 
                     master:
                     while( true ) {
-                        String commandString = step.cmdBuilder.build(false);
+                        String commandString = step.cmdBuilder.asString(false);
                         commandString += " 2> " + stderrTmp.getRemote() + " 1>&2"; // pipe stdout to stderr to avoid any buffering
 
                         final DurableTask task;

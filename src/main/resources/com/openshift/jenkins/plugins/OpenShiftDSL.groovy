@@ -68,7 +68,7 @@ class OpenShiftDSL implements Serializable {
 
         public <V> V run( Closure<V> body ) {
             if ( destroyOnReturn == null ) {
-                throw new IllegalStateException(this.getClass() + " has already been run once and cannot be used again");
+                throw new IllegalStateException(this.getClass() + " has already been perform once and cannot be used again");
             }
             Context lastContext = currentContext;
             currentContext = this;
@@ -91,7 +91,7 @@ class OpenShiftDSL implements Serializable {
                 if ( tokenSecret != null ) {
                     return tokenSecret.getToken();
                 }
-                // Otherwise, assume that this is a literal/direct token value
+                // Otherwise, assume that this is a literal/direct token name
                 return this.@credentialsId;
             }
 
@@ -101,7 +101,7 @@ class OpenShiftDSL implements Serializable {
             }
 
             // Instruct the command builder to not pass a token. This should force oc to default to mounted secret information.
-            // Specifically the env variable BEARER_TOKEN_FILE: "/run/secrets/kubernetes.io/serviceaccount/token"
+            // Specifically the env variable BEARER_TOKEN_FILE: "/perform/secrets/kubernetes.io/serviceaccount/token"
             return null;
         }
 
@@ -117,7 +117,7 @@ class OpenShiftDSL implements Serializable {
                 return parent.getProject();
             }
 
-            return script.readFile("/run/secrets/kubernetes.io/serviceaccount/namespace");
+            return script.readFile("/perform/secrets/kubernetes.io/serviceaccount/namespace");
         }
 
         public void setProject(String project ) {
@@ -133,7 +133,7 @@ class OpenShiftDSL implements Serializable {
             }
 
             // Assume we are running in an OpenShift pod with a service account mounted
-            return "/run/secrets/kubernetes.io/serviceaccount/ca.crt";
+            return "/perform/secrets/kubernetes.io/serviceaccount/ca.crt";
         }
 
         public void setServerCertificateAuthorityContent(String serverCertificateAuthorityContent ) {
@@ -141,7 +141,7 @@ class OpenShiftDSL implements Serializable {
             if ( serverCertificateAuthorityContent != null ) {
                 /**
                  * The certificate authority content must be written to the agent's file
-                 * system. It would be nice if we could set the value in an environment variable
+                 * system. It would be nice if we could set the name in an environment variable
                  * instead.
                  */
                 FilePath ca = exec.getWorkspaceFilePath().createTextTempFile("serverca", ".crt", serverCertificateAuthorityContent, false );
@@ -157,13 +157,7 @@ class OpenShiftDSL implements Serializable {
             if ( parent != null ) {
                 return parent.getServerUrl();
             }
-            if ( script.env.KUBERNETES_SERVICE_HOST == null ) {
-                throw new IllegalStateException( "No cluster information specified and unable to find `KUBERNETES_MASTER` URL environment variable.");
-            }
-            if ( script.env.KUBERNETES_SERVICE_PORT_HTTPS == null ) {
-                throw new IllegalStateException( "No cluster information specified and unable to find `KUBERNETES_SERVICE_PORT_HTTPS` URL environment variable.");
-            }
-            return "https://${script.env.KUBERNETES_SERVICE_HOST}:${script.env.KUBERNETES_SERVICE_PORT_HTTPS}";
+            return ClusterConfig.getHostClusterApiServerUrl();
         }
 
         public void setServerUrl( String serverUrl, boolean skipTlsVerify ) {
@@ -218,11 +212,11 @@ class OpenShiftDSL implements Serializable {
     }
 
     /**
-     * @param name The name can be a literal URL for the cluster or,
+     * @param name The name can be a literal URL for the clusterName or,
      *          preferably, a Jenkins specific
-     *          name of a cluster configured in the global OpenShift configuration. The name can also
-     *          be blank, which means we will default using the default cluster hostname within a Pod.
-     * @param credentialId A literal OAuth token value OR the Jenkins specific identifier of a credential
+     *          name of a clusterName configured in the global OpenShift configuration. The name can also
+     *          be blank, which means we will default using the default clusterName hostname within a Pod.
+     * @param credentialId A literal OAuth token name OR the Jenkins specific identifier of a credential
      *          defined in the Jenkins credentials store.
      */
     public <V> V withCluster( String name=null, String credentialId=null, Closure<V> body ) {
@@ -237,12 +231,12 @@ class OpenShiftDSL implements Serializable {
 
             Context context = new Context( null, ContextId.WITH_CLUSTER );
 
-            // Determine if name is a URL or a cluster name. It is treated as a URL if it is *not* found
-            // as a cluster configuration name.
+            // Determine if name is a URL or a clusterName name. It is treated as a URL if it is *not* found
+            // as a clusterName configuration name.
             ClusterConfig cc = config.getClusterConfig( name );
 
             if ( name == null ) {
-                // See if a cluster named "default" has been defined.
+                // See if a clusterName named "default" has been defined.
                 cc = config.getClusterConfig( "default" );
             }
 
@@ -410,7 +404,7 @@ class OpenShiftDSL implements Serializable {
      * @param obj A OpenShift object modeled as a Map
      * @return A Java List containing OpenShift objects. If the parameter models an OpenShift List,
      *          the object will be "unwrapped" and the resulting Java List will contain an entry for each item
-     *          in the OpenShift List obj. If the obj is not a list, the return value will be a list with
+     *          in the OpenShift List obj. If the obj is not a list, the return name will be a list with
      *          the obj as its only entry.
      */
     @NonCPS
@@ -451,7 +445,7 @@ class OpenShiftDSL implements Serializable {
     /**
      * The select operation can be executed multiple ways:
      *      selector()   // Selects all
-     *      selector( "pod" )  // Selects all of a kind
+     *      selector( "pod" )  // Selects all of a name
      *      selector( "dc", "jenkins" )   // selects a particular instance dc/jenkins
      *      selector( "dc/jenkins" )   // selects a particular instance dc/jenkins
      *      selector( "dc", [ alabel: 'avalue' ] ) // Selects using label values
@@ -541,8 +535,8 @@ class OpenShiftDSL implements Serializable {
 
     public Result newProject(String name, String... args ) {
         Result r = new Result( "newProject" );
-        r.actions.add( (OcAction.OcActionResult)script._OcAction( buildCommonArgs("new-project", [name], args, "--skip-config-write" ) ) );
-        r.failIf( "new-project returned an error" );
+        r.actions.add( (OcAction.OcActionResult)script._OcAction( buildCommonArgs("new-projectForStep", [name], args, "--skip-config-write" ) ) );
+        r.failIf( "new-projectForStep returned an error" );
         return r;
     }
 
@@ -577,7 +571,7 @@ class OpenShiftDSL implements Serializable {
 
 
     public OpenShiftResourceSelector newBuild(String... args ) {
-        return newObjectsAction( "newBuild", "new-build", args );
+        return newObjectsAction( "newBuild", "new-buildCommand", args );
     }
 
     public OpenShiftResourceSelector newApp(String... args ) {
@@ -585,7 +579,7 @@ class OpenShiftDSL implements Serializable {
     }
 
     public OpenShiftResourceSelector startBuild(String... args ) {
-        return newObjectsAction( "startBuild", "start-build", args );
+        return newObjectsAction( "startBuild", "start-buildCommand", args );
     }
 
     private Result simplePassthrough( String verb, String[] args ) {
@@ -599,7 +593,7 @@ class OpenShiftDSL implements Serializable {
     public Result idle(String... args ) { return simplePassthrough( "idle", args ); }
     public Result _import(String... args ) { return simplePassthrough( "import", args ); }
     public Result policy(String... args ) { return simplePassthrough( "policy", args ); }
-    public Result run(String... args ) { return simplePassthrough( "run", args ); }
+    public Result run(String... args ) { return simplePassthrough( "perform", args ); }
     public Result secrets(String... args ) { return simplePassthrough( "secrets", args ); }
     public Result tag(String... args ) { return simplePassthrough( "tag", args ); }
 
@@ -711,7 +705,7 @@ class OpenShiftDSL implements Serializable {
 
             if ( kind.contains("/") ) {
                 if ( qualifier != null ) {
-                    throw new AbortException( "Unsupported select parameter; only a single argument is permitted if kind/name is specified" );
+                    throw new AbortException( "Unsupported select parameter; only a single argument is permitted if name/name is specified" );
                 }
                 String[] s = kind.split( "/" )
                 kind = s[0];
@@ -722,7 +716,7 @@ class OpenShiftDSL implements Serializable {
                 if ( qualifier instanceof Map ) {
                     this.labels = new HashMap((Map)qualifier);
                 } else {
-                    // Otherwise, the qualifier is a name that is paired with the kind
+                    // Otherwise, the qualifier is a name that is paired with the name
                     objectList = Arrays.asList( kind + "/" + qualifier.toString() );
                     kind = null;
                 }
@@ -744,7 +738,7 @@ class OpenShiftDSL implements Serializable {
 
         @NonCPS
         public String toString() {
-            return String.format( "selector([kind=%s],[labels=%s],[list=%s])", kind, labels, objectList)
+            return String.format( "selector([name=%s],[labels=%s],[list=%s])", kind, labels, objectList)
         }
 
         @NonCPS
@@ -752,9 +746,7 @@ class OpenShiftDSL implements Serializable {
             ArrayList args = new ArrayList();
 
             if ( objectList != null ) {
-                if ( objectList != null ) {
-                    objectList.each { e -> args.add( e ); }
-                }
+                objectList.each { e -> args.add( e ); }
             } else {
                 args.add( kind );
 
@@ -930,10 +922,10 @@ class OpenShiftDSL implements Serializable {
             // only supports a single object at a time, so get individual names
             for ( String name : names ) {
                 r.actions.add(
-                        (OcAction.OcActionResult)script._OcAction( buildCommonArgs("start-build", [name.toString() ], userArgs, "-o=name") )
+                        (OcAction.OcActionResult)script._OcAction( buildCommonArgs("start-buildCommand", [name.toString() ], userArgs, "-o=name") )
                 );
             }
-            r.failIf( "Error running start-build on at least one item: " + names.toString() );
+            r.failIf( "Error running start-buildCommand on at least one item: " + names.toString() );
             return new OpenShiftResourceSelector( r, OpenShiftDSL.splitNames( r.out ) );
         }
 
@@ -950,7 +942,7 @@ class OpenShiftDSL implements Serializable {
         }
 
         public Result cancelBuild(String... userArgs ) throws AbortException {
-            return onceForEach( "cancelBuild", "cancel-build", userArgs );
+            return onceForEach( "cancelBuild", "cancel-buildCommand", userArgs );
         }
 
 
@@ -1037,10 +1029,10 @@ class OpenShiftDSL implements Serializable {
                     labels.put( "deploymentconfig", unqualifiedName );
                     break;
                 case "buildconfig" :
-                    labels.put( "openshift.io/build-config.name", unqualifiedName );
+                    labels.put( "openshift.io/buildCommand-config.name", unqualifiedName );
                     break;
                 default:
-                    throw new AbortException( "Unknown how to find resources related to kind: " + k );
+                    throw new AbortException( "Unknown how to find resources related to name: " + k );
             }
 
             return new OpenShiftResourceSelector("related", kind, labels);

@@ -47,11 +47,11 @@
 
         <dl>
             <a name="openshift_withCluster"/>
-            <dt><code>openshift.withCluster([cluster:String[, credential:String]]) {…}</code></dt>
+            <dt><code>openshift.withCluster([clusterName:String[, credential:String]]) {…}</code></dt>
             <dd>
                 <p>
                     Declares that OpenShift operations within the closure body should be executed against the
-                    specified cluster. The statement also implicitly acts as both a
+                    specified clusterName. The statement also implicitly acts as both a
                     <a href="#openshift_withProject"><code>openshift.withProject</code></a> (establishing the default project within
                     the closure) and <a href="#openshift_doAs"><code>openshift.doAs</code></a> (establishing the default authorization
                     token within the closure).
@@ -63,10 +63,10 @@
                     <br></br>
                     <br></br>
                     When <code>withCluster</code> closures are nested within each other, OpenShift operations will use the
-                    cluster information associated with the most tightly scoped occurrence.
+                    clusterName information associated with the most tightly scoped occurrence.
                     <ul>
                         <li>
-                            <b>cluster</b> - The name of an OpenShift cluster defined in the global configuration OR a String
+                            <b>clusterName</b> - The name of an OpenShift clusterName defined in the global configuration OR a String
                             literal URL (e.g. "https://10.13.137.186:8443"). The special protocol "insecure://" may also be used if https is
                             desired but TLS certificate verification should be disabled.
                             <br></br>
@@ -76,13 +76,13 @@
                             <code>withCluster</code> to implicitly act as both
                             <a href="#openshift_withProject"><code>openshift.withProject</code></a> (changing the target project within
                             the closure) and <a href="#openshift_doAs"><code>openshift.doAs</code></a> (changing the authorization
-                            token within the closure) if project and authorization information is associated with the cluster
+                            token within the closure) if project and authorization information is associated with the clusterName
                             configuration.
                             <br></br>
                             <br></br>
-                            If the cluster argument is omitted, the plugin will try to derive cluster information in the following ways:
+                            If the clusterName argument is omitted, the plugin will try to derive clusterName information in the following ways:
                             <ol>
-                                <li>A lookup for a cluster named "default" in the Jenkins global configuration.</li>
+                                <li>A lookup for a clusterName named "default" in the Jenkins global configuration.</li>
                                 <li>Any host information stored in the environment variables KUBERNETES_SERVICE_HOST:KUBERNETES_SERVICE_PORT_HTTPS .</li>
                             </ol>
                         </li>
@@ -91,7 +91,7 @@
                             manager OR a String literal token value with which to authenticate. The use of the Jenkins credential
                             manager is highly encouraged because the token will be encrypted and, if the token value changes,
                             your scripts will not need to be updated. This parameter overrides any default credentials associated
-                            with the cluster in the Jenkins global configuration.
+                            with the clusterName in the Jenkins global configuration.
                         </li>
                     </ul>
                 </p>
@@ -189,7 +189,7 @@
                     Creates a <a href="#Selector">Selector</a> object (either a <a href="#DynamicSelector">DynamicSelector</a> or a
                     <a href="#StaticSelector">StaticSelector</a> depending on the invocation) which can be stored
                     away in a variable or used inline within the DSL. The creation of a Selector does not perform any
-                    immediate operation on an OpenShift cluster -- it merely describes a grouping of objects which
+                    immediate operation on an OpenShift clusterName -- it merely describes a grouping of objects which
                     can be subsequently be acted on by methods exposed by the Selector object.
                     <br></br>
                     <br></br>
@@ -200,7 +200,7 @@
                     <a href="#openshift_doAs"><code>openshift.doAs</code></a> closures. For example, a Selector
                     can be established once and subsequently used within a variety of
                     <code>openshift.withCluster</code> closures. Each time a method
-                    is invoked on the Selector, the cluster affected will differ depending on the
+                    is invoked on the Selector, the clusterName affected will differ depending on the
                     <code>openshift.withCluster</code> which contains the invocation.
                     <ul>
                         <li>
@@ -566,7 +566,7 @@
                             <code>Action.status:int</code> - the exit code of the OpenShift tool execution.
                         </li>
                         <li>
-                            <code>Action.reference:Map</code> - additional debug information in key/value pairs.
+                            <code>Action.reference:Map</code> - additional debug information in name/value pairs.
                         </li>
                     </ul>
                 </li>

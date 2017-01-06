@@ -9,6 +9,7 @@ import hudson.security.ACL;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
 import jenkins.model.Jenkins;
+import org.jenkinsci.plugins.scriptsecurity.sandbox.whitelists.Whitelisted;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
@@ -91,6 +92,45 @@ public class ClusterConfig extends AbstractDescribableImpl<ClusterConfig> implem
         return String.format("OpenShift cluster [name:%s] [serverUrl:%s]", name, serverUrl);
     }
 
+    /**
+     * @return Returns a URL to contact the API server of the OpenShift cluster running this
+     *          node or throws an Exception if it cannot be determined.
+     */
+    @Whitelisted
+    public static String getHostClusterApiServerUrl() {
+        String serviceHost = System.getenv("KUBERNETES_SERVICE_HOST");
+        if ( serviceHost == null ) {
+            throw new IllegalStateException( "No clusterName information specified and unable to find `KUBERNETES_SERVICE_HOST` environment variable.");
+        }
+        String servicePort = System.getenv("KUBERNETES_SERVICE_PORT_HTTPS");
+        if ( serviceHost == null || servicePort == null ) {
+            throw new IllegalStateException( "No clusterName information specified and unable to find `KUBERNETES_SERVICE_PORT_HTTPS` environment variable.");
+        }
+        return "https://" + serviceHost + ":" + servicePort;
+    }
+
+    // https://wiki.jenkins-ci.org/display/JENKINS/Credentials+Plugin
+    // http://javadoc.jenkins-ci.org/credentials/com/cloudbees/plugins/credentials/common/AbstractIdCredentialsListBoxModel.html
+    // https://github.com/jenkinsci/kubernetes-plugin/blob/master/src/main/java/org/csanchez/jenkins/plugins/kubernetes/KubernetesCloud.java
+    public static ListBoxModel doFillCredentialsIdItems(String credentialsId) {
+        if (credentialsId == null) {
+            credentialsId = "";
+        }
+
+        if (!Jenkins.getInstance().hasPermission(Jenkins.ADMINISTER)) {
+            // Important! Otherwise you expose credentials metadata to random web requests.
+            return new StandardListBoxModel().includeCurrentValue(credentialsId);
+        }
+
+        return new StandardListBoxModel()
+                .includeEmptyValue()
+                .includeAs(ACL.SYSTEM, Jenkins.getInstance(), OpenShiftTokenCredentials.class)
+                //.includeAs(ACL.SYSTEM, Jenkins.getInstance(), StandardUsernamePasswordCredentials.class)
+                // .includeAs(ACL.SYSTEM, Jenkins.getInstance(), StandardCertificateCredentials.class)
+                // TODO: Make own type for token or use the existing token generator auth type used by sync plugin? or kubernetes?
+                .includeCurrentValue(credentialsId)
+                ;
+    }
 
     @Extension
     public static class DescriptorImpl extends Descriptor<ClusterConfig> {
@@ -108,27 +148,10 @@ public class ClusterConfig extends AbstractDescribableImpl<ClusterConfig> implem
             return FormValidation.validateRequired(value);
         }
 
-        // https://wiki.jenkins-ci.org/display/JENKINS/Credentials+Plugin
-        // http://javadoc.jenkins-ci.org/credentials/com/cloudbees/plugins/credentials/common/AbstractIdCredentialsListBoxModel.html
-        // https://github.com/jenkinsci/kubernetes-plugin/blob/master/src/main/java/org/csanchez/jenkins/plugins/kubernetes/KubernetesCloud.java
         public ListBoxModel doFillCredentialsIdItems(@QueryParameter String credentialsId) {
-            if (credentialsId == null) {
-                credentialsId = "";
-            }
-            if (!Jenkins.getInstance().hasPermission(Jenkins.ADMINISTER)) {
-                // Important! Otherwise you expose credentials metadata to random web requests.
-                return new StandardListBoxModel().includeCurrentValue(credentialsId);
-            }
-            return new StandardListBoxModel()
-                    .includeEmptyValue()
-                    .includeAs(ACL.SYSTEM, Jenkins.getInstance(), OpenShiftTokenCredentials.class)
-                    //.includeAs(ACL.SYSTEM, Jenkins.getInstance(), StandardUsernamePasswordCredentials.class)
-                    // .includeAs(ACL.SYSTEM, Jenkins.getInstance(), StandardCertificateCredentials.class)
-                    // TODO: Make own type for token or use the existing token generator auth type used by sync plugin? or kubernetes?
-                    .includeCurrentValue(credentialsId);
-
+            // It is valid to choose no default credential, so enable 'includeEmpty'
+            return ClusterConfig.doFillCredentialsIdItems(credentialsId);
         }
-
 
     }
 }

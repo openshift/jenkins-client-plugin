@@ -1,0 +1,16 @@
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:c="/lib/credentials">
+
+    <f:entry name="clusterName" title="${%Cluster}" field="clusterName"  help="/plugin/openshift-client/BaseStep/help-cluster.html" >
+        <f:select name="clusterName"></f:select>
+    </f:entry>
+
+    <f:entry title="${%Project Override}" field="project" help="/plugin/openshift-client/BaseStep/help-project.html">
+        <f:textbox/>
+    </f:entry>
+
+    <f:entry title="${%Credentials Override}" field="credentialsId" help="/plugin/openshift-client/BaseStep/help-credentials.html">
+        <c:select/>
+    </f:entry>
+
+</j:jelly>

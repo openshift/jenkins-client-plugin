@@ -1,6 +1,6 @@
 package com.openshift.jenkins.plugins.pipeline;
 
-import com.openshift.jenkins.plugins.util.OcCmdBuilder;
+import com.openshift.jenkins.plugins.util.ClientCommandBuilder;
 import com.openshift.jenkins.plugins.util.QuietTaskListenerFactory;
 import hudson.*;
 import hudson.model.Computer;
@@ -30,14 +30,14 @@ public class OcAction extends AbstractStepImpl {
 
     public static final String FUNCTION_NAME = "_OcAction";
 
-    private final OcCmdBuilder cmdBuilder;
+    private final ClientCommandBuilder cmdBuilder;
     private final boolean verbose;
     protected final String streamStdOutToConsolePrefix;
     private final HashMap<String,String> reference;
 
     @DataBoundConstructor
     public OcAction(String server, String project, String verb, List verbArgs, List userArgs, List options, List verboseOptions, String token, String streamStdOutToConsolePrefix, HashMap<String,String> reference, int logLevel ) {
-        this.cmdBuilder = new OcCmdBuilder( server,project,verb,verbArgs,userArgs,options,verboseOptions,token,logLevel);
+        this.cmdBuilder = new ClientCommandBuilder( server,project,verb,verbArgs,userArgs,options,verboseOptions,token,logLevel);
         this.verbose = (logLevel>0);
         this.streamStdOutToConsolePrefix = streamStdOutToConsolePrefix;
         // Reference is used to output information about, for example, file contents not visibile in the command line.
@@ -154,7 +154,9 @@ public class OcAction extends AbstractStepImpl {
         @Override
         protected OcActionResult run() throws Exception {
 
-            String commandString = step.cmdBuilder.build(false);
+            String commandString = step.cmdBuilder.asString(false);
+            String redactedCommandString = step.cmdBuilder.asString(true);
+
             FilePath stdoutTmp = filePath.createTextTempFile( "ocstdout", ".txt", "", false );
             FilePath stderrTmp = filePath.createTextTempFile( "ocstderr", ".txt", "", false );
             commandString += " >> " + stdoutTmp.getRemote() + " 2>> " + stderrTmp.getRemote();
@@ -210,7 +212,7 @@ public class OcAction extends AbstractStepImpl {
 
                 OcActionResult result = new OcActionResult();
                 result.verb = step.cmdBuilder.verb;
-                result.cmd = step.cmdBuilder.build(true);
+                result.cmd = redactedCommandString;
                 result.status = dtc.exitStatus(filePath,launcher);
                 result.out = stdOut.toString().trim();
                 result.err = stdErr.toString().trim();

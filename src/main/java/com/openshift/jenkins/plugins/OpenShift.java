@@ -8,6 +8,8 @@ import hudson.util.ListBoxModel;
 import net.sf.json.JSONObject;
 import org.kohsuke.stapler.StaplerRequest;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class OpenShift extends AbstractDescribableImpl<OpenShift> {
@@ -22,10 +24,7 @@ public class OpenShift extends AbstractDescribableImpl<OpenShift> {
 
         public List<ClusterConfig> clusterConfigs;
 
-        public String ocTool = null;
-
-        public String logLevel = DEFAULT_LOGLEVEL;
-
+        public String ocTool = "oc"; // TODO: Make this configurable for kubectl?
 
         public DescriptorImpl() {
             configVersion = 1L;
@@ -35,6 +34,10 @@ public class OpenShift extends AbstractDescribableImpl<OpenShift> {
         @Override
         public String getDisplayName() {
             return "OpenShift Configuration";
+        }
+
+        public String getClientToolName() {
+            return ocTool;
         }
 
         @Override
@@ -61,6 +64,13 @@ public class OpenShift extends AbstractDescribableImpl<OpenShift> {
             }
             items.add( "10 - Most Logging", "10" );
             return items;
+        }
+
+        public List<ClusterConfig> getClusterConfigs() {
+            if ( clusterConfigs == null ) {
+                return new ArrayList<>(0);
+            }
+            return Collections.unmodifiableList(clusterConfigs);
         }
 
         /**

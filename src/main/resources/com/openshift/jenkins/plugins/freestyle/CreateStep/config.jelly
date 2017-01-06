@@ -1,0 +1,12 @@
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
+
+    <st:include page="cluster.jelly" class="com.openshift.jenkins.plugins.freestyle.BaseStep" />
+
+    <f:entry title="JSON or YAML for Resource" field="jsonyaml">
+        <f:textarea  />
+    </f:entry>
+
+    <st:include page="advanced.jelly" class="com.openshift.jenkins.plugins.freestyle.BaseStep" />
+
+</j:jelly>
