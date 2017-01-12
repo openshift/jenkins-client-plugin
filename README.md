@@ -8,6 +8,7 @@
 
 - [Overview](#overview)
 - [Reader Prerequisites](#reader-prerequisites)
+- [Installing](#installing)
 - [Examples](#examples)
   - [Hello, World](#hello-world)
   - [Centralizing Cluster Configuration](#centralizing-cluster-configuration)
@@ -27,7 +28,7 @@
   - [I need more.](#i-need-more)
 - [Configuring an OpenShift Cluster](#configuring-an-openshift-cluster)
 - [Setting up Credentials](#setting-up-credentials)
-- [Setting up Nodes](#setting-up-nodes)
+- [Setting up Jenkins Nodes](#setting-up-jenkins-nodes)
 - [You call this documentation?!](#you-call-this-documentation)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
@@ -37,7 +38,7 @@ The [OpenShift](https://www.openshift.com) [Pipeline](https://jenkins.io/solutio
 DSL Plugin is presently an experimental Jenkins plugin which aims to provide a readable, concise, comprehensive, and fluent 
 [Jenkins Pipeline](https://jenkins.io/doc/book/pipeline/) syntax for rich interactions with an OpenShift API Server. The 
 plugin leverages an OpenShift command line tool (oc) which must be available on the nodes executing the script
-(options for getting the binary on your nodes can be found [here](#setting-up-nodes)).
+(options for getting the binary on your nodes can be found [here](#setting-up-jenkins-nodes)).
 
 If you are interested in a non-experimental Jenkins plugin, find it
 [here](https://github.com/openshift/jenkins-plugin).  
@@ -53,6 +54,27 @@ the CLI documentation to find the pass-through arguments a given interaction req
 the remainder of this document. Readers may also find it useful to understand basic [Groovy syntax](http://groovy-lang.org/syntax.html),
 since pipeline scripts are written using Groovy (Note: Jenkins sandboxes and [interferes](https://issues.jenkins-ci.org/browse/JENKINS-26481) 
 with the use of some Groovy facilities). 
+
+## Installing
+Until this plugin is hosted by Cloudbees for Jenkins, it must be built locally.
+1. Install maven (platform specific)
+2. Clone this git repository:
+ * # git clone https://github.com/openshift/jenkins-client-plugin.git
+3. In the root of the local repository, run maven 
+ * # cd jenkins-client-plugin
+ * # mvn
+4. Maven will build target/openshift-client.hpi  (the Jenkins plugin binary)
+5. Open Jenkins in your browser, and navigate (as an administrator):
+ * Manage Jenkins > Manage Plugins.
+ * Select the "Advanced" Tab.
+ * Find the "Upload Plugin" HTML form and click "Browse".
+ * Find the openshift-client.hpi built in the previous steps.
+ * Submit the file.
+ * Check that Jenkins should be restarted.
+ 
+You should now be able to [configure an OpenShift Cluster](#configuring-an-openshift-cluster). 
+Before running a job, you may also need to ensure your Jenkins nodes [have the 'oc' binary](#setting-up-jenkins-nodes) 
+installed.
 
 ## Examples
 
@@ -547,7 +569,7 @@ on your particular security requirements).
 This token can then be selected as the default token for a given Jenkins configuration
 cluster OR used tactically in the DSL with openshift.doAs( 'my-privileged-credential-id' ) {...} .
 
-## Setting up Nodes
+## Setting up Jenkins Nodes
 Each Jenkins node (master/agents) must have a copy of the OpenShift command line tool (oc) installed and in the
 Jenkins PATH environment variable. If your Jenkins nodes are running OpenShift images,
 stop reading here: they are already installed!
