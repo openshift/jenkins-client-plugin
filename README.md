@@ -57,20 +57,21 @@ with the use of some Groovy facilities).
 
 ## Installing
 Until this plugin is hosted by Cloudbees for Jenkins, it must be built locally.
+
 1. Install maven (platform specific)
 2. Clone this git repository:
-    1. # git clone https://github.com/openshift/jenkins-client-plugin.git
+ 1. # git clone https://github.com/openshift/jenkins-client-plugin.git
 3. In the root of the local repository, run maven 
-    1. # cd jenkins-client-plugin
-    2. # mvn
+ 1. # cd jenkins-client-plugin
+ 2. # mvn
 4. Maven will build target/openshift-client.hpi  (the Jenkins plugin binary)
 5. Open Jenkins in your browser, and navigate (as an administrator):
-    1. Manage Jenkins > Manage Plugins.
-    2. Select the "Advanced" Tab.
-    3. Find the "Upload Plugin" HTML form and click "Browse".
-    4. Find the openshift-client.hpi built in the previous steps.
-    5. Submit the file.
-    6. Check that Jenkins should be restarted.
+ 1. Manage Jenkins > Manage Plugins.
+ 2. Select the "Advanced" Tab.
+ 3. Find the "Upload Plugin" HTML form and click "Browse".
+ 4. Find the openshift-client.hpi built in the previous steps.
+ 5. Submit the file.
+ 6. Check that Jenkins should be restarted.
  
 You should now be able to [configure an OpenShift Cluster](#configuring-an-openshift-cluster). 
 Before running a job, you may also need to ensure your Jenkins nodes [have the 'oc' binary](#setting-up-jenkins-nodes) 
