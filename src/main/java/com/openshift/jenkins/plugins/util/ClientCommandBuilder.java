@@ -31,11 +31,15 @@ public class ClientCommandBuilder implements Serializable {
         this.verboseOptions = verboseOptions;
     }
 
-    private static List fixNull(List l) {
+    private static List<String> toStringArray(List l) {
+        ArrayList<String> n = new ArrayList<String>();
         if ( l == null ) {
-            return new ArrayList(0);
+            return n;
         }
-        return l;
+        for ( Object o : l ) {
+            n.add( o.toString() );
+        }
+        return n;
     }
 
     private boolean hasArg( List<String> args, String... argsToFind ) {
@@ -63,11 +67,11 @@ public class ClientCommandBuilder implements Serializable {
         cmd.add( toolName );
         cmd.add( verb );
 
-        fixNull(userArgs).forEach( e -> cmd.add( e.toString() ) );
+        cmd.addAll( toStringArray(userArgs) );
 
-        fixNull(verbArgs).forEach( e -> cmd.add( e.toString() ) );
+        cmd.addAll( toStringArray(verbArgs) );
 
-        fixNull(options).forEach( e -> cmd.add( e.toString() ) );
+        cmd.addAll( toStringArray(options) );
 
         if ( this.server != null ) {
             cmd.add("--server=" + server );
@@ -82,7 +86,7 @@ public class ClientCommandBuilder implements Serializable {
         // Some arguments may be long and provide little value (e.g. the path of the server CA),
         // so hide them unless we are in logLevel mode.
         if ( !redacted || logLevel>0) {
-            fixNull(verboseOptions).forEach( e -> cmd.add( e.toString() ) );
+            cmd.addAll( toStringArray(verboseOptions) );
             if ( !hasArg(cmd,"--loglevel")) {
                 cmd.add( "--loglevel=" + logLevel );
             }

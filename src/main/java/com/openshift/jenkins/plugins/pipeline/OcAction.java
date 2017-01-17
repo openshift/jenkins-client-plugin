@@ -41,7 +41,7 @@ public class OcAction extends AbstractStepImpl {
         this.verbose = (logLevel>0);
         this.streamStdOutToConsolePrefix = streamStdOutToConsolePrefix;
         // Reference is used to output information about, for example, file contents not visibile in the command line.
-        this.reference = reference==null?(new HashMap<>()):reference;
+        this.reference = reference==null?(new HashMap<String,String>()):reference;
     }
 
     public static class OcActionResult implements Serializable {

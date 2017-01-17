@@ -64,78 +64,85 @@ public class WatchStep extends BaseStep {
     }
 
     @Override
-    public boolean perform(AbstractBuild build, Launcher launcher, BuildListener listener) throws IOException, InterruptedException {
-        AtomicBoolean watchSatisfied = new AtomicBoolean(false);
-        AtomicBoolean watchResult = new AtomicBoolean(false);
+    public boolean perform(final AbstractBuild build, Launcher launcher, final BuildListener listener) throws IOException, InterruptedException {
+        final AtomicBoolean watchSatisfied = new AtomicBoolean(false);
+        final AtomicBoolean watchResult = new AtomicBoolean(false);
         List<String> base = selector.asSelectionArgs();
         base.add( "--watch" );
         base.add( "--template=" + template );
         base.add( "-o=template" );
         while ( !watchSatisfied.get() ) { // Watch can simply timeout, so we may need to reinvoke. Loop until we get true-positive feedback.
-            StringBuffer totalOutput = new StringBuffer();
+            final StringBuffer totalOutput = new StringBuffer();
             runOcCommand( build, listener, "get",
                     base,
                     toList(),
                     toList(),
                     toList(),
-                    (ProcessBuilder pb)->{
-                        pb.redirectErrorStream(true); // Merge stdout & stderr
-                        Process process = pb.start();
-                        final InputStream output = process.getInputStream(); // stream for combined stdout & stderr
+                    new OcProcessRunner() {
 
-                        new Thread( () -> {
-                            byte buffer[] = new byte[1024];
-                            int count;
-                            try {
-                                while ( (count = output.read( buffer) ) != -1 ) {
-                                    totalOutput.append( new String( buffer, 0, count ) );
+                        @Override
+                        public boolean perform(ProcessBuilder pb) throws IOException, InterruptedException {
+                            pb.redirectErrorStream(true); // Merge stdout & stderr
+                            final Process process = pb.start();
+                            final InputStream output = process.getInputStream(); // stream for combined stdout & stderr
 
-                                    if ( isVerbose() ) { // If logging level is turned up, stream all output from the watch out to the console
-                                        listener.getLogger().write( buffer, 0, count );
+                            new Thread( new Runnable() {
+                                @Override
+                                public void run() {
+                                    byte buffer[] = new byte[1024];
+                                    int count;
+                                    try {
+                                        while ( (count = output.read( buffer) ) != -1 ) {
+                                            totalOutput.append( new String( buffer, 0, count ) );
+
+                                            if ( isVerbose() ) { // If logging level is turned up, stream all output from the watch out to the console
+                                                listener.getLogger().write( buffer, 0, count );
+                                            }
+
+                                            // Don't allow the output to grow without bound.
+                                            // Just make sure we allow it to grow larger than the user's success/fail patterns.
+                                            // We could measure them if we wanted, but no one is going to be looking for a pattern > 100K.
+                                            if ( totalOutput.length() > 200000 ) {
+                                                totalOutput.delete( 0, 100000 );
+                                            }
+
+                                            if (totalOutput.indexOf( successPattern ) > -1 ) {
+                                                watchSatisfied.set(true);
+                                                watchResult.set(true);
+                                                listener.getLogger().println( "Found success pattern: '" + successPattern + "' in: \n>>>\n" + totalOutput + "\n<<<");
+                                                process.destroy();
+                                            }
+
+                                            if (!Strings.isNullOrEmpty(failPattern) && totalOutput.indexOf( failPattern ) > -1 ) {
+                                                watchSatisfied.set(true);
+                                                watchResult.set(false);
+                                                listener.getLogger().println( "Found failure pattern: '" + failPattern + "' in: \n>>>\n" + totalOutput + "\n<<<" );
+                                                process.destroy();
+                                            }
+
+                                        }
+                                    } catch ( Exception e ) {
+                                        if ( ! watchSatisfied.get() ) {
+                                            // If the watch isn't yet satisfied and we have an exception, then it is a problem.
+                                            listener.error( "Error streaming process output" );
+                                            e.printStackTrace( listener.getLogger() );
+                                        }
                                     }
-
-                                    // Don't allow the output to grow without bound.
-                                    // Just make sure we allow it to grow larger than the user's success/fail patterns.
-                                    // We could measure them if we wanted, but no one is going to be looking for a pattern > 100K.
-                                    if ( totalOutput.length() > 200000 ) {
-                                        totalOutput.delete( 0, 100000 );
-                                    }
-
-                                    if (totalOutput.indexOf( successPattern ) > -1 ) {
-                                        watchSatisfied.set(true);
-                                        watchResult.set(true);
-                                        listener.getLogger().println( "Found success pattern: '" + successPattern + "' in: \n>>>\n" + totalOutput + "\n<<<");
-                                        process.destroyForcibly();
-                                    }
-
-                                    if (!Strings.isNullOrEmpty(failPattern) && totalOutput.indexOf( failPattern ) > -1 ) {
-                                        watchSatisfied.set(true);
-                                        watchResult.set(false);
-                                        listener.getLogger().println( "Found failure pattern: '" + failPattern + "' in: \n>>>\n" + totalOutput + "\n<<<" );
-                                        process.destroyForcibly();
-                                    }
-
                                 }
-                            } catch ( Exception e ) {
-                                if ( ! watchSatisfied.get() ) {
-                                    // If the watch isn't yet satisfied and we have an exception, then it is a problem.
-                                    listener.error( "Error streaming process output" );
-                                    e.printStackTrace( listener.getLogger() );
-                                }
+                            }).start();
+
+                            int status = process.waitFor();
+                            if ( !watchSatisfied.get() && status != 0 ) {
+                                listener.getLogger().println( "Client tool watch terminated with error: " + status );
+                                listener.getLogger().println( totalOutput );
+                                watchSatisfied.set(true);
+                                watchResult.set(false);
+
                             }
-                        }).start();
-
-                        int status = process.waitFor();
-                        if ( !watchSatisfied.get() && status != 0 ) {
-                            listener.getLogger().println( "Client tool watch terminated with error: " + status );
-                            listener.getLogger().println( totalOutput );
-                            watchSatisfied.set(true);
-                            watchResult.set(false);
-
+                            return true; // This value ignored. Only watchResult matters.
                         }
-                        return true; // This value ignored. Only watchResult matters.
                     }
-            );
+                );
         }
 
         return watchResult.get();

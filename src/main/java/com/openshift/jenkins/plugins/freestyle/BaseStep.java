@@ -1,6 +1,7 @@
 package com.openshift.jenkins.plugins.freestyle;
 
 import com.cloudbees.plugins.credentials.CredentialsProvider;
+import com.cloudbees.plugins.credentials.domains.DomainRequirement;
 import com.google.common.base.Strings;
 import com.openshift.jenkins.plugins.ClusterConfig;
 import com.openshift.jenkins.plugins.OpenShift;
@@ -23,7 +24,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 public abstract class BaseStep extends Builder {
@@ -96,7 +96,7 @@ public abstract class BaseStep extends Builder {
         return (new OpenShift.DescriptorImpl()).getClusterConfig(clusterName);
     }
 
-    protected boolean runOcCommand(AbstractBuild build, TaskListener listener, String verb, List verbArgs, List userArgs, List options, List verboseOptions, OcProcessRunner runner) throws IOException, InterruptedException {
+    protected boolean runOcCommand(final AbstractBuild build, final TaskListener listener, final String verb, final List verbArgs, final List userArgs, final List options, final List verboseOptions, final OcProcessRunner runner) throws IOException, InterruptedException {
         ClusterConfig c = getCluster();
         final String server, project, token, caContent;
 
@@ -144,7 +144,7 @@ public abstract class BaseStep extends Builder {
         }
 
         if ( ! Strings.isNullOrEmpty( actualCredentialsId ) ) {
-            OpenShiftTokenCredentials tokenSecret = CredentialsProvider.findCredentialById( actualCredentialsId, OpenShiftTokenCredentials.class, build, Collections.emptyList() );
+            OpenShiftTokenCredentials tokenSecret = CredentialsProvider.findCredentialById( actualCredentialsId, OpenShiftTokenCredentials.class, build, new ArrayList<DomainRequirement>() );
             if ( tokenSecret == null ) {
                 throw new IOException( "Unable to find credential in Jenkins credential store: " + actualCredentialsId );
             }
@@ -154,44 +154,53 @@ public abstract class BaseStep extends Builder {
             token = null;
         }
 
-        return withTempInput( "serviceca", caContent, (String filename) -> {
-            if ( filename != null ) { // this will be null if we are running within the cluster or TLS verify is disabled
-                verboseOptions.add( "--certificate-authority=" + filename );
+        return withTempInput( "serviceca", caContent, new WithTempInputRunnable() {
+            @Override
+            public boolean perform(String filename) throws IOException, InterruptedException {
+                if ( filename != null ) { // this will be null if we are running within the cluster or TLS verify is disabled
+                    verboseOptions.add( "--certificate-authority=" + filename );
+                }
+                final ClientCommandBuilder cmdBuilder = new ClientCommandBuilder( server, project, verb, verbArgs, userArgs, options, verboseOptions, token, new Integer(logLevel) );
+                ProcessBuilder pb = new ProcessBuilder();
+                pb.command( cmdBuilder.buildCommand( false ) );
+                listener.getLogger().println( "Executing: " + cmdBuilder.asString(true) );
+                return runner.perform( pb );
             }
-            final ClientCommandBuilder cmdBuilder = new ClientCommandBuilder( server, project, verb, verbArgs, userArgs, options, verboseOptions, token, new Integer(logLevel) );
-            ProcessBuilder pb = new ProcessBuilder();
-            pb.command( cmdBuilder.buildCommand( false ) );
-            listener.getLogger().println( "Executing: " + cmdBuilder.asString(true) );
-            return runner.perform( pb );
         });
 
     }
 
-    protected boolean standardRunOcCommand(AbstractBuild build, TaskListener listener, String verb, List verbArgs, List userArgs, List options, List verboseOptions ) throws IOException, InterruptedException {
-        return runOcCommand( build, listener, verb, verbArgs, userArgs, options, verboseOptions, (ProcessBuilder pb)->{
-            pb.redirectErrorStream(true); // Merge stdout & stderr
-            Process process = pb.start();
-            final InputStream output = process.getInputStream(); // stream for combined stdout & stderr
+    protected boolean standardRunOcCommand(final AbstractBuild build, final TaskListener listener, String verb, List verbArgs, List userArgs, List options, List verboseOptions ) throws IOException, InterruptedException {
+        return runOcCommand(build, listener, verb, verbArgs, userArgs, options, verboseOptions, new OcProcessRunner() {
+            @Override
+            public boolean perform(ProcessBuilder pb) throws IOException, InterruptedException {
+                pb.redirectErrorStream(true); // Merge stdout & stderr
+                Process process = pb.start();
+                final InputStream output = process.getInputStream(); // stream for combined stdout & stderr
 
-            new Thread( () -> {
-                byte buffer[] = new byte[1024];
-                int count;
-                try {
-                    while ( (count = output.read( buffer) ) != -1 ) {
-                        listener.getLogger().write(buffer,0,count);
+                new Thread( new Runnable() {
+                    @Override
+                    public void run() {
+                        byte buffer[] = new byte[1024];
+                        int count;
+                        try {
+                            while ( (count = output.read( buffer) ) != -1 ) {
+                                listener.getLogger().write(buffer,0,count);
+                            }
+                        } catch ( Exception e ) {
+                            listener.error( "Error streaming process output" );
+                            e.printStackTrace( listener.getLogger() );
+                        }
                     }
-                } catch ( Exception e ) {
-                    listener.error( "Error streaming process output" );
-                    e.printStackTrace( listener.getLogger() );
-                }
-            }).start();
+                }).start();
 
-            int status = process.waitFor();
-            if ( status != 0 ) {
-                listener.getLogger().println( "Client tool terminated with status: " + status );
-                return false;
+                int status = process.waitFor();
+                if ( status != 0 ) {
+                    listener.getLogger().println( "Client tool terminated with status: " + status );
+                    return false;
+                }
+                return true;
             }
-            return true;
         });
     }
 
