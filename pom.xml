@@ -24,7 +24,7 @@
 
     <groupId>com.openshift.jenkins.plugins</groupId>
     <artifactId>openshift-client</artifactId>
-    <version>1.0-SNAPSHOT</version>
+    <version>0.8</version>
     <packaging>hpi</packaging>
 
     <properties>
