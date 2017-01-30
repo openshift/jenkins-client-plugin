@@ -103,7 +103,7 @@ public class ClusterConfig extends AbstractDescribableImpl<ClusterConfig> implem
             throw new IllegalStateException( "No clusterName information specified and unable to find `KUBERNETES_SERVICE_HOST` environment variable.");
         }
         String servicePort = System.getenv("KUBERNETES_SERVICE_PORT_HTTPS");
-        if ( serviceHost == null || servicePort == null ) {
+        if ( servicePort == null ) {
             throw new IllegalStateException( "No clusterName information specified and unable to find `KUBERNETES_SERVICE_PORT_HTTPS` environment variable.");
         }
         return "https://" + serviceHost + ":" + servicePort;
