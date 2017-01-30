@@ -43,7 +43,7 @@
 
     <name>OpenShift Client Jenkins Plugin</name>
     <description>A Jenkins plugin which leverages the OpenShift client binary (oc) to enable powerful Pipeline DSL based interactions with OpenShift clusters.</description>
-    <url>https://github.com/openshift/jenkins-client-plugin</url>
+    <url>https://wiki.jenkins-ci.org/display/JENKINS/OpenShift+Client+Plugin</url>
 
     <licenses>
         <license>
