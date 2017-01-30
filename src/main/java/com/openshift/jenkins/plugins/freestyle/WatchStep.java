@@ -13,6 +13,7 @@ import org.kohsuke.stapler.QueryParameter;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -93,7 +94,7 @@ public class WatchStep extends BaseStep {
                                     int count;
                                     try {
                                         while ( (count = output.read( buffer) ) != -1 ) {
-                                            totalOutput.append( new String( buffer, 0, count ) );
+                                            totalOutput.append( new String( buffer, 0, count, StandardCharsets.UTF_8) );
 
                                             if ( isVerbose() ) { // If logging level is turned up, stream all output from the watch out to the console
                                                 listener.getLogger().write( buffer, 0, count );

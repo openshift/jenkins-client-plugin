@@ -23,6 +23,7 @@ import javax.inject.Inject;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.io.Serializable;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 
@@ -186,7 +187,7 @@ public class OcAction extends AbstractStepImpl {
                     }
                     stdOut.write( newOutput );
                     if ( newOutput.length > 0 && step.streamStdOutToConsolePrefix != null) {
-                        printToConsole( new String(newOutput) );
+                        printToConsole( new String(newOutput, StandardCharsets.UTF_8) );
                         // If we are streaming to console and getting output, keep sleep duration small.
                         reCheckSleep = 1000;
                         continue;
@@ -202,7 +203,7 @@ public class OcAction extends AbstractStepImpl {
                 }
                 stdOut.write( newOutput );
                 if ( step.streamStdOutToConsolePrefix != null ) {
-                    printToConsole( new String(newOutput) );
+                    printToConsole( new String(newOutput, StandardCharsets.UTF_8) );
                     listener.getLogger().println(); // final newline if output does not contain it.
                 }
 
@@ -214,8 +215,8 @@ public class OcAction extends AbstractStepImpl {
                 result.verb = step.cmdBuilder.verb;
                 result.cmd = redactedCommandString;
                 result.status = dtc.exitStatus(filePath,launcher);
-                result.out = stdOut.toString().trim();
-                result.err = stdErr.toString().trim();
+                result.out = stdOut.toString("UTF-8").trim();
+                result.err = stdErr.toString("UTF-8").trim();
                 result.reference = step.reference;
 
                 if ( step.verbose ) {

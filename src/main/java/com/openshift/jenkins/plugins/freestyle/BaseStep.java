@@ -19,6 +19,7 @@ import org.kohsuke.stapler.QueryParameter;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -29,6 +30,9 @@ import java.util.List;
 public abstract class BaseStep extends Builder {
 
     public static final String DEFAULT_LOGLEVEL = "0";
+
+    public static final String SERVICE_ACCOUNT_NAMESPACE_PATH = "/perform/secrets/kubernetes.io/serviceaccount/namespace";
+    public static final String SERVICE_ACCOUNT_CA_PATH = "/perform/secrets/kubernetes.io/serviceaccount/ca.crt";
 
     private String clusterName;
 
@@ -75,7 +79,7 @@ public abstract class BaseStep extends Builder {
         if ( Strings.isNullOrEmpty(logLevel) ) {
             return false;
         }
-        return (new Integer(logLevel)) > 0;
+        return (Integer.parseInt(logLevel) > 0);
     }
 
     @DataBoundSetter
@@ -108,7 +112,7 @@ public abstract class BaseStep extends Builder {
 
         if ( c == null ) { // if null, we assume the cluster is running the Jenkins node.
             server = ClusterConfig.getHostClusterApiServerUrl();
-            verboseOptions.add( "--certificate-authority=/perform/secrets/kubernetes.io/serviceaccount/ca.crt" );
+            verboseOptions.add( "--certificate-authority=" + SERVICE_ACCOUNT_CA_PATH );
             caContent = null;
         } else {
             server = c.getServerUrl();
@@ -127,7 +131,7 @@ public abstract class BaseStep extends Builder {
                     throw new IOException("No project defined in step or in cluster: " + clusterName);
                 }
             } else {
-                project = new String( Files.readAllBytes(Paths.get( "/perform/secrets/kubernetes.io/serviceaccount/namespace") ) );
+                project = new String( Files.readAllBytes(Paths.get( SERVICE_ACCOUNT_NAMESPACE_PATH ) ), StandardCharsets.UTF_8 );
             }
         } else {
             project = this.project;
@@ -160,7 +164,7 @@ public abstract class BaseStep extends Builder {
                 if ( filename != null ) { // this will be null if we are running within the cluster or TLS verify is disabled
                     verboseOptions.add( "--certificate-authority=" + filename );
                 }
-                final ClientCommandBuilder cmdBuilder = new ClientCommandBuilder( server, project, verb, verbArgs, userArgs, options, verboseOptions, token, new Integer(logLevel) );
+                final ClientCommandBuilder cmdBuilder = new ClientCommandBuilder( server, project, verb, verbArgs, userArgs, options, verboseOptions, token, Integer.parseInt(logLevel) );
                 ProcessBuilder pb = new ProcessBuilder();
                 pb.command( cmdBuilder.buildCommand( false ) );
                 listener.getLogger().println( "Executing: " + cmdBuilder.asString(true) );
@@ -256,7 +260,9 @@ public abstract class BaseStep extends Builder {
         try {
             if ( content != null ) {
                 tmp = Files.createTempFile( prefix, ".tmp" );
-                Files.write( tmp, content.getBytes(), StandardOpenOption.WRITE );
+                ArrayList<String> list = new ArrayList<String>(1);
+                list.add( content );
+                Files.write( tmp, list, StandardCharsets.UTF_8, StandardOpenOption.WRITE );
             }
             return runnable.perform( (tmp==null)?null:tmp.toAbsolutePath().toString() );
         } finally {

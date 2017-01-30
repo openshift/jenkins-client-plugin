@@ -4,6 +4,7 @@ import hudson.model.TaskListener;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
+import java.io.UnsupportedEncodingException;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
@@ -22,11 +23,18 @@ public class QuietTaskListenerFactory {
 
         private final TaskListener underlying;
         private final ByteArrayOutputStream logContent = new ByteArrayOutputStream();
-        private final PrintStream out = new PrintStream(logContent);
+        private final PrintStream out;
 
 
         protected QuietTaskListenerIH( TaskListener underlying ) {
             this.underlying = underlying;
+            PrintStream tmp = null;
+            try {
+                tmp = new PrintStream(logContent, false, "UTF-8");
+            } catch (UnsupportedEncodingException e) {
+                throw new RuntimeException( "UTF8 not supported", e );
+            }
+            out = tmp;
         }
 
         /**
@@ -41,7 +49,7 @@ public class QuietTaskListenerFactory {
             }
             if ( "__getLogOutput".equals(method.getName())) {
                 out.flush();
-                return logContent.toString();
+                return logContent.toString("utf-8");
             }
             // If neither signature matches, pass it on to the underlying TaskListener
             return method.invoke(o,objects);
