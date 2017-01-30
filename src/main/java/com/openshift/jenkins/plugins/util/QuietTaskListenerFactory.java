@@ -49,7 +49,7 @@ public class QuietTaskListenerFactory {
             }
             if ( "__getLogOutput".equals(method.getName())) {
                 out.flush();
-                return logContent.toString("utf-8");
+                return logContent.toString("UTF-8");
             }
             // If neither signature matches, pass it on to the underlying TaskListener
             return method.invoke(o,objects);
