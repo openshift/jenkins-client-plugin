@@ -12,7 +12,6 @@ import java.lang.reflect.Proxy;
 public class QuietTaskListenerFactory {
 
     public static QuietTasklistener build(TaskListener listener){
-        ByteArrayOutputStream loggerOutput = new ByteArrayOutputStream();
         return (QuietTasklistener) Proxy.newProxyInstance(
                 QuietTaskListenerFactory.class.getClassLoader(),
                 new Class[]{QuietTasklistener.class},

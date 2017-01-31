@@ -140,7 +140,7 @@ public class OcAction extends AbstractStepImpl {
         @StepContextParameter
         private transient Computer computer;
 
-        private transient boolean firstPrint = true;
+        private boolean firstPrint = true;
 
         private void printToConsole( String s ) {
             final String prefix = "[" + step.streamStdOutToConsolePrefix + "] ";
@@ -179,7 +179,8 @@ public class OcAction extends AbstractStepImpl {
                 ByteArrayOutputStream stdOut = new ByteArrayOutputStream();
 
                 long reCheckSleep = 250;
-                while ( dtc.exitStatus(filePath,launcher) == null ) {
+                Integer exitStatus;
+                while ( ( exitStatus = dtc.exitStatus(filePath,launcher) ) == null ) {
                     Thread.sleep(reCheckSleep);
                     byte[] newOutput;
                     try (InputStream is = stdoutTmp.readFromOffset( stdOut.size() )) {
@@ -214,7 +215,7 @@ public class OcAction extends AbstractStepImpl {
                 OcActionResult result = new OcActionResult();
                 result.verb = step.cmdBuilder.verb;
                 result.cmd = redactedCommandString;
-                result.status = dtc.exitStatus(filePath,launcher);
+                result.status = exitStatus.intValue();
                 result.out = stdOut.toString("UTF-8").trim();
                 result.err = stdErr.toString("UTF-8").trim();
                 result.reference = step.reference;

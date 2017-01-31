@@ -1,0 +1,50 @@
+<FindBugsFilter>
+    <!-- https://wiki.jenkins-ci.org/display/JENKINS/FindBugs+in+plugins -->
+
+    <Match>
+        <Class name="com.foobar.ClassNotToBeAnalyzed" />
+    </Match>
+
+    <Match>
+        <Class name="com.openshift.jenkins.plugins.OpenShift$DescriptorImpl" />
+        <Bug code="UwF,UrF" />
+    </Match>
+
+    <Match>
+        <Class name="com.openshift.jenkins.plugins.freestyle.BaseStep" />
+        <Bug code="DMI" />
+    </Match>
+
+    <Match>
+        <Class name="com.openshift.jenkins.plugins.ClusterConfig" />
+        <Bug code="NP" />
+    </Match>
+
+    <!-- Match all doublecheck violations in these methods of "AnotherClass". -->
+    <Match>
+        <Class name="com.foobar.AnotherClass" />
+        <Or>
+            <Method name="nonOverloadedMethod" />
+            <Method name="frob" params="int,java.lang.String" returns="void" />
+            <Method name="blat" params="" returns="boolean" />
+        </Or>
+        <Bug code="DC" />
+    </Match>
+
+    <!-- A method with a dead local store false positive (medium priority). -->
+    <Match>
+        <Class name="com.foobar.MyClass" />
+        <Method name="someMethod" />
+        <Bug pattern="DLS_DEAD_LOCAL_STORE" />
+        <Priority value="2" />
+    </Match>
+
+    <!-- All bugs in test classes, except for JUnit-specific bugs -->
+    <Match>
+        <Class name="~.*\.*Test" />
+        <Not>
+            <Bug code="IJU" />
+        </Not>
+    </Match>
+
+</FindBugsFilter>

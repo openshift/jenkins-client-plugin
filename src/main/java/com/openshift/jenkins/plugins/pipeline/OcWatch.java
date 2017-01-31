@@ -112,10 +112,12 @@ public class OcWatch extends AbstractStepImpl {
                         QuietTaskListenerFactory.QuietTasklistener quiet = QuietTaskListenerFactory.build(listener);
                         Controller dtc = task.launch(envVars,filePath,launcher,quiet);
 
+                        Integer exitStatus = -1;
                         try {
                             long reCheckSleep = 250;
                             boolean firstPass = true;
                             long outputSize = 0;
+
                             do {
 
                                 byte[] newOutput;
@@ -147,14 +149,14 @@ public class OcWatch extends AbstractStepImpl {
                                 listener.getLogger().println( "Checking watch output again in " + reCheckSleep + "ms" );
                                 Thread.sleep( reCheckSleep );
 
-                            } while ( dtc.exitStatus(filePath,launcher) == null );
+                            } while ( (exitStatus = dtc.exitStatus(filePath,launcher)) == null );
 
                         } finally {
                             dtc.cleanup(filePath);
                         }
 
                         // Reaching this point means that the watch terminated
-                        if ( dtc.exitStatus(filePath,launcher) != 0 ) {
+                        if ( exitStatus.intValue() != 0 ) {
                             // Looks like the watch command encountered an error
                             throw new AbortException( "watch terminated with an error: " + dtc.exitStatus(filePath,launcher) );
                         }
@@ -164,6 +166,8 @@ public class OcWatch extends AbstractStepImpl {
                     stderrTmp.delete();
                 }
 
+            } catch ( RuntimeException re ) {
+                throw re;
             } catch ( Exception e ) {
                 getContext().onFailure(e);
             }
