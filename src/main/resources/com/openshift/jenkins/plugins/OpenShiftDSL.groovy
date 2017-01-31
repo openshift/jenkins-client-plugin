@@ -535,8 +535,8 @@ class OpenShiftDSL implements Serializable {
 
     public Result newProject(String name, String... args ) {
         Result r = new Result( "newProject" );
-        r.actions.add( (OcAction.OcActionResult)script._OcAction( buildCommonArgs("new-projectForStep", [name], args, "--skip-config-write" ) ) );
-        r.failIf( "new-projectForStep returned an error" );
+        r.actions.add( (OcAction.OcActionResult)script._OcAction( buildCommonArgs("new-project", [name], args, "--skip-config-write" ) ) );
+        r.failIf( "new-project returned an error" );
         return r;
     }
 
@@ -571,7 +571,7 @@ class OpenShiftDSL implements Serializable {
 
 
     public OpenShiftResourceSelector newBuild(String... args ) {
-        return newObjectsAction( "newBuild", "new-buildCommand", args );
+        return newObjectsAction( "newBuild", "new-build", args );
     }
 
     public OpenShiftResourceSelector newApp(String... args ) {
@@ -579,7 +579,7 @@ class OpenShiftDSL implements Serializable {
     }
 
     public OpenShiftResourceSelector startBuild(String... args ) {
-        return newObjectsAction( "startBuild", "start-buildCommand", args );
+        return newObjectsAction( "startBuild", "start-build", args );
     }
 
     private Result simplePassthrough( String verb, String[] args ) {
@@ -922,10 +922,10 @@ class OpenShiftDSL implements Serializable {
             // only supports a single object at a time, so get individual names
             for ( String name : names ) {
                 r.actions.add(
-                        (OcAction.OcActionResult)script._OcAction( buildCommonArgs("start-buildCommand", [name.toString() ], userArgs, "-o=name") )
+                        (OcAction.OcActionResult)script._OcAction( buildCommonArgs("start-build", [name.toString() ], userArgs, "-o=name") )
                 );
             }
-            r.failIf( "Error running start-buildCommand on at least one item: " + names.toString() );
+            r.failIf( "Error running start-build on at least one item: " + names.toString() );
             return new OpenShiftResourceSelector( r, OpenShiftDSL.splitNames( r.out ) );
         }
 
@@ -942,7 +942,7 @@ class OpenShiftDSL implements Serializable {
         }
 
         public Result cancelBuild(String... userArgs ) throws AbortException {
-            return onceForEach( "cancelBuild", "cancel-buildCommand", userArgs );
+            return onceForEach( "cancelBuild", "cancel-build", userArgs );
         }
 
 
@@ -1029,7 +1029,7 @@ class OpenShiftDSL implements Serializable {
                     labels.put( "deploymentconfig", unqualifiedName );
                     break;
                 case "buildconfig" :
-                    labels.put( "openshift.io/buildCommand-config.name", unqualifiedName );
+                    labels.put( "openshift.io/build-config.name", unqualifiedName );
                     break;
                 default:
                     throw new AbortException( "Unknown how to find resources related to name: " + k );
