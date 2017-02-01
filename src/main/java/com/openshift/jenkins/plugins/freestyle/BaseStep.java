@@ -31,8 +31,9 @@ public abstract class BaseStep extends Builder {
 
     public static final String DEFAULT_LOGLEVEL = "0";
 
-    public static final String SERVICE_ACCOUNT_NAMESPACE_PATH = "/perform/secrets/kubernetes.io/serviceaccount/namespace";
-    public static final String SERVICE_ACCOUNT_CA_PATH = "/perform/secrets/kubernetes.io/serviceaccount/ca.crt";
+    public static final String SERVICE_ACCOUNT_NAMESPACE_PATH = "/var/run/secrets/kubernetes.io/serviceaccount/namespace";
+    public static final String SERVICE_ACCOUNT_TOKEN_PATH = "/var/run/secrets/kubernetes.io/serviceaccount/token";
+    public static final String SERVICE_ACCOUNT_CA_PATH = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt";
 
     private String clusterName;
 
@@ -155,7 +156,7 @@ public abstract class BaseStep extends Builder {
             token = tokenSecret.getToken();
         } else {
             // We are running within a host cluster, so use mounted secret
-            token = null;
+            token = new String( Files.readAllBytes(Paths.get( SERVICE_ACCOUNT_TOKEN_PATH ) ), StandardCharsets.UTF_8 );
         }
 
         return withTempInput( "serviceca", caContent, new WithTempInputRunnable() {

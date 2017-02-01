@@ -100,9 +100,7 @@ class OpenShiftDSL implements Serializable {
                 return parent.getToken();
             }
 
-            // Instruct the command builder to not pass a token. This should force oc to default to mounted secret information.
-            // Specifically the env variable BEARER_TOKEN_FILE: "/perform/secrets/kubernetes.io/serviceaccount/token"
-            return null;
+            return script.readFile("/var/run/secrets/kubernetes.io/serviceaccount/token");
         }
 
         public void setCredentialsId(String credentialsId ) {
@@ -117,7 +115,7 @@ class OpenShiftDSL implements Serializable {
                 return parent.getProject();
             }
 
-            return script.readFile("/perform/secrets/kubernetes.io/serviceaccount/namespace");
+            return script.readFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace");
         }
 
         public void setProject(String project ) {
@@ -133,7 +131,7 @@ class OpenShiftDSL implements Serializable {
             }
 
             // Assume we are running in an OpenShift pod with a service account mounted
-            return "/perform/secrets/kubernetes.io/serviceaccount/ca.crt";
+            return "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt";
         }
 
         public void setServerCertificateAuthorityContent(String serverCertificateAuthorityContent ) {
