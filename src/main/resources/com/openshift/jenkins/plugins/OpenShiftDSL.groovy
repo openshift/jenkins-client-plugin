@@ -463,10 +463,11 @@ class OpenShiftDSL implements Serializable {
         boolean markup = false;
         String s = obj.toString();
         markup = s.contains("{") || s.contains(":"); // does this look like json or yaml?
+        boolean httpref = s.toLowerCase().startsWith("http") && verb.equalsIgnoreCase("create"); // a create from a http or https raw.githubuser path
 
         Result r = new Result( verb );
 
-        if ( markup ) {
+        if ( markup && !httpref) {
             FilePath f = currentContext.exec.getWorkspaceFilePath().createTextTempFile( verb, ".markup", s, false );
             try {
                 Map stepArgs = buildCommonArgs(verb, [ "-f", f.getRemote() ], userArgs, "-o=name" );
@@ -475,6 +476,9 @@ class OpenShiftDSL implements Serializable {
             } finally {
                 f.delete();
             }
+        } else if (httpref) {
+            Map stepArgs = buildCommonArgs(verb, [ "-f", s ], userArgs, "-o=name" );
+            r.actions.add((OcAction.OcActionResult)script._OcAction(stepArgs));
         } else {
             // looks like a subVerb was passed in (e.g. openshift.create( "serviceaccount", "jenkins" ) )
             r.actions.add((OcAction.OcActionResult)script._OcAction( buildCommonArgs(verb, [s ], userArgs, "-o=name" ) ));
@@ -709,7 +713,10 @@ class OpenShiftDSL implements Serializable {
                 kind = s[0];
                 qualifier = s[1];
             }
-
+            
+            if (abbreviations.containsKey(kind)) {
+                kind = abbreviations.get(kind);
+            }
             if ( qualifier != null ) {
                 if ( qualifier instanceof Map ) {
                     this.labels = new HashMap((Map)qualifier);

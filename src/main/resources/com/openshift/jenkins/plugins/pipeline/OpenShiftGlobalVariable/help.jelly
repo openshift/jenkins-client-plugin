@@ -752,7 +752,7 @@
                     </p>
                     <br></br>
                     Returns the number of objects the receiver selects. In the case of a DynamicSelector,
-                    a query is made to the server to establish the current count. In this case of StaticSelectors,
+                    a query is made to the server to establish the current count. In the case of StaticSelectors,
                     this count is a constant (even if the objects it selects do not exist on the server).
                 </p>
             </dd>
