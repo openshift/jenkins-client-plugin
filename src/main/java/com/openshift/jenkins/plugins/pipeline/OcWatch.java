@@ -19,6 +19,8 @@ import javax.inject.Inject;
 import java.io.InputStream;
 import java.util.List;
 
+import static com.openshift.jenkins.plugins.pipeline.OcAction.exitStatusRaceConditionBugWorkaround;
+
 public class OcWatch extends AbstractStepImpl {
 
     public static final String FUNCTION_NAME = "_OcWatch";
@@ -111,6 +113,8 @@ public class OcWatch extends AbstractStepImpl {
                         // e.g. "[_OcWatch] Running shell script"
                         QuietTaskListenerFactory.QuietTasklistener quiet = QuietTaskListenerFactory.build(listener);
                         Controller dtc = task.launch(envVars,filePath,launcher,quiet);
+
+                        exitStatusRaceConditionBugWorkaround( dtc, filePath, launcher);
 
                         Integer exitStatus = -1;
                         try {
