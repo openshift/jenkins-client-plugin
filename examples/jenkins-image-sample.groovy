@@ -8,7 +8,7 @@ openshift.withCluster() {
     def saSelector1 = openshift.selector( "serviceaccount" )
     saSelector1.describe()
     
-    timeout(3) {
+    timeout(8) {
         def templateSelector = openshift.selector( "template", "mongodb-ephemeral")
         
         templateSelector.delete('--ignore-not-found')
