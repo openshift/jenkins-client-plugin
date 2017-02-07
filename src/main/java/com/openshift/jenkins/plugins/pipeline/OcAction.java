@@ -21,6 +21,7 @@ import org.kohsuke.stapler.DataBoundConstructor;
 
 import javax.inject.Inject;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.Serializable;
 import java.nio.charset.StandardCharsets;
@@ -43,6 +44,22 @@ public class OcAction extends AbstractStepImpl {
         this.streamStdOutToConsolePrefix = streamStdOutToConsolePrefix;
         // Reference is used to output information about, for example, file contents not visibile in the command line.
         this.reference = reference==null?(new HashMap<String,String>()):reference;
+    }
+
+    public static void exitStatusRaceConditionBugWorkaround( Controller dtc, FilePath filePath, Launcher launcher ) throws InterruptedException, IOException {
+        for ( int tries = 30; tries > 0; tries-- ) {
+            try {
+                // exitStatus can throw an IOException (reporting a NumberFormatException) if the PID file has been created but not
+                // populated. Make sure it stops throwing this exception before continuing.
+                dtc.exitStatus(filePath,launcher);
+                return; // exitStatus is healthy, we should be safe
+            } catch ( IOException ioe ) {
+                if ( tries == 1 ) {
+                    throw ioe;
+                }
+                Thread.sleep(1000);
+            }
+        }
     }
 
     public static class OcActionResult implements Serializable {
@@ -177,6 +194,8 @@ public class OcAction extends AbstractStepImpl {
 
                 ByteArrayOutputStream stdErr = new ByteArrayOutputStream();
                 ByteArrayOutputStream stdOut = new ByteArrayOutputStream();
+
+                exitStatusRaceConditionBugWorkaround( dtc, filePath, launcher);
 
                 long reCheckSleep = 250;
                 Integer exitStatus;
