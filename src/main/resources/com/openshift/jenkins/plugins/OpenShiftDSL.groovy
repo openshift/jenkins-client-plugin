@@ -217,7 +217,9 @@ class OpenShiftDSL implements Serializable {
      * @param credentialId A literal OAuth token name OR the Jenkins specific identifier of a credential
      *          defined in the Jenkins credentials store.
      */
-    public <V> V withCluster( String name=null, String credentialId=null, Closure<V> body ) {
+    public <V> V withCluster( Object oname=null, Object ocredentialId=null, Closure<V> body ) {
+        String name = toSingleString(oname);
+        String credentialId = toSingleString(ocredentialId);
 
         node {
 
@@ -267,7 +269,8 @@ class OpenShiftDSL implements Serializable {
 
     }
 
-    public <V> V withProject( String projectName=null, Closure<V> body ) {
+    public <V> V withProject( Object oprojectName=null, Closure<V> body ) {
+        String projectName = toSingleString( oprojectName );
         dieIfWithout( ContextId.WITH_PROJECT, currentContext, ContextId.WITH_CLUSTER )
         Context context = new Context( currentContext, ContextId.WITH_PROJECT );
         context.setProject( projectName );
@@ -277,7 +280,8 @@ class OpenShiftDSL implements Serializable {
     }
 
 
-    public <V> V doAs( String credentialId=null, Closure<V> body ) {
+    public <V> V doAs( Object ocredentialId=null, Closure<V> body ) {
+        String credentialId = toSingleString(ocredentialId);
         dieIfWithout( ContextId.DO_AS, currentContext, ContextId.WITH_CLUSTER )
         Context context = new Context( currentContext, ContextId.DO_AS );
         context.setCredentialsId( credentialId );
@@ -299,7 +303,10 @@ class OpenShiftDSL implements Serializable {
         logLevel(v?8:0)
     }
 
-    private Map buildCommonArgs( String verb, List verbArgs, String[] userArgsArray, String... overrideArgs ) {
+    private Map buildCommonArgs( Object overb, List verbArgs, Object[] ouserArgsArray, Object... ooverrideArgs ) {
+        String verb = toSingleString(overb);
+        String[] userArgsArray = toStringArray(ouserArgsArray);
+        String[] overrideArgs = toStringArray(ooverrideArgs);
 
         List optionsBase = [];
 
@@ -449,7 +456,7 @@ class OpenShiftDSL implements Serializable {
      *      selector( "dc", [ alabel: 'avalue' ] ) // Selects using label values
      * When labels are used, the qualifier will be a map. In other cases, expect a String or null.
      */
-    public OpenShiftResourceSelector selector(String kind = "all", Object qualifier=null ) {
+    public OpenShiftResourceSelector selector(Object kind = null, Object qualifier=null ) {
         return new OpenShiftResourceSelector( "selector", kind, qualifier );
     }
 
@@ -488,19 +495,20 @@ class OpenShiftDSL implements Serializable {
 
     }
 
-    public OpenShiftResourceSelector create(Object obj,String... args) {
+    public OpenShiftResourceSelector create(Object obj,Object... args) {
         return objectDefAction( "create", obj, args );
     }
 
-    public OpenShiftResourceSelector replace(Object obj,String... args) {
+    public OpenShiftResourceSelector replace(Object obj,Object... args) {
         return objectDefAction( "replace", obj, args );
     }
 
-    public OpenShiftResourceSelector apply(Object obj,String... args) {
+    public OpenShiftResourceSelector apply(Object obj,Object... args) {
         return objectDefAction( "apply", obj, args );
     }
 
-    public ArrayList<HashMap> process(Object obj,String... args) throws AbortException {
+    public ArrayList<HashMap> process(Object obj,Object... oargs) throws AbortException {
+        String[] args = toStringArray(oargs);
         Result r;
 
         if ( obj instanceof Map ) {
@@ -535,14 +543,62 @@ class OpenShiftDSL implements Serializable {
         return unwrapOpenShiftList( serializableMap( r.out ) );
     }
 
-    public Result newProject(String name, String... args ) {
+    public Result newProject(Object oname, Object... oargs ) {
+        String name = toSingleString(oname);
+        String[] args = toStringArray(oargs);
         Result r = new Result( "newProject" );
         r.actions.add( (OcAction.OcActionResult)script._OcAction( buildCommonArgs("new-project", [name], args, "--skip-config-write" ) ) );
         r.failIf( "new-project returned an error" );
         return r;
     }
 
-    public Result raw(String... args ) {
+    /**
+     * API calls with String parameters can receive normal Java strings
+     * or gstrings. In the DSl/groovy, gstrings are defined by using double quotes and
+     * include some interpolation. Methods within the API should
+     * accept either. To this end, accept any type of object and turn
+     * it into a string.
+     */
+    @NonCPS
+    private static String toSingleString( Object o ) {
+        if ( o == null ) {
+            return null;
+        }
+        return o.toString(); // convert from gstring if necessary
+    }
+
+    /**
+     * See details in toSingleString for rationale.
+     */
+    @NonCPS
+    private static String[] toStringArray( Object[] args ) {
+        if ( args == null ) {
+            return new String[0];
+        }
+        String[] o = new String[args.length];
+        for ( int i = 0; i < args.length; i++ ) {
+            o[i] = args[i].toString();
+        }
+        return o;
+    }
+
+    /**
+     * See details in toSingleString for rationale.
+     */
+    @NonCPS
+    private static ArrayList<String> toStringList( List<Object> objects ) {
+        ArrayList l = new ArrayList<String>();
+        if ( objects != null ) {
+            for ( int i = 0; i < objects.size(); i++ ) {
+                l.add( objects.get(i).toString() );
+            }
+        }
+        return l;
+    }
+
+
+    public Result raw(Object... oargs ) {
+        String[] args = toStringArray(oargs);
         Result r = new Result( "raw" );
         r.actions.add( (OcAction.OcActionResult)script._OcAction( buildCommonArgs("", null, args ) ) );
         r.failIf( "raw command " + args + " returned an error" );
@@ -550,21 +606,24 @@ class OpenShiftDSL implements Serializable {
     }
 
 
-    public Result delete(String... args ) {
+    public Result delete(Object... oargs ) {
+        String[] args = toStringArray(oargs);
         Result r = new Result( "delete" );
         r.actions.add( (OcAction.OcActionResult)script._OcAction( buildCommonArgs("delete", null, args ) ) );
         r.failIf( "delete returned an error" );
         return r;
     }
 
-    public Result set(String... args ) {
+    public Result set(Object... oargs ) {
+        String[] args = toStringArray(oargs);
         Result r = new Result( "set" );
         r.actions.add( (OcAction.OcActionResult)script._OcAction( buildCommonArgs("set", null, args ) ) );
         r.failIf( "set returned an error" );
         return r;
     }
 
-    private OpenShiftResourceSelector newObjectsAction( String operation, String verb, String[] args) {
+    private OpenShiftResourceSelector newObjectsAction( String operation, String verb, Object[] oargs) {
+        String[] args = toStringArray(oargs);
         Result r = new Result( operation );
         r.actions.add( (OcAction.OcActionResult)script._OcAction( buildCommonArgs(verb, null, args, "-o=name" ) ) );
         r.failIf( verb + " returned an error" );
@@ -572,32 +631,33 @@ class OpenShiftDSL implements Serializable {
     }
 
 
-    public OpenShiftResourceSelector newBuild(String... args ) {
+    public OpenShiftResourceSelector newBuild(Object... args ) {
         return newObjectsAction( "newBuild", "new-build", args );
     }
 
-    public OpenShiftResourceSelector newApp(String... args ) {
+    public OpenShiftResourceSelector newApp(Object... args ) {
         return newObjectsAction( "newApp", "new-app", args );
     }
 
-    public OpenShiftResourceSelector startBuild(String... args ) {
+    public OpenShiftResourceSelector startBuild(Object... args ) {
         return newObjectsAction( "startBuild", "start-build", args );
     }
 
-    private Result simplePassthrough( String verb, String[] args ) {
+    private Result simplePassthrough( String verb, Object[] oargs ) {
+        String[] args = toStringArray(oargs);
         Result r = new Result( verb );
         r.actions.add( (OcAction.OcActionResult)script._OcAction( buildCommonArgs(verb, null, args, null ) ) );
         r.failIf( verb + " returned an error" );
         return r;
     }
 
-    public Result exec(String... args ) { return simplePassthrough( "exec", args ); }
-    public Result idle(String... args ) { return simplePassthrough( "idle", args ); }
-    public Result _import(String... args ) { return simplePassthrough( "import", args ); }
-    public Result policy(String... args ) { return simplePassthrough( "policy", args ); }
-    public Result run(String... args ) { return simplePassthrough( "perform", args ); }
-    public Result secrets(String... args ) { return simplePassthrough( "secrets", args ); }
-    public Result tag(String... args ) { return simplePassthrough( "tag", args ); }
+    public Result exec(Object... args ) { return simplePassthrough( "exec", args ); }
+    public Result idle(Object... args ) { return simplePassthrough( "idle", args ); }
+    public Result _import(Object... args ) { return simplePassthrough( "import", args ); }
+    public Result policy(Object... args ) { return simplePassthrough( "policy", args ); }
+    public Result run(Object... args ) { return simplePassthrough( "perform", args ); }
+    public Result secrets(Object... args ) { return simplePassthrough( "secrets", args ); }
+    public Result tag(Object... args ) { return simplePassthrough( "tag", args ); }
 
     public static class Result implements Serializable {
 
@@ -701,8 +761,9 @@ class OpenShiftDSL implements Serializable {
         private HashMap labels;
         private ArrayList<String> objectList;
 
-        public OpenShiftResourceSelector(String highLevelOperation, String kind, Object qualifier ) {
+        public OpenShiftResourceSelector(String highLevelOperation, Object okind, Object qualifier ) {
             super(highLevelOperation);
+            String kind = toSingleString(okind);
             kind = kind==null?"all":kind;
 
             if ( kind.contains("/") ) {
@@ -730,15 +791,15 @@ class OpenShiftDSL implements Serializable {
             this.kind = kind;
         }
 
-        public OpenShiftResourceSelector(String highLevelOperation, ArrayList<String> objectList ) {
+        public OpenShiftResourceSelector(String highLevelOperation, ArrayList<Object> objectList ) {
             super(highLevelOperation);
-            this.objectList = new ArrayList<String>( objectList );
+            this.objectList = toStringList(objectList);
         }
 
 
-        public OpenShiftResourceSelector(Result r, ArrayList<String> objectList ) {
+        public OpenShiftResourceSelector(Result r, ArrayList<Object> objectList ) {
             super(r);
-            this.objectList = new ArrayList<String>( objectList );
+            this.objectList = toStringList( objectList );
         }
 
         @NonCPS
@@ -783,8 +844,8 @@ class OpenShiftDSL implements Serializable {
             return args;
         }
 
-        public Result delete( String... userArgs ) throws AbortException {
-
+        public Result delete( Object... ouserArgs ) throws AbortException {
+            String[] userArgs = toStringArray(ouserArgs);
             List selectionArgs = selectionArgs();
             if ( kind != null && labels==null ) {
                 selectionArgs.add("--all");
@@ -799,7 +860,8 @@ class OpenShiftDSL implements Serializable {
             return r;
         }
 
-        public Result label( Map newLabels, String... userArgs ) throws AbortException {
+        public Result label( Map newLabels, Object... ouserArgs ) throws AbortException {
+            String[] userArgs = toStringArray(ouserArgs);
             List verbArgs = selectionArgs();
             if ( kind != null && labels==null ) {
                 verbArgs.add("--all");
@@ -814,7 +876,9 @@ class OpenShiftDSL implements Serializable {
         }
 
 
-        public Result describe( String... userArgs ) throws AbortException {
+        public Result describe( Object... ouserArgs ) throws AbortException {
+            String[] userArgs = toStringArray(ouserArgs);
+
             Result r = new Result( "describe" );
             Map args = buildCommonArgs("describe", selectionArgs(), userArgs);
             args.put( "streamStdOutToConsolePrefix", "describe" );
@@ -906,7 +970,9 @@ class OpenShiftDSL implements Serializable {
             return names.get(0);
         }
 
-        public Result logs( String... userArgs ) throws AbortException {
+        public Result logs( Object... ouserArgs ) throws AbortException {
+            String[] userArgs = toStringArray(ouserArgs);
+
             Result r = new Result( "logs" );
             List<String> names = names();
             // oc logs only supports a single object at a time, so get individual names
@@ -921,7 +987,9 @@ class OpenShiftDSL implements Serializable {
             return r;
         }
 
-        public OpenShiftResourceSelector startBuild(String... userArgs ) throws AbortException {
+        public OpenShiftResourceSelector startBuild(Object... ouserArgs ) throws AbortException {
+            String[] userArgs = toStringArray(ouserArgs);
+
             Result r = new Result( "startBuild" );
             List<String> names = names();
             // only supports a single object at a time, so get individual names
@@ -934,7 +1002,9 @@ class OpenShiftDSL implements Serializable {
             return new OpenShiftResourceSelector( r, OpenShiftDSL.splitNames( r.out ) );
         }
 
-        private Result onceForEach( String operation, String verb, String[] userArgs) {
+        private Result onceForEach( String operation, String verb, Object[] ouserArgs) {
+            String[] userArgs = toStringArray(ouserArgs);
+
             Result r = new Result( operation );
             List<String> names = names();
             for ( String name : names ) {
@@ -946,28 +1016,28 @@ class OpenShiftDSL implements Serializable {
             return r;
         }
 
-        public Result cancelBuild(String... userArgs ) throws AbortException {
+        public Result cancelBuild(Object... userArgs ) throws AbortException {
             return onceForEach( "cancelBuild", "cancel-build", userArgs );
         }
 
 
-        public Result deploy(String... userArgs ) throws AbortException {
+        public Result deploy(Object... userArgs ) throws AbortException {
             return onceForEach( "deploy", "deploy", userArgs );
         }
 
-        public Result scale(String... userArgs ) throws AbortException {
+        public Result scale(Object... userArgs ) throws AbortException {
             return onceForEach( "scale", "scale", userArgs );
         }
 
-        public Result autoscale(String... userArgs ) throws AbortException {
+        public Result autoscale(Object... userArgs ) throws AbortException {
             return onceForEach( "autoscale", "autoscale", userArgs );
         }
 
-        public Result expose(String... userArgs ) throws AbortException {
+        public Result expose(Object... userArgs ) throws AbortException {
             return onceForEach( "expose", "expose", userArgs );
         }
 
-        public Result volume(String... userArgs ) throws AbortException {
+        public Result volume(Object... userArgs ) throws AbortException {
             return onceForEach( "volume", "volume", userArgs );
         }
 
@@ -988,7 +1058,8 @@ class OpenShiftDSL implements Serializable {
             return new OpenShiftRolloutManager(this);
         }
 
-        public OpenShiftResourceSelector narrow(String kind ) throws AbortException {
+        public OpenShiftResourceSelector narrow(Object okind ) throws AbortException {
+            String kind = okind.toString(); // convert gstring to string if necessary
             kind = kind.toLowerCase().trim();
 
             // Expand abbreviations
@@ -1014,7 +1085,8 @@ class OpenShiftDSL implements Serializable {
         }
 
 
-        public OpenShiftResourceSelector related(String kind) throws AbortException {
+        public OpenShiftResourceSelector related(Object okind) throws AbortException {
+            String kind = okind.toString(); // convert gstring to string if necessary
             kind = kind.toLowerCase().trim();
 
             // Expand abbreviations
@@ -1053,7 +1125,8 @@ class OpenShiftDSL implements Serializable {
             this.@selector = selector;
         }
 
-        private Result runSubVerb(String subVerb, String[] args, boolean streamToStdout=false ) throws AbortException {
+        private Result runSubVerb(String subVerb, Object[] oargs, boolean streamToStdout=false ) throws AbortException {
+            String [] args = toStringArray(oargs);
             Result r = new Result( "rollout:" + subVerb );
             selector.withEach {
                 String dcName = it.name();
@@ -1066,12 +1139,12 @@ class OpenShiftDSL implements Serializable {
             return r;
         }
 
-        public Result history( String...args ) throws AbortException { return runSubVerb("history", args, true); }
-        public Result latest( String...args ) throws AbortException { return runSubVerb("latest", args); }
-        public Result pause( String...args ) throws AbortException { return runSubVerb("pause", args); }
-        public Result resume( String...args ) throws AbortException { return runSubVerb("resume", args); }
-        public Result status( String...args ) throws AbortException { return runSubVerb("status", args, true); }
-        public Result undo( String...args ) throws AbortException { return runSubVerb("undo", args); }
+        public Result history( Object...args ) throws AbortException { return runSubVerb("history", args, true); }
+        public Result latest( Object...args ) throws AbortException { return runSubVerb("latest", args); }
+        public Result pause( Object...args ) throws AbortException { return runSubVerb("pause", args); }
+        public Result resume( Object...args ) throws AbortException { return runSubVerb("resume", args); }
+        public Result status( Object...args ) throws AbortException { return runSubVerb("status", args, true); }
+        public Result undo( Object...args ) throws AbortException { return runSubVerb("undo", args); }
 
     }
 
