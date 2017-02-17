@@ -1,0 +1,23 @@
+These files are leveraged by the test-openshift-client-plugin job at https://ci.openshift.redhat.com/jenkins.
+A test image based off of the jenkins image at https://github.com/openshift/jenkins will be built with the dockerfile
+here and any OpenShift Jenkins plugin file stored in the PR-Testing/jpi file as "openshift-client.jpi".  In the case of
+the test-openshift-client-plugin job, it will be the hpi file from your PR.  But you can also test any local changes
+you have to the plugin in the same way.
+
+To test your changes locally:
+- Build the Jenkins plugin with maven (e.g. mvn clean package)
+- In the PR-Testing folder, run `./build-jenkins-client-plugin-snapshot-image.sh`
+
+This script will build the docker image: openshift/jenkins-client-plugin-snapshot-test:latest
+
+Next, run the extended tests for the plugin located at https://github.com/openshift/origin.
+To target the snapshot image built above, set the environment variable USE_SNAPSHOT_JENKINS_IMAGE
+to a non-empty string. For example, from the top level directory of the origin repository, run:
+    USE_SNAPSHOT_JENKINS_IMAGE=1 test/extended/core.sh --ginkgo.focus='jenkins-client-plugin' -ginkgo.v
+
+Note: Specifying the environment variable on the same line as the command to run limits the variable's lifetime to
+the invocation of the test framework. Limiting the variable's lifetime is not required, but is encouraged to ensure
+you do not unintentionally run tests against the local Jenkins image at a later time.
+
+If the USE_SNAPSHOT_JENKINS_IMAGE variable is not set, the extended tests will ignore the local snapshot image and
+test the official jenkins image (see https://github.com/openshift/jenkins).
