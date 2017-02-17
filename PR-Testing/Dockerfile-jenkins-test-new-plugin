@@ -1,0 +1,5 @@
+FROM openshift/jenkins-1-centos7
+USER root
+RUN touch /opt/openshift/configuration/plugins.txt
+COPY ./jpi /opt/openshift/plugins
+RUN /usr/local/bin/plugins.sh /opt/openshift/configuration/plugins.txt
