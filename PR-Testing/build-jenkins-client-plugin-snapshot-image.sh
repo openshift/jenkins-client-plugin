@@ -26,4 +26,4 @@ if [ "$?" != "0" ]; then
     exit 1
 fi
 
-echo "Success. Remember to set USE_SNAPSHOT_JENKINS_IMAGE=1 when running origin extended tests."
+echo "Success. Remember to set USE_SNAPSHOT_JENKINS_CLIENT_IMAGE=1 when running origin extended tests."
