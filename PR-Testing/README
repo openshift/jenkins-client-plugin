@@ -11,13 +11,13 @@ To test your changes locally:
 This script will build the docker image: openshift/jenkins-client-plugin-snapshot-test:latest
 
 Next, run the extended tests for the plugin located at https://github.com/openshift/origin.
-To target the snapshot image built above, set the environment variable USE_SNAPSHOT_JENKINS_IMAGE
+To target the snapshot image built above, set the environment variable USE_SNAPSHOT_JENKINS_CLIENT_IMAGE
 to a non-empty string. For example, from the top level directory of the origin repository, run:
-    USE_SNAPSHOT_JENKINS_IMAGE=1 test/extended/core.sh --ginkgo.focus='jenkins-client-plugin' -ginkgo.v
+    USE_SNAPSHOT_JENKINS_CLIENT_IMAGE=1 test/extended/core.sh --ginkgo.focus='jenkins-client-plugin' -ginkgo.v
 
 Note: Specifying the environment variable on the same line as the command to run limits the variable's lifetime to
 the invocation of the test framework. Limiting the variable's lifetime is not required, but is encouraged to ensure
 you do not unintentionally run tests against the local Jenkins image at a later time.
 
-If the USE_SNAPSHOT_JENKINS_IMAGE variable is not set, the extended tests will ignore the local snapshot image and
+If the USE_SNAPSHOT_JENKINS_CLIENT_IMAGE variable is not set, the extended tests will ignore the local snapshot image and
 test the official jenkins image (see https://github.com/openshift/jenkins).
