@@ -56,7 +56,10 @@ since pipeline scripts are written using Groovy (Note: Jenkins sandboxes and [in
 with the use of some Groovy facilities). 
 
 ## Installing
-Until this plugin is hosted by Cloudbees for Jenkins, it must be built locally.
+This plugin is available at the [Jenkins Update Center](https://updates.jenkins-ci.org/download/plugins/openshift-client/) and is included
+in the [OpenShift Jenkins image.](https://github.com/openshift/jenkins)
+
+Otherwise, if you are interested in buildling this plugin locally, follow these steps:
 
 1. Install maven (platform specific)
 2. Clone this git repository:
