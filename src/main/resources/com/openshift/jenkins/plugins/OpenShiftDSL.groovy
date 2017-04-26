@@ -655,7 +655,7 @@ class OpenShiftDSL implements Serializable {
     public Result idle(Object... args ) { return simplePassthrough( "idle", args ); }
     public Result _import(Object... args ) { return simplePassthrough( "import", args ); }
     public Result policy(Object... args ) { return simplePassthrough( "policy", args ); }
-    public Result run(Object... args ) { return simplePassthrough( "perform", args ); }
+    public Result run(Object... args ) { return simplePassthrough( "run", args ); }
     public Result secrets(Object... args ) { return simplePassthrough( "secrets", args ); }
     public Result tag(Object... args ) { return simplePassthrough( "tag", args ); }
 
