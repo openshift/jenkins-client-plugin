@@ -575,6 +575,11 @@ class OpenShiftDSL implements Serializable {
         if ( args == null ) {
             return new String[0];
         }
+        // Unpack a Groovy list as if it were an Array
+        // Enables openshift.run( [ 'x', 'y' ] )
+        if ( args.length == 1 && args[0] instanceof List ) {
+            args = ((List)args[0]).toArray();
+        }
         String[] o = new String[args.length];
         for ( int i = 0; i < args.length; i++ ) {
             o[i] = args[i].toString();
