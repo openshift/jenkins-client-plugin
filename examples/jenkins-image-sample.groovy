@@ -115,6 +115,26 @@ openshift.withCluster() {
         echo "  number of actions to fulfill: ${result.actions.size()}"
         echo "  first action executed: ${result.actions[0].cmd}"
         
+        // The following steps below are geared toward testing of bugs or features that have been introduced
+        // into the openshift client plugin since its initial release
+        
+        // exercise oc run path, including verification of proper handling of groovy cps
+        // var binding (converting List to array)
+        def runargs1 = []
+        runargs1 << "jenkins-second-deployment"
+        runargs1 << "--image=docker.io/openshift/jenkins-2-centos7:latest"
+        runargs1 << "--dry-run"
+        openshift.run(runargs1)
+        
+        // FYI - pipeline cps groovy compile does not allow String[] runargs2 =  {"jenkins-second-deployment", "--image=docker.io/openshift/jenkins-2-centos7:latest", "--dry-run"}
+        String[] runargs2 = new String[3]
+        runargs2[0] = "jenkins-second-deployment"
+        runargs2[1] = "--image=docker.io/openshift/jenkins-2-centos7:latest"
+        runargs2[2] = "--dry-run"
+        openshift.run(runargs2)
+        
+        openshift.run("jenkins-second-deployment", "--image=docker.io/openshift/jenkins-2-centos7:latest", "--dry-run")
+        
     }
     
 
