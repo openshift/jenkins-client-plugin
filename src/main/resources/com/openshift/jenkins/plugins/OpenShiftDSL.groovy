@@ -4,14 +4,20 @@ import com.cloudbees.groovy.cps.NonCPS
 import com.cloudbees.plugins.credentials.CredentialsProvider
 import com.openshift.jenkins.plugins.pipeline.OcContextInit
 import com.openshift.jenkins.plugins.pipeline.OcAction
+
 import groovy.json.JsonOutput
 import groovy.json.JsonSlurper
 import hudson.AbortException
 import hudson.FilePath
 import hudson.Util
 
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 
 class OpenShiftDSL implements Serializable {
+    
+    static final Logger LOGGER = Logger.getLogger(OpenShiftDSL.class.getName());
 
     private org.jenkinsci.plugins.workflow.cps.CpsScript script
 
@@ -19,11 +25,35 @@ class OpenShiftDSL implements Serializable {
     private transient OpenShift.DescriptorImpl config = new OpenShift.DescriptorImpl();
 
     private int logLevel = 0; // Modified by calls to openshift.logLevel
+    
+    private HashMap<String,Capabilities> nodeCapabilities = new HashMap<String,Capabilities>();
 
     public OpenShiftDSL(org.jenkinsci.plugins.workflow.cps.CpsScript script) {
         this.script = script
     }
 
+    public synchronized Capabilities getCapabilities() {
+          String key = script.env.NODE_NAME
+          Capabilities caps = nodeCapabilities.get(key)
+          if ( caps != null ) {
+                return caps
+          } else {
+                caps = new Capabilities()
+                ArrayList<String> g = new ArrayList<String>();
+                g.add("get");
+                OcAction.OcActionResult versionCheck = (OcAction.OcActionResult)script._OcAction( buildCommonArgs("help", g, null, null) );
+                LOGGER.log(Level.FINE, "getCapabilities return from oc help get " + versionCheck.out);
+                if (versionCheck.out.contains("--ignore-not-found")) {
+                    caps.ignoreNotFound = true;
+                } else {
+                    caps.ignoreNotFound = false;
+                }
+                nodeCapabilities.put( key, caps )
+                LOGGER.log(Level.FINE, "getCapabilities nodeCapabilites: " + nodeCapabilities);
+                return caps
+          }
+    }
+    
     private Context currentContext = null;
 
     private static final Map<String,String> abbreviations = [
@@ -759,6 +789,18 @@ class OpenShiftDSL implements Serializable {
         }
 
     }
+    
+    public class Capabilities implements Serializable {
+        private boolean ignoreNotFound;
+        
+        public Capabilities() {
+        }
+
+        public boolean hasIgnoredNotFound() {
+            return ignoreNotFound;
+        }
+        
+    }
 
     public class OpenShiftResourceSelector extends Result implements Serializable {
 
@@ -900,6 +942,14 @@ class OpenShiftDSL implements Serializable {
             }
         }
 
+        public boolean exists() throws AbortException {
+            if ( objectList != null ) {
+                  // If object names are explicitly given, make sure they *all* exists
+                  return count() == objectList.size()
+            }
+            return count() > 0 
+        }
+
         public void untilEach( int min=1, Closure<?> body ) {
             watch {
                 while ( true ) {
@@ -935,7 +985,7 @@ class OpenShiftDSL implements Serializable {
         }
 
         public int count() throws AbortException {
-            return names().size();
+            return queryNames().size();
         }
 
         public HashMap object(Map mode=null) throws AbortException {
@@ -951,17 +1001,31 @@ class OpenShiftDSL implements Serializable {
             }
             return m;
         }
+        
+        private ArrayList<String> queryNames() throws AbortException {
+            // Otherwise, we need to ask the API server what presently matches
+            OcAction.OcActionResult r = null;
+            if (script.openshift.getCapabilities().hasIgnoredNotFound()) {
+                r = (OcAction.OcActionResult)script._OcAction( buildCommonArgs("get", selectionArgs(), null, "-o=name", "--ignore-not-found") );
+                r.failIf( "Unable to retrieve object names: " + this.toString() );
+            } else {
+                r = (OcAction.OcActionResult)script._OcAction( buildCommonArgs("get", selectionArgs(), null, "-o=name") );
+                if ( r.status != 0 && r.err.contains("(NotFound)") ) {
+                    return new ArrayList<String>();
+                } else {
+                    r.failIf( "Unable to retrieve object names: " + this.toString() );
+                }
+            }
+
+            return OpenShiftDSL.splitNames( r.out );
+
+        }
 
         public ArrayList<String> names() throws AbortException {
             if ( objectList != null ) {
                 return objectList;
             }
-
-            // Otherwise, we need to ask the API server what presently matches
-            OcAction.OcActionResult r = (OcAction.OcActionResult)script._OcAction( buildCommonArgs("get", selectionArgs(), null, "-o=name") );
-            r.failIf( "Unable to retrieve object names: " + this.toString() );
-
-            return OpenShiftDSL.splitNames( r.out );
+            return queryNames();
         }
 
         public String name() throws AbortException {
@@ -1024,8 +1088,7 @@ class OpenShiftDSL implements Serializable {
         public Result cancelBuild(Object... userArgs ) throws AbortException {
             return onceForEach( "cancelBuild", "cancel-build", userArgs );
         }
-
-
+        
         public Result deploy(Object... userArgs ) throws AbortException {
             return onceForEach( "deploy", "deploy", userArgs );
         }
