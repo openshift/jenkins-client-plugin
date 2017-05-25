@@ -4,7 +4,7 @@
  */
 
 try {
-    timeout(time: 2, unit: 'HOURS') {
+    timeout(time: 20, unit: 'MINUTES') {
         openshift.withCluster() {
             
                 def saSelector1 = openshift.selector( "serviceaccount" )
@@ -12,7 +12,7 @@ try {
                 
                 def templateSelector = openshift.selector( "template", "mongodb-ephemeral")
                 
-                def exists = templateSelector.exists()
+                /*def exists = templateSelector.exists()
                 
                 def template
                 
@@ -20,7 +20,7 @@ try {
                     template = openshift.create('https://raw.githubusercontent.com/openshift/origin/master/examples/db-templates/mongodb-ephemeral-template.json').object()
                 } else {
                     template = templateSelector.object()
-                }
+                }*/
                 
                 // start:  remove when we pull in exists related block above
                 templateSelector.delete('--ignore-not-found')
