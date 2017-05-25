@@ -740,6 +740,25 @@
             </dd>
 
             <dt>
+                <a name="Selector_exists"/>
+                <code>Selector.exists():boolean</code><br></br>
+            </dt>
+            <dd>
+                <p>
+                    <p style="margin-left: 1em; color:#657383;">Example:
+                        <code>
+                            // Returns a boolean whether the template "mongodb-ephemeral is present in the project.<br></br>
+                            def n = openshift.selector( "template", "mongodb-ephemeral" ).exists() <br></br>
+                        </code>
+                    </p>
+                    <br></br>
+                    Returns true if a non-zero number of objects based on the selection criteria exits. In the case of a DynamicSelector,
+                    a query is made to the server to establish existence. In the case of StaticSelectors,
+                    the entire list of objects supplied in the creation of the selector must be present for a return value of "true" to occur.
+                </p>
+            </dd>
+
+            <dt>
                 <a name="Selector_count"/>
                 <code>Selector.count():Integer</code><br></br>
             </dt>
@@ -752,9 +771,8 @@
                         </code>
                     </p>
                     <br></br>
-                    Returns the number of objects the receiver selects. In the case of a DynamicSelector,
-                    a query is made to the server to establish the current count. In the case of StaticSelectors,
-                    this count is a constant (even if the objects it selects do not exist on the server).
+                    Returns the number of objects the receiver selects. For both DynamicSelectors and StaticSelectors,
+                    a query is made to the server to establish the current count.
                 </p>
             </dd>
 
