@@ -773,7 +773,7 @@ class OpenShiftDSL implements Serializable {
 
             if ( kind.contains("/") ) {
                 if ( qualifier != null ) {
-                    throw new AbortException( "Unsupported select parameter; only a single argument is permitted if name/name is specified" );
+                    throw new AbortException( "Unsupported selector parameter; only a single argument is permitted if name/name is specified" );
                 }
                 String[] s = kind.split( "/" )
                 kind = s[0];
@@ -787,7 +787,7 @@ class OpenShiftDSL implements Serializable {
                 if ( qualifier instanceof Map ) {
                     this.labels = new HashMap((Map)qualifier);
                 } else {
-                    // Otherwise, the qualifier is a name that is paired with the name
+                    // Otherwise, the qualifier is a name that is paired with the kind
                     objectList = Arrays.asList( kind + "/" + qualifier.toString() );
                     kind = null;
                 }
