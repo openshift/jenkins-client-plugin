@@ -280,30 +280,31 @@
 
             <a name="openshift_process"/>
             <dt>
-                <code>openshift.process(…):Map</code>
+                <code>openshift.process(…):List</code>
             </dt>
             <dd>
                 <p>
                     <code>process</code> has multiple variations:
                     <ul>
                         <li>
-                            <code>openshift.process(json:String[,args...:String]):Map</code><br></br>
+                            <code>openshift.process(json:String[,args...:String]):List</code><br></br>
                             <i style="margin-left: 1em; color:#657383;">Example: <code>openshift.process( "{ \"metadata\": ... }", "-p", "PARAM=VALUE")</code></i><br></br>
                             <i style="margin-left: 1em; color:#657383;">Example: <code>openshift.process( readFile(file:'template.json'), "-p", "PARAM=VALUE")</code></i>
                         </li>
                         <li>
-                            <code>openshift.process(obj:Map[,args...:String]):Map</code><br></br>
+                            <code>openshift.process(obj:Map[,args...:String]):List</code><br></br>
                             <i style="margin-left: 1em; color:#657383;">Example: <code>openshift.process( [ metadata: [... ] ],"-p", "PARAM=VALUE")</code></i>
                         </li>
                         <li>
-                            <code>openshift.process(templateName:String[,args...:String]):Map</code><br></br>
+                            <code>openshift.process(templateName:String[,args...:String]):List</code><br></br>
                             <i style="margin-left: 1em; color:#657383;">Example: <code>openshift.process("openshift//foo","-p=PARAM=VALUE")</code></i>
                         </li>
                     </ul>
                 </p>
                 <p>
-                    Processes and OpenShift template, using any specified parameter values, and returns a Groovy
-                    Map modeling the resulting JSON. The Map can subsequently be passed to <code>openshift.create</code>,
+                    Processes an OpenShift template, using any specified parameter values, and returns a Groovy
+                    List where each element models an object which results from processing the template.
+                    The List can subsequently be passed to <code>openshift.create</code>,
                     <code>openshift.replace</code>, or <code>openshift.apply</code>.
                     <ul>
                         <li>
