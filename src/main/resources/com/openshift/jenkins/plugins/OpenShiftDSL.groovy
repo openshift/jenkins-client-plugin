@@ -1176,8 +1176,11 @@ class OpenShiftDSL implements Serializable {
                 case "buildconfig" :
                     labels.put( "openshift.io/build-config.name", unqualifiedName );
                     break;
+                case "job" :
+                    labels.put( "job-name", unqualifiedName );
+                    break;
                 default:
-                    throw new AbortException( "Unknown how to find resources related to name: " + k );
+                    throw new AbortException( "Unknown how to find resources related to kind: " + k );
             }
 
             return new OpenShiftResourceSelector("related", kind, labels);
