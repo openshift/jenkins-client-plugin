@@ -235,6 +235,15 @@ class OpenShiftDSL implements Serializable {
     }
 
 
+    public void failUnless(b) {
+        b = (new Boolean(b)).booleanValue();
+        if ( !b ) {
+            // error is a Jenkins workflow-basic-step
+            error("Assertion failed")
+        }
+    }
+
+
     public String project() {
         return currentContext.getProject();
     }
@@ -900,11 +909,25 @@ class OpenShiftDSL implements Serializable {
 
             Result r = new Result( "delete" );
 
+            if ( _isEmptyStatic() ) {
+                return r;
+            }
+
             r.actions.add(
                     (OcAction.OcActionResult)script._OcAction( buildCommonArgs("delete", selectionArgs, userArgs) )
             );
             r.failIf( "Error during delete" );
             return r;
+        }
+
+        /**
+         * If an OcAction is performed for an empty static, no object criteria will be
+         * added to the command line and oc will report an error. Instead, many operations
+         * should just short circuit and not execute oc.
+         * @return Detects whether an operation is being performed on an empty selector.
+         */
+        private boolean _isEmptyStatic() {
+            return objectList != null && objectList.size() == 0;
         }
 
         public Result label( Map newLabels, Object... ouserArgs ) throws AbortException {
@@ -915,6 +938,11 @@ class OpenShiftDSL implements Serializable {
             }
             verbArgs.addAll(flattenLabels(newLabels));
             Result r = new Result( "label" );
+
+            if ( _isEmptyStatic() ) {
+                return r;
+            }
+
             r.actions.add(
                     (OcAction.OcActionResult)script._OcAction( buildCommonArgs("label", verbArgs, userArgs) )
             );
@@ -927,6 +955,13 @@ class OpenShiftDSL implements Serializable {
             String[] userArgs = toStringArray(ouserArgs);
 
             Result r = new Result( "describe" );
+
+            /**
+             * Intentionally not checking _isEmptyStatic as the user
+             * probably wants to know if the selector is empty if
+             * they are trying to describe it.
+             */
+
             Map args = buildCommonArgs("describe", selectionArgs(), userArgs);
             args.put( "streamStdOutToConsolePrefix", "describe" );
             r.actions.add(
@@ -937,6 +972,9 @@ class OpenShiftDSL implements Serializable {
         }
 
         public void watch( Closure<?> body ) {
+            if ( _isEmptyStatic() ) {
+                throw new AbortException( "Selector is static and empty; watch would never terminate." );
+            }
             script._OcWatch( buildCommonArgs( "get", selectionArgs(), null, "-w", "--watch-only", "-o=name" ) ) {
                 body.call( this );
             }
@@ -945,7 +983,7 @@ class OpenShiftDSL implements Serializable {
         public boolean exists() throws AbortException {
             if ( objectList != null ) {
                   // If object names are explicitly given, make sure they *all* exists
-                  return count() == objectList.size()
+                  return objectList.size() > 0 && count() == objectList.size()
             }
             return count() > 0 
         }
@@ -966,12 +1004,30 @@ class OpenShiftDSL implements Serializable {
             }
         }
 
+        private HashMap _emptyListModel() {
+            HashMap el = new HashMap();
+            el.put( "apiVersion", "v1" );
+            el.put( "kind", "List" );
+            el.put( "metadata", new HashMap() );
+            el.put( "items", new ArrayList() );
+            return el;
+        }
 
-        private HashMap _getJson(Map mode=null) throws AbortException {
+        /**
+         * Returns all objects selected by the receiver as a HashMap
+         * modeling the associated server objects. If no objects are selected,
+         * an OpenShift List with zero items will be returned.
+         */
+        private HashMap _asSingleMap(Map mode=null) throws AbortException {
             boolean exportable = false;
             if ( mode != null ) {
                 exportable = (new Boolean( mode.get( "exportable", new Boolean(false) ) )).booleanValue();
             }
+
+            if ( _isEmptyStatic() ) {
+                return _emptyListModel();
+            }
+
             String verb = exportable?"export":"get"
             OcAction.OcActionResult r = (OcAction.OcActionResult)script._OcAction( buildCommonArgs(verb, selectionArgs(), null, "-o=json") );
             r.failIf( "Unable to retrieve object json with " + verb );
@@ -980,7 +1036,7 @@ class OpenShiftDSL implements Serializable {
         }
 
         public ArrayList<Map> objects(Map mode=null) throws AbortException {
-            HashMap m = _getJson(mode);
+            HashMap m = _asSingleMap(mode);
             return unwrapOpenShiftList(m);
         }
 
@@ -989,7 +1045,7 @@ class OpenShiftDSL implements Serializable {
         }
 
         public HashMap object(Map mode=null) throws AbortException {
-            HashMap m = _getJson(mode);
+            HashMap m = _asSingleMap(mode);
             if ( m.kind == "List" ) {
                 if ( m.items == null || m.items.size() == 0 ) {
                         throw new AbortException( "Expected single object, but found selection empty" );
@@ -1003,6 +1059,11 @@ class OpenShiftDSL implements Serializable {
         }
         
         private ArrayList<String> queryNames() throws AbortException {
+
+            if ( _isEmptyStatic() ) {
+                return new ArrayList<String>(0);
+            }
+
             // Otherwise, we need to ask the API server what presently matches
             OcAction.OcActionResult r = null;
             if (script.openshift.getCapabilities().hasIgnoredNotFound()) {
@@ -1018,7 +1079,6 @@ class OpenShiftDSL implements Serializable {
             }
 
             return OpenShiftDSL.splitNames( r.out );
-
         }
 
         public ArrayList<String> names() throws AbortException {
@@ -1126,7 +1186,7 @@ class OpenShiftDSL implements Serializable {
             return new OpenShiftRolloutManager(this);
         }
 
-        public OpenShiftResourceSelector narrow(Object okind ) throws AbortException {
+        public OpenShiftResourceSelector narrow(Object okind) throws AbortException {
             String kind = okind.toString(); // convert gstring to string if necessary
             kind = kind.toLowerCase().trim();
 

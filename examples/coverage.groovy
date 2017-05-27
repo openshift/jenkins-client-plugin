@@ -113,6 +113,15 @@ openshift.withCluster('mycluster') {
         echo "  number of actions to fulfill: ${result.actions.size()}"
         echo "  first action executed: ${result.actions[0].cmd}"
 
+        // Empty static / selectors are powerful tools to check the state of the system.
+        // Intentionally create one using a narrow and exercise it.
+        emptySelector = openshift.selector("pods").narrow("bc")
+        openshift.failUnless(!emptySelector.exists()) // Empty selections never exist
+        openshift.failUnless(emptySelector.count() == 0)
+        openshift.failUnless(emptySelector.names().size() == 0)
+        emptySelector.delete() // Should have no impact
+        emptySelector.label(["x":"y"]) // Should have no impact
+
     }
 
     openshift.delete( "project", projectName )
