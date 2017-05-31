@@ -12,24 +12,19 @@ try {
                 
                 def templateSelector = openshift.selector( "template", "mongodb-ephemeral")
                 
-                /*def exists = templateSelector.exists()
+                def templateExists = templateSelector.exists()
                 
-                def template
+                def templateGeneratedSelector = openshift.selector('all,secret', [ template: 'mongodb-ephemeral-template' ])
                 
-                if (!exists) {
+                def objectsGeneratedFromTemplate = templateGeneratedSelector.exists()
+                
+                def template                
+                if (!templateExists) {
                     template = openshift.create('https://raw.githubusercontent.com/openshift/origin/master/examples/db-templates/mongodb-ephemeral-template.json').object()
                 } else {
                     template = templateSelector.object()
-                }*/
-                
-                // start:  remove when we pull in exists related block above
-                templateSelector.delete('--ignore-not-found')
-                // secrets are not covered by the oc all qualifier, so have to handle separately
-                openshift.delete('all,secret', '-l', 'template=mongodb-ephemeral-template', '--ignore-not-found')
-                
-                template = openshift.create('https://raw.githubusercontent.com/openshift/origin/master/examples/db-templates/mongodb-ephemeral-template.json').object()
-                // end: remove when we pull in exits related block above
-                
+                }
+                                
                // Explore the Groovy object which models the OpenShift template as a Map
                 echo "Template contains ${template.parameters.size()} parameters"
             
@@ -41,25 +36,33 @@ try {
                 def objectModels = openshift.process( template )//, "-p", "MEMORY_LIMIT=600Mi")
             
                 // objectModels is a list of objects the template defined, modeled as Groovy objects
-                echo "The template will create ${objectModels.size()} objects"
+                echo "The template references ${objectModels.size()} objects"
             
                 // For fun, modify the objects that have been defined by processing the template
                 for ( o in objectModels ) {
                     o.metadata.labels[ "anotherlabel" ] = "anothervalue"
                 }
             
-                // Serialize the objects and pass them to the create API.
-                // We could also pass JSON/YAML directly; openshift.create(readFile('some.json'))
-                def created = openshift.create(objectModels)
+                def objects
+                def verb
+                if (!objectsGeneratedFromTemplate) {
+                    verb = "Created"
+                    // Serialize the objects and pass them to the create API.
+                    // We could also pass JSON/YAML directly; openshift.create(readFile('some.json'))
+                    objects = openshift.create(objectModels)
+                } else {
+                    verb = "Found"
+                    objects = templateGeneratedSelector
+                }
             
                 // Create returns a selector which will always select the objects created
-                created.withEach {
+                objects.withEach {
                     // Each loop binds the variable 'it' to a selector which selects a single object
-                    echo "Created ${it.name()} from template with labels ${it.object().metadata.labels}"
+                    echo "${verb} ${it.name()} from template with labels ${it.object().metadata.labels}"
                 }
             
                 // Filter created objects and create a selector which selects only the new DeploymentConfigs
-                def dcs = created.narrow("dc")
+                def dcs = objects.narrow("dc")
                 echo "Database will run in deployment config: ${dcs.name()}"
                 // Find a least one pod related to the DeploymentConfig and wait it satisfies a condition
                 dcs.related('pods').untilEach(1) {
@@ -146,7 +149,6 @@ try {
                 openshift.run(runargs2)
                 
                 openshift.run("jenkins-second-deployment", "--image=docker.io/openshift/jenkins-2-centos7:latest", "--dry-run")
-                    
                 
             
             }
