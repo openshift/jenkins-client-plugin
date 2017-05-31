@@ -46,20 +46,21 @@ public class OcAction extends AbstractStepImpl {
         this.reference = reference==null?(new HashMap<String,String>()):reference;
     }
 
-    public static void exitStatusRaceConditionBugWorkaround( Controller dtc, FilePath filePath, Launcher launcher ) throws InterruptedException, IOException {
+    public static Integer exitStatusRaceConditionBugWorkaround( Controller dtc, FilePath filePath, Launcher launcher ) throws InterruptedException, IOException {
         for ( int tries = 30; tries > 0; tries-- ) {
             try {
                 // exitStatus can throw an IOException (reporting a NumberFormatException) if the PID file has been created but not
-                // populated. Make sure it stops throwing this exception before continuing.
-                dtc.exitStatus(filePath,launcher);
-                return; // exitStatus is healthy, we should be safe
+                // populated, or if the PID file has not yet been created. Make sure it stops throwing this exception before continuing.
+                return dtc.exitStatus(filePath,launcher);
             } catch ( IOException ioe ) {
                 if ( tries == 1 ) {
                     throw ioe;
                 }
-                Thread.sleep(1000);
+                Thread.sleep(125);
             }
         }
+        launcher.getListener().getLogger().println("After 30 retries, unable to get exit status for " + filePath.toURI().toString());
+        return -1;
     }
 
     public static class OcActionResult implements Serializable {
@@ -195,11 +196,9 @@ public class OcAction extends AbstractStepImpl {
                 ByteArrayOutputStream stdErr = new ByteArrayOutputStream();
                 ByteArrayOutputStream stdOut = new ByteArrayOutputStream();
 
-                exitStatusRaceConditionBugWorkaround( dtc, filePath, launcher);
-
                 long reCheckSleep = 250;
                 Integer exitStatus;
-                while ( ( exitStatus = dtc.exitStatus(filePath,launcher) ) == null ) {
+                while ( ( exitStatus = exitStatusRaceConditionBugWorkaround(dtc, filePath,launcher) ) == null ) {
                     Thread.sleep(reCheckSleep);
                     byte[] newOutput;
                     try (InputStream is = stdoutTmp.readFromOffset( stdOut.size() )) {
