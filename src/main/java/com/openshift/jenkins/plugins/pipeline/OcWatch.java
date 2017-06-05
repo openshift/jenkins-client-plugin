@@ -92,6 +92,7 @@ public class OcWatch extends AbstractStepImpl {
             getContext().saveState();
             listener.getLogger().println( "Entering watch" );
 
+            Integer exitStatus = -1;
             try {
 
                 FilePath stderrTmp = filePath.createTextTempFile( "watchstderr", ".txt", "", false );
@@ -114,9 +115,6 @@ public class OcWatch extends AbstractStepImpl {
                         QuietTaskListenerFactory.QuietTasklistener quiet = QuietTaskListenerFactory.build(listener);
                         Controller dtc = task.launch(envVars,filePath,launcher,quiet);
 
-                        exitStatusRaceConditionBugWorkaround( dtc, filePath, launcher);
-
-                        Integer exitStatus = -1;
                         try {
                             long reCheckSleep = 250;
                             boolean firstPass = true;
@@ -153,16 +151,16 @@ public class OcWatch extends AbstractStepImpl {
                                 listener.getLogger().println( "Checking watch output again in " + reCheckSleep + "ms" );
                                 Thread.sleep( reCheckSleep );
 
-                            } while ( (exitStatus = dtc.exitStatus(filePath,launcher)) == null );
+                            } while ( (exitStatus = exitStatusRaceConditionBugWorkaround(dtc, filePath,launcher)) == null );
 
                         } finally {
                             dtc.cleanup(filePath);
                         }
 
-                        // Reaching this point means that the watch terminated
+                        // Reaching this point means that the watch terminated - exitStatus will not be null
                         if ( exitStatus.intValue() != 0 ) {
                             // Looks like the watch command encountered an error
-                            throw new AbortException( "watch terminated with an error: " + dtc.exitStatus(filePath,launcher) );
+                            throw new AbortException( "watch terminated with an error: " + exitStatus );
                         }
                     }
 
