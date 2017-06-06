@@ -150,7 +150,16 @@ try {
                 
                 openshift.run("jenkins-second-deployment", "--image=docker.io/openshift/jenkins-2-centos7:latest", "--dry-run")
                 
-            
+                // Empty static / selectors are powerful tools to check the state of the system.
+                // Intentionally create one using a narrow and exercise it.
+                /*emptySelector = openshift.selector("pods").narrow("bc")
+                openshift.failUnless(!emptySelector.exists()) // Empty selections never exist
+                openshift.failUnless(emptySelector.count() == 0)
+                openshift.failUnless(emptySelector.names().size() == 0)
+                emptySelector.delete() // Should have no impact
+                emptySelector.label(["x":"y"]) // Should have no impact
+                */
+        
             }
     }
 } catch (err) {
