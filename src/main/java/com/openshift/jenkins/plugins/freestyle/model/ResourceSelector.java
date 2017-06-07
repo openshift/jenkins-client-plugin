@@ -72,10 +72,14 @@ public class ResourceSelector extends AbstractDescribableImpl<ResourceSelector> 
             args.add( kind );
 
             if ( labels != null ) {
+            	StringBuilder labelBuilder = new StringBuilder();
                 for ( Label e : labels ) {
-                    args.add( "-l " + e.getName() + "=" + e.getValue() );
+                	labelBuilder.append(e.getName() + "=" + e.getValue() + ",");
                 }
+                labelBuilder.deleteCharAt(labelBuilder.length() - 1);
+                args.add( "-l " + labelBuilder.toString());
             }
+            
         }
 
         return args;

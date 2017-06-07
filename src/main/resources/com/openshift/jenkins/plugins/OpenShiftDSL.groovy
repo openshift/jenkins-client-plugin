@@ -873,12 +873,15 @@ class OpenShiftDSL implements Serializable {
                 args.add( kind );
 
                 if ( labels != null ) {
+                    def labelBuilder = ""
                     Iterator<Map.Entry> i = labels.entrySet().iterator();
                     while ( i.hasNext() ) {
                         Map.Entry e = i.next();
                         // TODO: handle quotes, newlines, etc?
-                        args.add( sprintf("-l %s=%s", e.getKey(),e.getValue()));
+                        labelBuilder <<= sprintf("%s=%s,", e.getKey(),e.getValue());
                     }
+                    labelBuilder = labelBuilder.substring(0, labelBuilder.length() - 1)
+                    args.add('-l ' + labelBuilder)
                 }
             }
 
