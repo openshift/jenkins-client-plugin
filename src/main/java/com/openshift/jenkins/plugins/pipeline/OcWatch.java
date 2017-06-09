@@ -2,8 +2,10 @@ package com.openshift.jenkins.plugins.pipeline;
 
 import com.openshift.jenkins.plugins.util.ClientCommandBuilder;
 import com.openshift.jenkins.plugins.util.QuietTaskListenerFactory;
+
 import hudson.*;
 import hudson.model.TaskListener;
+
 import org.apache.commons.io.IOUtils;
 import org.jenkinsci.plugins.durabletask.BourneShellScript;
 import org.jenkinsci.plugins.durabletask.Controller;
@@ -16,12 +18,17 @@ import org.jenkinsci.plugins.workflow.steps.StepContextParameter;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 import javax.inject.Inject;
+
 import java.io.InputStream;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import static com.openshift.jenkins.plugins.pipeline.OcAction.exitStatusRaceConditionBugWorkaround;
 
 public class OcWatch extends AbstractStepImpl {
+    
+    private static Logger LOGGER = Logger.getLogger(OcWatch.class.getName());
 
     public static final String FUNCTION_NAME = "_OcWatch";
 
@@ -119,6 +126,7 @@ public class OcWatch extends AbstractStepImpl {
                             long reCheckSleep = 250;
                             boolean firstPass = true;
                             long outputSize = 0;
+                            short tries = 0;
 
                             do {
 
@@ -133,17 +141,34 @@ public class OcWatch extends AbstractStepImpl {
                                     reCheckSleep = Math.max( 250, reCheckSleep / 2 );
 
                                     listener.getLogger().println( "Running watch closure body" );
-                                    Object o = getContext().newBodyInvoker().start().get(); // Run body and get result
-                                    if ( o instanceof Boolean == false ) {
-                                        getContext().onFailure(new ClassCastException("watch body return value " + o + " is not boolean"));
-                                    }
-                                    if ( (Boolean)o ) {
-                                        listener.getLogger().println( "watch closure returned true; terminating watch" );
-                                        dtc.stop(filePath,launcher);
-                                        break master;
-                                    }
+                                    // oc errors like "Unable to connect to the server: net/http: TLS handshake timeout" currently can only be
+                                    // deciphered from the exceptions messages (typically within a java.util.concurrent.ExecutionException caused by
+                                    // hudson.AbortException chain) as the exception types are generic and the rc are always 1;
+                                    // For now, we are applying a generic and conservative retry approach
+                                    try {
+                                        Object o = getContext().newBodyInvoker().start().get(); // Run body and get result
+                                        if ( o instanceof Boolean == false ) {
+                                            getContext().onFailure(new ClassCastException("watch body return value " + o + " is not boolean"));
+                                        }
+                                        if ( (Boolean)o ) {
+                                            listener.getLogger().println( "watch closure returned true; terminating watch" );
+                                            dtc.stop(filePath,launcher);
+                                            break master;
+                                        }
 
-                                    continue;
+                                        continue;
+                                    } catch (Throwable t) {
+                                        LOGGER.log(Level.FINE, "run", t);
+                                        tries++;
+                                        if (tries > 2)
+                                            throw t;
+                                        String exceptionMsgs = t.getMessage();
+                                        if (t.getCause() != null)
+                                            exceptionMsgs = exceptionMsgs + "; " + t.getCause().getMessage();
+                                        listener.getLogger().println(String.format("\nAn exception occurred invoking 'oc' against the OpenShift master.  The operation will be retried.  Exception message \"%s\".\n", exceptionMsgs));
+                                        Thread.sleep(125);
+                                        
+                                    }
                                 }
 
                                 // Gradually check less frequently if watch is not generating output
