@@ -20,6 +20,8 @@ public class ClientCommandBuilder implements Serializable {
 
 
     public ClientCommandBuilder(String server, String project, String verb, List verbArgs, List userArgs, List options, List verboseOptions, String token, int logLevel ) {
+        if (token != null && (token.contains("\r") || token.contains("\n")))
+            throw new IllegalArgumentException("tokens cannot contain carriage returns or new lines");
         this.server = server;
         this.project = project;
         this.verb = verb==null?"help":verb;
