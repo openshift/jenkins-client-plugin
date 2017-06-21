@@ -341,8 +341,12 @@ class OpenShiftDSL implements Serializable {
     public void verbose (boolean v=true) {
         logLevel(v?8:0)
     }
+    
+    private Map buildCommonArgs( Object overb, List verbArgs, Object[] ouserArgsArray, Object... ooverrideArgs ) { 
+        return buildCommonArgs(true, overb, verbArgs, ouserArgsArray, ooverrideArgs)
+    }
 
-    private Map buildCommonArgs( Object overb, List verbArgs, Object[] ouserArgsArray, Object... ooverrideArgs ) {
+    private Map buildCommonArgs( boolean getProject, Object overb, List verbArgs, Object[] ouserArgsArray, Object... ooverrideArgs ) {
         String verb = toSingleString(overb);
         String[] userArgsArray = toStringArray(ouserArgsArray);
         String[] overrideArgs = toStringArray(ooverrideArgs);
@@ -368,7 +372,9 @@ class OpenShiftDSL implements Serializable {
         ArrayList<String> userArgsList = (userArgsArray==null)?new ArrayList<String>():Arrays.asList(userArgsArray);
 
         // These arguments will be mapped, by name, to the constructor parameters of OcAction
-        Map args = [
+        Map args
+        if ( getProject ) {
+           args = [
                 server:currentContext.getServerUrl(),
                 project:currentContext.getProject(),
                 verb:verb,
@@ -378,7 +384,21 @@ class OpenShiftDSL implements Serializable {
                 verboseOptions: verboseOptionsBase,
                 token:currentContext.getToken(),
                 logLevel:logLevel
-        ]
+           ]
+        } else {
+            args = [
+                server:currentContext.getServerUrl(),
+                project:null,
+                verb:verb,
+                verbArgs:verbArgs,
+                userArgs:userArgsList,
+                options:optionsBase,
+                verboseOptions: verboseOptionsBase,
+                token:currentContext.getToken(),
+                logLevel:logLevel
+           ]
+
+        }
         return args;
     }
 
@@ -586,7 +606,7 @@ class OpenShiftDSL implements Serializable {
         String name = toSingleString(oname);
         String[] args = toStringArray(oargs);
         Result r = new Result( "newProject" );
-        r.actions.add( (OcAction.OcActionResult)script._OcAction( buildCommonArgs("new-project", [name], args, "--skip-config-write" ) ) );
+        r.actions.add( (OcAction.OcActionResult)script._OcAction( buildCommonArgs(false, "new-project", [name], args, "--skip-config-write" ) ) );
         r.failIf( "new-project returned an error" );
         return r;
     }
