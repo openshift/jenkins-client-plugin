@@ -143,14 +143,14 @@ try {
                 openshift.run(runargs1)
                 
                 // FYI - pipeline cps groovy compile does not allow String[] runargs2 =  {"jenkins-second-deployment", "--image=docker.io/openshift/jenkins-2-centos7:latest", "--dry-run"}
-                String[] runargs2 = new String[3]
+                String[] runargs2 = new String[4]
                 runargs2[0] = "jenkins-second-deployment"
                 runargs2[1] = "--image=docker.io/openshift/jenkins-2-centos7:latest"
                 runargs2[2] = "--dry-run"
                 runargs2[3] = "-o yaml"
                 openshift.run(runargs2)
                 
-                openshift.run("jenkins-second-deployment", "--image=docker.io/openshift/jenkins-2-centos7:latest", "--dry-run")
+                openshift.run("jenkins-second-deployment", "--image=docker.io/openshift/jenkins-2-centos7:latest", "--dry-run", "-o yaml")
                 
                 // Empty static / selectors are powerful tools to check the state of the system.
                 // Intentionally create one using a narrow and exercise it.
