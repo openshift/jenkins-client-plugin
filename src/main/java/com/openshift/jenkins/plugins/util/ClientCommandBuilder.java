@@ -69,9 +69,9 @@ public class ClientCommandBuilder implements Serializable {
         cmd.add( toolName );
         cmd.add( verb );
 
-        cmd.addAll( toStringArray(userArgs) );
-
         cmd.addAll( toStringArray(verbArgs) );
+
+        cmd.addAll( toStringArray(userArgs) );
 
         cmd.addAll( toStringArray(options) );
 
