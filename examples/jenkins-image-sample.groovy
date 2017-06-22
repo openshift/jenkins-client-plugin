@@ -139,6 +139,7 @@ try {
                 runargs1 << "jenkins-second-deployment"
                 runargs1 << "--image=docker.io/openshift/jenkins-2-centos7:latest"
                 runargs1 << "--dry-run"
+                runargs1 << "-o yaml"
                 openshift.run(runargs1)
                 
                 // FYI - pipeline cps groovy compile does not allow String[] runargs2 =  {"jenkins-second-deployment", "--image=docker.io/openshift/jenkins-2-centos7:latest", "--dry-run"}
@@ -146,6 +147,7 @@ try {
                 runargs2[0] = "jenkins-second-deployment"
                 runargs2[1] = "--image=docker.io/openshift/jenkins-2-centos7:latest"
                 runargs2[2] = "--dry-run"
+                runargs2[3] = "-o yaml"
                 openshift.run(runargs2)
                 
                 openshift.run("jenkins-second-deployment", "--image=docker.io/openshift/jenkins-2-centos7:latest", "--dry-run")
