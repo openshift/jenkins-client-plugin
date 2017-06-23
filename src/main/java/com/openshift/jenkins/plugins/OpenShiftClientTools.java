@@ -10,6 +10,7 @@ import hudson.tools.ToolDescriptor;
 import hudson.tools.ToolInstallation;
 import hudson.tools.ToolInstaller;
 import hudson.tools.ToolProperty;
+import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 import java.io.IOException;
@@ -35,7 +36,7 @@ public class OpenShiftClientTools extends ToolInstallation implements Environmen
         return new OpenShiftClientTools(getName(), translateFor(node, log), getProperties().toList());
     }
 
-    @Extension
+    @Extension @Symbol("oc")
     public static class DescriptorImpl extends ToolDescriptor<OpenShiftClientTools> {
 
         @Override
