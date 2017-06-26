@@ -36,6 +36,13 @@ public class OpenShiftClientTools extends ToolInstallation implements Environmen
         return new OpenShiftClientTools(getName(), translateFor(node, log), getProperties().toList());
     }
 
+    @Override
+    public void buildEnvVars(EnvVars env) {
+        if (getHome() != null) {
+            env.put("PATH+OC", getHome());
+        }
+    }
+
     @Extension @Symbol("oc")
     public static class DescriptorImpl extends ToolDescriptor<OpenShiftClientTools> {
 
