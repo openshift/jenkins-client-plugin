@@ -152,12 +152,12 @@ try {
                 
                 // add this rollout -w test when v0.9.6 is available in our centos image so
                 // the overnight tests pass
-                /*def dc2Selector = openshift.selector("dc", "jenkins-second-deployment")
+                def dc2Selector = openshift.selector("dc", "jenkins-second-deployment")
                 if (dc2Selector.exists()) {
                     openshift.delete("dc", "jenkins-second-deployment")
                 }
                 openshift.run("jenkins-second-deployment", "--image=docker.io/openshift/jenkins-2-centos7:latest")
-                dc2Selector.rollout().status("-w")*/
+                dc2Selector.rollout().status("-w")
                 
                 // Empty static / selectors are powerful tools to check the state of the system.
                 // Intentionally create one using a narrow and exercise it.
