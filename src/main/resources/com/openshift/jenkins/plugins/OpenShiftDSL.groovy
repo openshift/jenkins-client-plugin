@@ -1220,7 +1220,8 @@ class OpenShiftDSL implements Serializable {
             List<String> names = names();
             for ( String name : names ) {
                 String k = name.split("/")[0]
-                if ( k.equals( kind ) || (k+"s").equals(kind) ) {
+                if ( k.equals( kind ) || (k+"s").equals(kind) ||
+                     (kind+"s").equals(k)) {
                     newList.add( name );
                 }
             }
@@ -1251,15 +1252,19 @@ class OpenShiftDSL implements Serializable {
             String unqualifiedName = split[1];
             switch ( k ) {
                 case "template" :
+                case "templates" :
                     labels.put( "template", unqualifiedName );
                     break;
                 case "deploymentconfig" :
+                case "deploymentconfigs" :
                     labels.put( "deploymentconfig", unqualifiedName );
                     break;
                 case "buildconfig" :
+                case "buildconfigs" :
                     labels.put( "openshift.io/build-config.name", unqualifiedName );
                     break;
                 case "job" :
+                case "jobs" :
                     labels.put( "job-name", unqualifiedName );
                     break;
                 default:
