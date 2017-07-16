@@ -11,13 +11,8 @@ import org.jenkinsci.plugins.durabletask.BourneShellScript;
 import org.jenkinsci.plugins.durabletask.Controller;
 import org.jenkinsci.plugins.durabletask.DurableTask;
 import org.jenkinsci.plugins.durabletask.WindowsBatchScript;
-import org.jenkinsci.plugins.workflow.steps.AbstractStepDescriptorImpl;
-import org.jenkinsci.plugins.workflow.steps.AbstractStepImpl;
-import org.jenkinsci.plugins.workflow.steps.AbstractSynchronousNonBlockingStepExecution;
-import org.jenkinsci.plugins.workflow.steps.StepContextParameter;
+import org.jenkinsci.plugins.workflow.steps.*;
 import org.kohsuke.stapler.DataBoundConstructor;
-
-import javax.inject.Inject;
 
 import java.io.InputStream;
 import java.util.List;
@@ -26,8 +21,9 @@ import java.util.logging.Logger;
 
 import static com.openshift.jenkins.plugins.pipeline.OcAction.exitStatusRaceConditionBugWorkaround;
 
-public class OcWatch extends AbstractStepImpl {
-    
+// Based on implementation of WaitForConditionStep
+public class OcWatch extends Step {
+
     private static Logger LOGGER = Logger.getLogger(OcWatch.class.getName());
 
     public static final String FUNCTION_NAME = "_OcWatch";
@@ -37,6 +33,11 @@ public class OcWatch extends AbstractStepImpl {
     @DataBoundConstructor
     public OcWatch(String server, String project, String verb, List verbArgs, List userArgs, List options, List verboseOptions, String token, int logLevel ) {
         this.cmdBuilder = new ClientCommandBuilder( server,project,verb,verbArgs,userArgs,options,verboseOptions,token,logLevel);
+    }
+
+    @Override
+    public StepExecution start(StepContext context) throws Exception {
+        return new Execution(cmdBuilder, context);
     }
 
     @Extension
@@ -78,25 +79,34 @@ public class OcWatch extends AbstractStepImpl {
 
         private static final long serialVersionUID = 1;
 
-        @Inject
-        private transient OcWatch step;
+        private ClientCommandBuilder cmdBuilder;
 
-        @StepContextParameter
         private transient FilePath filePath;
 
-        @StepContextParameter
         private transient Launcher launcher;
 
-        @StepContextParameter
         private transient EnvVars envVars;
 
-
-        /** Unused, just to force the descriptor to request it. */
-        @StepContextParameter
         private transient TaskListener listener;
+
+        Execution(ClientCommandBuilder cmdBuilder, StepContext context) {
+            super(context);
+            this.cmdBuilder = cmdBuilder;
+
+            try {
+                filePath = getContext().get(FilePath.class);
+                launcher = getContext().get(Launcher.class);
+                listener = getContext().get(TaskListener.class);
+                envVars = getContext().get(EnvVars.class);
+            } catch ( Exception e ) {
+                throw new RuntimeException("Error initializing step", e);
+            }
+
+        }
 
         public Void run() {
             getContext().saveState();
+
             listener.getLogger().println( "Entering watch" );
 
             Integer exitStatus = -1;
@@ -107,7 +117,7 @@ public class OcWatch extends AbstractStepImpl {
 
                     master:
                     while( true ) {
-                        String commandString = step.cmdBuilder.asString(false);
+                        String commandString = cmdBuilder.asString(false);
                         commandString += " 2> " + stderrTmp.getRemote() + " 1>&2"; // pipe stdout to stderr to avoid any buffering
 
                         final DurableTask task;
