@@ -148,6 +148,7 @@ public class OcWatch extends AbstractStepImpl {
                                     try {
                                         Object o = getContext().newBodyInvoker().start().get(); // Run body and get result
                                         if ( o instanceof Boolean == false ) {
+                                            LOGGER.info("GGM calling getContext on failure passing in class case exception");
                                             getContext().onFailure(new ClassCastException("watch body return value " + o + " is not boolean"));
                                         }
                                         if ( (Boolean)o ) {
@@ -160,8 +161,10 @@ public class OcWatch extends AbstractStepImpl {
                                     } catch (Throwable t) {
                                         LOGGER.log(Level.FINE, "run", t);
                                         tries++;
-                                        if (tries > 2)
+                                        if (tries > 2) {
+                                            LOGGER.info("GGM throwing throwable after retry " + t.getClass().toString() + " " + t.getMessage());
                                             throw t;
+                                        }
                                         String exceptionMsgs = t.getMessage();
                                         if (t.getCause() != null)
                                             exceptionMsgs = exceptionMsgs + "; " + t.getCause().getMessage();
@@ -184,6 +187,7 @@ public class OcWatch extends AbstractStepImpl {
 
                         // Reaching this point means that the watch terminated - exitStatus will not be null
                         if ( exitStatus.intValue() != 0 ) {
+                            LOGGER.info("GGM throwing abort exception for exit status " + exitStatus);
                             // Looks like the watch command encountered an error
                             throw new AbortException( "watch terminated with an error: " + exitStatus );
                         }
@@ -194,8 +198,10 @@ public class OcWatch extends AbstractStepImpl {
                 }
 
             } catch ( RuntimeException re ) {
+                LOGGER.info("GGM throwing runtime excetpion " + re.getClass().toString() + " " + re.getMessage());
                 throw re;
             } catch ( Exception e ) {
+                LOGGER.info("GGM calling getContext onFailure for generic exception " + e.getClass().toString() + " " + e.getMessage());
                 getContext().onFailure(e);
             }
 
