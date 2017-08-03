@@ -56,6 +56,18 @@ class OpenShiftDSL implements Serializable {
     
     private Context currentContext = null;
 
+    /**
+     * Returns the current context or errors and informs the user that they
+     * have not yet established one.
+     * @return The current context.
+     */
+    private Context getCurrentContextOrDie() throws AbortException {
+        if ( currentContext != null ) {
+            return currentContext;
+        }
+        throw new AbortException("No current cluster context; openshift.withCluster is required")
+    }
+
     private static final Map<String,String> abbreviations = [
             "svc" : "service",
             "p" : "pod",
@@ -245,7 +257,7 @@ class OpenShiftDSL implements Serializable {
 
 
     public String project() {
-        return currentContext.getProject();
+        return getCurrentContextOrDie().getProject();
     }
 
     /**
@@ -351,6 +363,8 @@ class OpenShiftDSL implements Serializable {
         String[] userArgsArray = toStringArray(ouserArgsArray);
         String[] overrideArgs = toStringArray(ooverrideArgs);
 
+        Context context = getCurrentContextOrDie()
+
         List optionsBase = [];
 
         // Override args should come after all user arguments. This allows us to ensure
@@ -360,12 +374,12 @@ class OpenShiftDSL implements Serializable {
         }
 
         List verboseOptionsBase = []
-        if ( currentContext.isSkipTlsVerify() ) {
+        if ( context.isSkipTlsVerify() ) {
             optionsBase.add( "--insecure-skip-tls-verify" );
         } else {
-            String caPath = currentContext.getServerCertificateAuthorityPath()
+            String caPath = context.getServerCertificateAuthorityPath()
             if ( caPath != null ) {
-                verboseOptionsBase.add( "--certificate-authority=" + currentContext.getServerCertificateAuthorityPath() );
+                verboseOptionsBase.add( "--certificate-authority=" + context.getServerCertificateAuthorityPath() );
             }
         }
 
@@ -375,14 +389,14 @@ class OpenShiftDSL implements Serializable {
         Map args
         if ( getProject ) {
            args = [
-                server:currentContext.getServerUrl(),
-                project:currentContext.getProject(),
+                server:context.getServerUrl(),
+                project:context.getProject(),
                 verb:verb,
                 verbArgs:verbArgs,
                 userArgs:userArgsList,
                 options:optionsBase,
                 verboseOptions: verboseOptionsBase,
-                token:currentContext.getToken(),
+                token:context.getToken(),
                 logLevel:logLevel
            ]
         } else {
@@ -534,7 +548,7 @@ class OpenShiftDSL implements Serializable {
         Result r = new Result( verb );
 
         if ( markup && !httpref) {
-            FilePath f = currentContext.exec.getWorkspaceFilePath().createTextTempFile( verb, ".markup", s, false );
+            FilePath f = getCurrentContextOrDie().exec.getWorkspaceFilePath().createTextTempFile( verb, ".markup", s, false );
             try {
                 Map stepArgs = buildCommonArgs(verb, [ "-f", f.getRemote() ], userArgs, "-o=name" );
                 stepArgs["reference"] = [ "${f.getRemote()}": s ];  // Store the markup content for reference in the result
@@ -584,7 +598,7 @@ class OpenShiftDSL implements Serializable {
         String target = obj.toString();
         if ( target.contains("{") ) { // is the string JSON?
             String json = obj.toString();
-            FilePath f = currentContext.exec.getWorkspaceFilePath().createTextTempFile( "process", ".json", json, false );
+            FilePath f = getCurrentContextOrDie().exec.getWorkspaceFilePath().createTextTempFile( "process", ".json", json, false );
             try {
                 r = new Result( "process" );
                 r.actions.add((OcAction.OcActionResult)script._OcAction( buildCommonArgs("process", ["-f", f.getRemote() ], args, "-o=json" ) ));
