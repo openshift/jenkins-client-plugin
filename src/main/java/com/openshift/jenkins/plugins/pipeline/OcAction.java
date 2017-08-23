@@ -35,31 +35,46 @@ public class OcAction extends AbstractStepImpl {
     private final ClientCommandBuilder cmdBuilder;
     private final boolean verbose;
     protected final String streamStdOutToConsolePrefix;
-    private final HashMap<String,String> reference;
+    private final HashMap<String, String> reference;
 
     @DataBoundConstructor
-    public OcAction(String server, String project, String verb, List verbArgs, List userArgs, List options, List verboseOptions, String token, String streamStdOutToConsolePrefix, HashMap<String,String> reference, int logLevel ) {
-        this.cmdBuilder = new ClientCommandBuilder( server,project,verb,verbArgs,userArgs,options,verboseOptions,token,logLevel);
-        this.verbose = (logLevel>0);
+    public OcAction(String server, String project, String verb, List verbArgs,
+            List userArgs, List options, List verboseOptions, String token,
+            String streamStdOutToConsolePrefix,
+            HashMap<String, String> reference, int logLevel) {
+        this.cmdBuilder = new ClientCommandBuilder(server, project, verb,
+                verbArgs, userArgs, options, verboseOptions, token, logLevel);
+        this.verbose = (logLevel > 0);
         this.streamStdOutToConsolePrefix = streamStdOutToConsolePrefix;
-        // Reference is used to output information about, for example, file contents not visibile in the command line.
-        this.reference = reference==null?(new HashMap<String,String>()):reference;
+        // Reference is used to output information about, for example, file
+        // contents not visibile in the command line.
+        this.reference = reference == null ? (new HashMap<String, String>())
+                : reference;
     }
 
-    public static Integer exitStatusRaceConditionBugWorkaround( Controller dtc, FilePath filePath, Launcher launcher ) throws InterruptedException, IOException {
-        for ( int tries = 30; tries > 0; tries-- ) {
+    public static Integer exitStatusRaceConditionBugWorkaround(Controller dtc,
+            FilePath filePath, Launcher launcher) throws InterruptedException,
+            IOException {
+        for (int tries = 30; tries > 0; tries--) {
             try {
-                // exitStatus can throw an IOException (reporting a NumberFormatException) if the PID file has been created but not
-                // populated, or if the PID file has not yet been created. Make sure it stops throwing this exception before continuing.
-                return dtc.exitStatus(filePath,launcher);
-            } catch ( IOException ioe ) {
-                if ( tries == 1 ) {
+                // exitStatus can throw an IOException (reporting a
+                // NumberFormatException) if the PID file has been created but
+                // not
+                // populated, or if the PID file has not yet been created. Make
+                // sure it stops throwing this exception before continuing.
+                return dtc.exitStatus(filePath, launcher);
+            } catch (IOException ioe) {
+                if (tries == 1) {
                     throw ioe;
                 }
                 Thread.sleep(125);
             }
         }
-        launcher.getListener().getLogger().println("After 30 retries, unable to get exit status for " + filePath.toURI().toString());
+        launcher.getListener()
+                .getLogger()
+                .println(
+                        "After 30 retries, unable to get exit status for "
+                                + filePath.toURI().toString());
         return -1;
     }
 
@@ -76,17 +91,16 @@ public class OcAction extends AbstractStepImpl {
         @Whitelisted
         public int status;
         @Whitelisted
-        public HashMap<String,String> reference = new HashMap<String,String>();
-
+        public HashMap<String, String> reference = new HashMap<String, String>();
 
         public HashMap toMap() {
             HashMap m = new HashMap();
-            m.put( "verb", verb );
-            m.put( "cmd", cmd );
-            m.put( "out", out );
-            m.put( "err", err );
-            m.put( "reference", reference );
-            m.put( "status", status );
+            m.put("verb", verb);
+            m.put("cmd", cmd);
+            m.put("out", out);
+            m.put("err", err);
+            m.put("reference", reference);
+            m.put("status", status);
             return m;
         }
 
@@ -99,13 +113,13 @@ public class OcAction extends AbstractStepImpl {
             return status != 0;
         }
 
-        public void failIf(String failMessage ) throws AbortException {
-            if ( isFailed() ) {
-                throw new AbortException( failMessage + "; action failed: " + toString() );
+        public void failIf(String failMessage) throws AbortException {
+            if (isFailed()) {
+                throw new AbortException(failMessage + "; action failed: "
+                        + toString());
             }
         }
     }
-
 
     @Extension
     public static class DescriptorImpl extends AbstractStepDescriptorImpl {
@@ -136,7 +150,8 @@ public class OcAction extends AbstractStepImpl {
 
     }
 
-    public static class Execution extends AbstractSynchronousNonBlockingStepExecution<OcActionResult> {
+    public static class Execution extends
+            AbstractSynchronousNonBlockingStepExecution<OcActionResult> {
 
         private static final long serialVersionUID = 1L;
 
@@ -160,13 +175,13 @@ public class OcAction extends AbstractStepImpl {
 
         private boolean firstPrint = true;
 
-        private void printToConsole( String s ) {
+        private void printToConsole(String s) {
             final String prefix = "[" + step.streamStdOutToConsolePrefix + "] ";
-            if ( firstPrint ) {
-                listener.getLogger().print( prefix );
+            if (firstPrint) {
+                listener.getLogger().print(prefix);
                 firstPrint = false;
             }
-            listener.getLogger().print( s.replace( "\n", "\n" + prefix ) );
+            listener.getLogger().print(s.replace("\n", "\n" + prefix));
             listener.getLogger().flush();
         }
 
@@ -176,58 +191,72 @@ public class OcAction extends AbstractStepImpl {
             String commandString = step.cmdBuilder.asString(false);
             String redactedCommandString = step.cmdBuilder.asString(true);
 
-            FilePath stdoutTmp = filePath.createTextTempFile( "ocstdout", ".txt", "", false );
-            FilePath stderrTmp = filePath.createTextTempFile( "ocstderr", ".txt", "", false );
-            commandString += " >> " + stdoutTmp.getRemote() + " 2>> " + stderrTmp.getRemote();
+            FilePath stdoutTmp = filePath.createTextTempFile("ocstdout",
+                    ".txt", "", false);
+            FilePath stderrTmp = filePath.createTextTempFile("ocstderr",
+                    ".txt", "", false);
+            commandString += " >> " + stdoutTmp.getRemote() + " 2>> "
+                    + stderrTmp.getRemote();
 
             try {
                 final DurableTask task;
-                if ( launcher.isUnix() ) {
+                if (launcher.isUnix()) {
                     task = new BourneShellScript(commandString);
                 } else {
                     task = new WindowsBatchScript(commandString);
                 }
 
-                // Without this intervention, Durable task logs some extraneous details I don't want appearing in the console
+                // Without this intervention, Durable task logs some extraneous
+                // details I don't want appearing in the console
                 // e.g. "[_OcAction] Running shell script"
-                QuietTaskListenerFactory.QuietTasklistener quiet = QuietTaskListenerFactory.build(listener);
-                Controller dtc = task.launch(envVars,filePath,launcher,quiet);
+                QuietTaskListenerFactory.QuietTasklistener quiet = QuietTaskListenerFactory
+                        .build(listener);
+                Controller dtc = task
+                        .launch(envVars, filePath, launcher, quiet);
 
                 ByteArrayOutputStream stdErr = new ByteArrayOutputStream();
                 ByteArrayOutputStream stdOut = new ByteArrayOutputStream();
 
                 long reCheckSleep = 250;
                 Integer exitStatus;
-                while ( ( exitStatus = exitStatusRaceConditionBugWorkaround(dtc, filePath,launcher) ) == null ) {
+                while ((exitStatus = exitStatusRaceConditionBugWorkaround(dtc,
+                        filePath, launcher)) == null) {
                     Thread.sleep(reCheckSleep);
                     byte[] newOutput;
-                    try (InputStream is = stdoutTmp.readFromOffset( stdOut.size() )) {
-                        newOutput = IOUtils.toByteArray( is );
+                    try (InputStream is = stdoutTmp.readFromOffset(stdOut
+                            .size())) {
+                        newOutput = IOUtils.toByteArray(is);
                     }
-                    stdOut.write( newOutput );
-                    if ( newOutput.length > 0 && step.streamStdOutToConsolePrefix != null) {
-                        printToConsole( new String(newOutput, StandardCharsets.UTF_8) );
-                        // If we are streaming to console and getting output, keep sleep duration small.
+                    stdOut.write(newOutput);
+                    if (newOutput.length > 0
+                            && step.streamStdOutToConsolePrefix != null) {
+                        printToConsole(new String(newOutput,
+                                StandardCharsets.UTF_8));
+                        // If we are streaming to console and getting output,
+                        // keep sleep duration small.
                         reCheckSleep = 1000;
                         continue;
                     }
-                    if ( reCheckSleep < 10000 ) { // Gradually check less frequently for slow execution tasks
+                    if (reCheckSleep < 10000) { // Gradually check less
+                                                // frequently for slow execution
+                                                // tasks
                         reCheckSleep *= 1.2f;
                     }
                 }
 
                 byte[] newOutput;
-                try (InputStream is = stdoutTmp.readFromOffset( stdOut.size() )) {
-                    newOutput = IOUtils.toByteArray( is );
+                try (InputStream is = stdoutTmp.readFromOffset(stdOut.size())) {
+                    newOutput = IOUtils.toByteArray(is);
                 }
-                stdOut.write( newOutput );
-                if ( step.streamStdOutToConsolePrefix != null ) {
-                    printToConsole( new String(newOutput, StandardCharsets.UTF_8) );
-                    listener.getLogger().println(); // final newline if output does not contain it.
+                stdOut.write(newOutput);
+                if (step.streamStdOutToConsolePrefix != null) {
+                    printToConsole(new String(newOutput, StandardCharsets.UTF_8));
+                    listener.getLogger().println(); // final newline if output
+                                                    // does not contain it.
                 }
 
                 try (InputStream is = stderrTmp.read()) {
-                    stdErr.write( IOUtils.toByteArray( is ) );
+                    stdErr.write(IOUtils.toByteArray(is));
                 }
 
                 OcActionResult result = new OcActionResult();
@@ -238,13 +267,14 @@ public class OcAction extends AbstractStepImpl {
                 result.err = stdErr.toString("UTF-8").trim();
                 result.reference = step.reference;
 
-                if ( step.verbose ) {
-                    listener.getLogger().println("Verbose sub-step output:" );
+                if (step.verbose) {
+                    listener.getLogger().println("Verbose sub-step output:");
                     listener.getLogger().println("\tCommand> " + result.cmd);
                     listener.getLogger().println("\tStatus> " + result.status);
                     listener.getLogger().println("\tStdOut>" + result.out);
                     listener.getLogger().println("\tStdErr> " + result.err);
-                    listener.getLogger().println("\tReference> " + result.reference);
+                    listener.getLogger().println(
+                            "\tReference> " + result.reference);
                 }
 
                 dtc.cleanup(filePath);
@@ -256,7 +286,5 @@ public class OcAction extends AbstractStepImpl {
         }
 
     }
-
-
 
 }

@@ -9,7 +9,8 @@ import org.kohsuke.stapler.QueryParameter;
 
 import java.io.Serializable;
 
-public class ResourceName extends AbstractDescribableImpl<ResourceName> implements Serializable {
+public class ResourceName extends AbstractDescribableImpl<ResourceName>
+        implements Serializable {
 
     private final String name;
 

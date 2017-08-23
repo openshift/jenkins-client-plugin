@@ -16,7 +16,8 @@ import org.kohsuke.stapler.QueryParameter;
 
 import java.io.Serializable;
 
-public class ClusterConfig extends AbstractDescribableImpl<ClusterConfig> implements Serializable {
+public class ClusterConfig extends AbstractDescribableImpl<ClusterConfig>
+        implements Serializable {
 
     // Human readable name for cluster. Used in drop down lists.
     private String name;
@@ -57,7 +58,8 @@ public class ClusterConfig extends AbstractDescribableImpl<ClusterConfig> implem
 
     @DataBoundSetter
     public void setServerCertificateAuthority(String serverCertificateAuthority) {
-        this.serverCertificateAuthority = Util.fixEmptyAndTrim(serverCertificateAuthority);
+        this.serverCertificateAuthority = Util
+                .fixEmptyAndTrim(serverCertificateAuthority);
     }
 
     public boolean isSkipTlsVerify() {
@@ -89,22 +91,26 @@ public class ClusterConfig extends AbstractDescribableImpl<ClusterConfig> implem
 
     @Override
     public String toString() {
-        return String.format("OpenShift cluster [name:%s] [serverUrl:%s]", name, serverUrl);
+        return String.format("OpenShift cluster [name:%s] [serverUrl:%s]",
+                name, serverUrl);
     }
 
     /**
-     * @return Returns a URL to contact the API server of the OpenShift cluster running this
-     *          node or throws an Exception if it cannot be determined.
+     * @return Returns a URL to contact the API server of the OpenShift cluster
+     *         running this node or throws an Exception if it cannot be
+     *         determined.
      */
     @Whitelisted
     public static String getHostClusterApiServerUrl() {
         String serviceHost = System.getenv("KUBERNETES_SERVICE_HOST");
-        if ( serviceHost == null ) {
-            throw new IllegalStateException( "No clusterName information specified and unable to find `KUBERNETES_SERVICE_HOST` environment variable.");
+        if (serviceHost == null) {
+            throw new IllegalStateException(
+                    "No clusterName information specified and unable to find `KUBERNETES_SERVICE_HOST` environment variable.");
         }
         String servicePort = System.getenv("KUBERNETES_SERVICE_PORT_HTTPS");
-        if ( servicePort == null ) {
-            throw new IllegalStateException( "No clusterName information specified and unable to find `KUBERNETES_SERVICE_PORT_HTTPS` environment variable.");
+        if (servicePort == null) {
+            throw new IllegalStateException(
+                    "No clusterName information specified and unable to find `KUBERNETES_SERVICE_PORT_HTTPS` environment variable.");
         }
         return "https://" + serviceHost + ":" + servicePort;
     }
@@ -118,18 +124,23 @@ public class ClusterConfig extends AbstractDescribableImpl<ClusterConfig> implem
         }
 
         if (!Jenkins.getInstance().hasPermission(Jenkins.ADMINISTER)) {
-            // Important! Otherwise you expose credentials metadata to random web requests.
-            return new StandardListBoxModel().includeCurrentValue(credentialsId);
+            // Important! Otherwise you expose credentials metadata to random
+            // web requests.
+            return new StandardListBoxModel()
+                    .includeCurrentValue(credentialsId);
         }
 
         return new StandardListBoxModel()
                 .includeEmptyValue()
-                .includeAs(ACL.SYSTEM, Jenkins.getInstance(), OpenShiftTokenCredentials.class)
-                //.includeAs(ACL.SYSTEM, Jenkins.getInstance(), StandardUsernamePasswordCredentials.class)
-                // .includeAs(ACL.SYSTEM, Jenkins.getInstance(), StandardCertificateCredentials.class)
-                // TODO: Make own type for token or use the existing token generator auth type used by sync plugin? or kubernetes?
-                .includeCurrentValue(credentialsId)
-                ;
+                .includeAs(ACL.SYSTEM, Jenkins.getInstance(),
+                        OpenShiftTokenCredentials.class)
+                // .includeAs(ACL.SYSTEM, Jenkins.getInstance(),
+                // StandardUsernamePasswordCredentials.class)
+                // .includeAs(ACL.SYSTEM, Jenkins.getInstance(),
+                // StandardCertificateCredentials.class)
+                // TODO: Make own type for token or use the existing token
+                // generator auth type used by sync plugin? or kubernetes?
+                .includeCurrentValue(credentialsId);
     }
 
     @Extension
@@ -148,8 +159,10 @@ public class ClusterConfig extends AbstractDescribableImpl<ClusterConfig> implem
             return FormValidation.validateRequired(value);
         }
 
-        public ListBoxModel doFillCredentialsIdItems(@QueryParameter String credentialsId) {
-            // It is valid to choose no default credential, so enable 'includeEmpty'
+        public ListBoxModel doFillCredentialsIdItems(
+                @QueryParameter String credentialsId) {
+            // It is valid to choose no default credential, so enable
+            // 'includeEmpty'
             return ClusterConfig.doFillCredentialsIdItems(credentialsId);
         }
 

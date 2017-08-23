@@ -40,17 +40,14 @@ public class DeleteStep extends BaseStep {
     }
 
     @Override
-    public boolean perform(AbstractBuild build, Launcher launcher, BuildListener listener) throws IOException, InterruptedException {
+    public boolean perform(AbstractBuild build, Launcher launcher,
+            BuildListener listener) throws IOException, InterruptedException {
         List<String> base = selector.asSelectionArgs();
-        if ( isIgnoreNotFound() ) {
-            base.add( "--ignore-not-found" );
+        if (isIgnoreNotFound()) {
+            base.add("--ignore-not-found");
         }
-        return standardRunOcCommand( build, listener, "delete",
-                base,
-                toList(),
-                toList(),
-                toList()
-        );
+        return standardRunOcCommand(build, listener, "delete", base, toList(),
+                toList(), toList());
     }
 
     @Extension
