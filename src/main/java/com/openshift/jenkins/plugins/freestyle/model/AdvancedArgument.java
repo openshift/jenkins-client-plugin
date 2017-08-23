@@ -9,7 +9,8 @@ import org.kohsuke.stapler.QueryParameter;
 
 import java.io.Serializable;
 
-public class AdvancedArgument extends AbstractDescribableImpl<AdvancedArgument> implements Serializable {
+public class AdvancedArgument extends AbstractDescribableImpl<AdvancedArgument>
+        implements Serializable {
 
     private final String value;
 

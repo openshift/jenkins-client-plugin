@@ -13,7 +13,8 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ResourceSelector extends AbstractDescribableImpl<ResourceSelector> implements Serializable {
+public class ResourceSelector extends AbstractDescribableImpl<ResourceSelector>
+        implements Serializable {
 
     private static final String SELECT_BY_NAMES = "SELECT_BY_NAMES";
     private static final String SELECT_BY_KIND = "SELECT_BY_KIND";
@@ -23,9 +24,9 @@ public class ResourceSelector extends AbstractDescribableImpl<ResourceSelector> 
 
     private List<ResourceName> names;
 
-    public boolean isSelectionType( String type ) {
-        if ( SELECT_BY_KIND.equals( type ) ) {
-            return !Strings.isNullOrEmpty( kind );
+    public boolean isSelectionType(String type) {
+        if (SELECT_BY_KIND.equals(type)) {
+            return !Strings.isNullOrEmpty(kind);
         }
         return true;
     }
@@ -53,7 +54,7 @@ public class ResourceSelector extends AbstractDescribableImpl<ResourceSelector> 
     }
 
     @DataBoundSetter
-    public void setNames(List<ResourceName> names ) {
+    public void setNames(List<ResourceName> names) {
         this.names = names;
     }
 
@@ -64,22 +65,22 @@ public class ResourceSelector extends AbstractDescribableImpl<ResourceSelector> 
     public List<String> asSelectionArgs() {
         ArrayList<String> args = new ArrayList<String>();
 
-        if ( names != null ) {
-            for ( ResourceName res : names ) {
-                args.add( res.getName() );
+        if (names != null) {
+            for (ResourceName res : names) {
+                args.add(res.getName());
             }
         } else {
-            args.add( kind );
+            args.add(kind);
 
-            if ( labels != null ) {
-            	StringBuilder labelBuilder = new StringBuilder();
-                for ( Label e : labels ) {
-                	labelBuilder.append(e.getName() + "=" + e.getValue() + ",");
+            if (labels != null) {
+                StringBuilder labelBuilder = new StringBuilder();
+                for (Label e : labels) {
+                    labelBuilder.append(e.getName() + "=" + e.getValue() + ",");
                 }
                 labelBuilder.deleteCharAt(labelBuilder.length() - 1);
-                args.add( "-l " + labelBuilder.toString());
+                args.add("-l " + labelBuilder.toString());
             }
-            
+
         }
 
         return args;
@@ -94,16 +95,17 @@ public class ResourceSelector extends AbstractDescribableImpl<ResourceSelector> 
         }
 
         @Override
-        public ResourceSelector newInstance(StaplerRequest req, JSONObject formData ) throws FormException {
-            ResourceSelector s = super.newInstance( req, formData );
+        public ResourceSelector newInstance(StaplerRequest req,
+                JSONObject formData) throws FormException {
+            ResourceSelector s = super.newInstance(req, formData);
 
             String selectionType = formData.getString("selectionType");
-            System.out.println( "parms2: " + selectionType );
+            System.out.println("parms2: " + selectionType);
 
-            if ( SELECT_BY_KIND.equals(selectionType)) {
+            if (SELECT_BY_KIND.equals(selectionType)) {
                 s.names = null;
             }
-            if ( SELECT_BY_NAMES.equals(selectionType) ) {
+            if (SELECT_BY_NAMES.equals(selectionType)) {
                 s.kind = null;
                 s.labels = null;
             }

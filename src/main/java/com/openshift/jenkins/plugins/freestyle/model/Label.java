@@ -9,7 +9,8 @@ import org.kohsuke.stapler.QueryParameter;
 
 import java.io.Serializable;
 
-public class Label extends AbstractDescribableImpl<Label> implements Serializable {
+public class Label extends AbstractDescribableImpl<Label> implements
+        Serializable {
 
     private final String name;
     private final String value;

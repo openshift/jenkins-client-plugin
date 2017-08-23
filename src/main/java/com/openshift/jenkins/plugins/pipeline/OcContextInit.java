@@ -52,7 +52,8 @@ public class OcContextInit extends AbstractStepImpl {
         }
     }
 
-    public static class Execution extends AbstractSynchronousStepExecution<Execution> {
+    public static class Execution extends
+            AbstractSynchronousStepExecution<Execution> {
 
         private static final long serialVersionUID = 1L;
 
@@ -84,7 +85,5 @@ public class OcContextInit extends AbstractStepImpl {
         }
 
     }
-
-
 
 }

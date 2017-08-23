@@ -19,21 +19,27 @@ import java.util.List;
 /**
  * An installation of the OpenShift Client Tools.
  */
-public class OpenShiftClientTools extends ToolInstallation implements EnvironmentSpecific<OpenShiftClientTools>, NodeSpecific<OpenShiftClientTools> {
+public class OpenShiftClientTools extends ToolInstallation implements
+        EnvironmentSpecific<OpenShiftClientTools>,
+        NodeSpecific<OpenShiftClientTools> {
 
     @DataBoundConstructor
-    public OpenShiftClientTools(String name, String home, List<? extends ToolProperty<?>> properties) {
+    public OpenShiftClientTools(String name, String home,
+            List<? extends ToolProperty<?>> properties) {
         super(name, home, properties);
     }
 
     @Override
     public OpenShiftClientTools forEnvironment(EnvVars environment) {
-        return new OpenShiftClientTools(getName(), environment.expand(getHome()), getProperties());
+        return new OpenShiftClientTools(getName(),
+                environment.expand(getHome()), getProperties());
     }
 
     @Override
-    public OpenShiftClientTools forNode(Node node, TaskListener log) throws IOException, InterruptedException {
-        return new OpenShiftClientTools(getName(), translateFor(node, log), getProperties().toList());
+    public OpenShiftClientTools forNode(Node node, TaskListener log)
+            throws IOException, InterruptedException {
+        return new OpenShiftClientTools(getName(), translateFor(node, log),
+                getProperties().toList());
     }
 
     @Override
@@ -43,8 +49,10 @@ public class OpenShiftClientTools extends ToolInstallation implements Environmen
         }
     }
 
-    @Extension @Symbol("oc")
-    public static class DescriptorImpl extends ToolDescriptor<OpenShiftClientTools> {
+    @Extension
+    @Symbol("oc")
+    public static class DescriptorImpl extends
+            ToolDescriptor<OpenShiftClientTools> {
 
         @Override
         public String getDisplayName() {

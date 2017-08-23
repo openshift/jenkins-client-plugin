@@ -11,12 +11,11 @@ import java.io.IOException;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 
-
 public class RawStep extends BaseStep {
 
     private final String command;
     private final String arguments;
-    
+
     @DataBoundConstructor
     public RawStep(String command, String arguments) {
         this.command = command;
@@ -24,16 +23,15 @@ public class RawStep extends BaseStep {
     }
 
     @Override
-    public boolean perform(final AbstractBuild build, Launcher launcher, final BuildListener listener) throws IOException, InterruptedException {
+    public boolean perform(final AbstractBuild build, Launcher launcher,
+            final BuildListener listener) throws IOException,
+            InterruptedException {
         return withTempInput("markup", command, new WithTempInputRunnable() {
             @Override
-            public boolean perform(String markupFilename) throws IOException, InterruptedException {
-                return standardRunOcCommand( build, listener, command,
-                        toList(arguments),
-                        toList(),
-                        toList(),
-                        toList()
-                );
+            public boolean perform(String markupFilename) throws IOException,
+                    InterruptedException {
+                return standardRunOcCommand(build, listener, command,
+                        toList(arguments), toList(), toList(), toList());
             }
         });
     }

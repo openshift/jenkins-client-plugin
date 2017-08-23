@@ -24,7 +24,8 @@ public class OpenShift extends AbstractDescribableImpl<OpenShift> {
 
         public List<ClusterConfig> clusterConfigs;
 
-        public String ocTool = "oc"; // TODO: Make this configurable for kubectl?
+        public String ocTool = "oc"; // TODO: Make this configurable for
+                                     // kubectl?
 
         public DescriptorImpl() {
             configVersion = 1L;
@@ -41,12 +42,12 @@ public class OpenShift extends AbstractDescribableImpl<OpenShift> {
         }
 
         @Override
-        public boolean configure(StaplerRequest req, JSONObject json) throws FormException {
+        public boolean configure(StaplerRequest req, JSONObject json)
+                throws FormException {
 
             /**
-             * If all cluster configurations are deleted in the UI and
-             * saved, binJSON does not set the list. So clear out the list
-             * before bind.
+             * If all cluster configurations are deleted in the UI and saved,
+             * binJSON does not set the list. So clear out the list before bind.
              */
             clusterConfigs = null;
 
@@ -58,36 +59,38 @@ public class OpenShift extends AbstractDescribableImpl<OpenShift> {
         // Creates a model that fills in logLevel options in configuration UI
         public ListBoxModel doFillLogLevelItems() {
             ListBoxModel items = new ListBoxModel();
-            items.add( "0 - Least Logging", "0" );
-            for ( int i = 1; i < 10; i++ ) {
-                items.add( ""+i, ""+i );
+            items.add("0 - Least Logging", "0");
+            for (int i = 1; i < 10; i++) {
+                items.add("" + i, "" + i);
             }
-            items.add( "10 - Most Logging", "10" );
+            items.add("10 - Most Logging", "10");
             return items;
         }
 
         public List<ClusterConfig> getClusterConfigs() {
-            if ( clusterConfigs == null ) {
+            if (clusterConfigs == null) {
                 return new ArrayList<>(0);
             }
             return Collections.unmodifiableList(clusterConfigs);
         }
 
         /**
-         * Determines if a cluster has been configured with a given name.
-         * If a cluster has been configured with the name, its definition
-         * is returned.
-         * @param name The name of the cluster config to find
+         * Determines if a cluster has been configured with a given name. If a
+         * cluster has been configured with the name, its definition is
+         * returned.
+         * 
+         * @param name
+         *            The name of the cluster config to find
          * @return A ClusterConfig for the supplied parameters OR null.
          */
-        public ClusterConfig getClusterConfig( String name ) {
-            if ( clusterConfigs == null ) {
+        public ClusterConfig getClusterConfig(String name) {
+            if (clusterConfigs == null) {
                 return null;
             }
 
-            name = Util.fixEmptyAndTrim( name );
-            for ( ClusterConfig cc : clusterConfigs ) {
-                if ( cc.getName().equalsIgnoreCase( name ) ) {
+            name = Util.fixEmptyAndTrim(name);
+            for (ClusterConfig cc : clusterConfigs) {
+                if (cc.getName().equalsIgnoreCase(name)) {
                     return cc;
                 }
             }

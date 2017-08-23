@@ -24,16 +24,16 @@ public class CreateStep extends BaseStep {
     }
 
     @Override
-    public boolean perform(final AbstractBuild build, Launcher launcher, final BuildListener listener) throws IOException, InterruptedException {
+    public boolean perform(final AbstractBuild build, Launcher launcher,
+            final BuildListener listener) throws IOException,
+            InterruptedException {
         return withTempInput("markup", jsonyaml, new WithTempInputRunnable() {
             @Override
-            public boolean perform(String markupFilename) throws IOException, InterruptedException {
-                return standardRunOcCommand( build, listener, "create",
-                        toList( "-f", markupFilename ),
-                        toList(),
-                        toList(),
-                        toList()
-                );
+            public boolean perform(String markupFilename) throws IOException,
+                    InterruptedException {
+                return standardRunOcCommand(build, listener, "create",
+                        toList("-f", markupFilename), toList(), toList(),
+                        toList());
             }
         });
     }
