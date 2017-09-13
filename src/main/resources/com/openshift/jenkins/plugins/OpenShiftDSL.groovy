@@ -11,6 +11,7 @@ import hudson.AbortException
 import hudson.FilePath
 import hudson.Util
 
+import java.util.Arrays;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -1141,13 +1142,19 @@ class OpenShiftDSL implements Serializable {
 
         public OpenShiftResourceSelector startBuild(Object... ouserArgs ) throws AbortException {
             String[] userArgs = toStringArray(ouserArgs);
+            List argList = Arrays.asList(userArgs);
+            boolean realTimeLogs = argList.contains("-F") || argList.contains("--follow=true") || argList.contains("--follow");
 
             Result r = new Result( "startBuild" );
             List<String> names = names();
             // only supports a single object at a time, so get individual names
             for ( String name : names ) {
+                Map args = buildCommonArgs("start-build", [name.toString() ], userArgs, "-o=name")
+                if (realTimeLogs) {
+                    args.put( "streamStdOutToConsolePrefix", "logs:"+name );
+                }
                 r.actions.add(
-                        (OcAction.OcActionResult)script._OcAction( buildCommonArgs("start-build", [name.toString() ], userArgs, "-o=name") )
+                        (OcAction.OcActionResult)script._OcAction( args )
                 );
             }
             r.failIf( "Error running start-build on at least one item: " + names.toString() );
