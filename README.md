@@ -1,5 +1,5 @@
 
-# OpenShift Jenkins Pipeline (DSL) Plugin - Experimental
+# OpenShift Jenkins Pipeline (DSL) Plugin
 
 <!-- Install doctoc with `npm install -g doctoc`  then `doctoc README.md --github` -->
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
@@ -35,12 +35,12 @@
 
 ## Overview
 The [OpenShift](https://www.openshift.com) [Pipeline](https://jenkins.io/solutions/pipeline/) 
-DSL Plugin is presently an experimental Jenkins plugin which aims to provide a readable, concise, comprehensive, and fluent 
+DSL Plugin is a Jenkins plugin which aims to provide a readable, concise, comprehensive, and fluent 
 [Jenkins Pipeline](https://jenkins.io/doc/book/pipeline/) syntax for rich interactions with an OpenShift API Server. The 
 plugin leverages an OpenShift command line tool (oc) which must be available on the nodes executing the script
 (options for getting the binary on your nodes can be found [here](#setting-up-jenkins-nodes)).
 
-If you are interested in a non-experimental Jenkins plugin, find it
+If you are interested in the legacy Jenkins plugin, you can find it
 [here](https://github.com/openshift/jenkins-plugin).  
 
 ## Reader Prerequisites
