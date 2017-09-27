@@ -198,6 +198,17 @@ public class OcAction extends AbstractStepImpl {
             commandString += " >> " + stdoutTmp.getRemote() + " 2>> "
                     + stderrTmp.getRemote();
 
+            if (step.streamStdOutToConsolePrefix != null
+                    && step.streamStdOutToConsolePrefix
+                            .startsWith("start-build")) {
+                listener.getLogger()
+                        .println(
+                                "NOTE: the selector returned when -F/--follow is supplied to startBuild() will be inoperative for the various selector operations.");
+                listener.getLogger()
+                        .println(
+                                "Consider removing those options from startBuild and using the logs() command to follow the build output.");
+            }
+
             try {
                 final DurableTask task;
                 if (launcher.isUnix()) {

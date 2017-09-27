@@ -837,6 +837,7 @@ class OpenShiftDSL implements Serializable {
         private String kind;
         private HashMap labels;
         private ArrayList<String> objectList;
+        private String invalidMessage;
 
         public OpenShiftResourceSelector(String highLevelOperation, Object okind, Object qualifier ) {
             super(highLevelOperation);
@@ -866,17 +867,20 @@ class OpenShiftDSL implements Serializable {
             }
 
             this.kind = kind;
+            this.invalidMessage = null;
         }
 
         public OpenShiftResourceSelector(String highLevelOperation, ArrayList<Object> objectList ) {
             super(highLevelOperation);
             this.objectList = toStringList(objectList);
+            this.invalidMessage = null;
         }
 
 
         public OpenShiftResourceSelector(Result r, ArrayList<Object> objectList ) {
             super(r);
             this.objectList = toStringList( objectList );
+            this.invalidMessage = null;
         }
 
         @NonCPS
@@ -886,6 +890,10 @@ class OpenShiftDSL implements Serializable {
 
         @NonCPS
         private ArrayList selectionArgs() {
+            if ( invalidMessage != null && invalidMessage.length() > 0) {
+                throw new AbortException( invalidMessage );
+            }
+            
             ArrayList args = new ArrayList();
 
             if ( objectList != null ) {
@@ -908,7 +916,7 @@ class OpenShiftDSL implements Serializable {
 
             return args;
         }
-
+        
         @NonCPS
         private ArrayList<String> flattenLabels(Map labels) {
             ArrayList<String> args = new ArrayList<>();
@@ -1151,14 +1159,22 @@ class OpenShiftDSL implements Serializable {
             for ( String name : names ) {
                 Map args = buildCommonArgs("start-build", [name.toString() ], userArgs, "-o=name")
                 if (realTimeLogs) {
-                    args.put( "streamStdOutToConsolePrefix", "logs:"+name );
+                    args.put( "streamStdOutToConsolePrefix", "start-build:"+name );
                 }
                 r.actions.add(
                         (OcAction.OcActionResult)script._OcAction( args )
                 );
             }
             r.failIf( "Error running start-build on at least one item: " + names.toString() );
-            return new OpenShiftResourceSelector( r, OpenShiftDSL.splitNames( r.out ) );
+            ArrayList<String> resultOutput = new ArrayList<String>();
+            if (!realTimeLogs) {
+                resultOutput = OpenShiftDSL.splitNames( r.out )
+            }
+            OpenShiftResourceSelector retSel = new OpenShiftResourceSelector( r, resultOutput );
+            if (realTimeLogs) {
+                retSel.invalidMessage = "A valid selector cannot be created when using -F/--follow with start-build....";
+            }
+            return retSel;
         }
 
         private Result onceForEach( String operation, String verb, Object[] ouserArgs) {

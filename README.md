@@ -210,6 +210,12 @@ openshift.withCluster( 'mycluster' ) {
     // And even obtain the standard output and standard error of the command.
     def logsString = result.actions[0].out
     def logsErr = result.actions[0].err
+    
+    // And if after some processing within your pipeline, if you decide 
+    // you need to initiate a new build after the one initiated by 
+    // new-app, simply call the `oc start-build` equivalent:
+    def buildSelector = bc.startBuild()
+    buildSelector.logs('-f') 
 }
 ```
 
