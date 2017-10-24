@@ -249,6 +249,10 @@ class OpenShiftDSL implements Serializable {
         return currentContext.getProject();
     }
 
+    public String cluster() {
+        return currentContext.getServerUrl();
+    }
+
     /**
      * @param name The name can be a literal URL for the clusterName or,
      *          preferably, a Jenkins specific
@@ -527,9 +531,8 @@ class OpenShiftDSL implements Serializable {
             obj = JsonOutput.toJson( obj );
         }
 
-        boolean markup = false;
         String s = obj.toString();
-        markup = s.contains("{") || s.contains(":"); // does this look like json or yaml?
+        boolean markup = s.contains("{") || s.contains(":"); // does this look like json or yaml?
         boolean httpref = s.toLowerCase().startsWith("http") && verb.equalsIgnoreCase("create"); // a create from a http or https raw.githubuser path
 
         Result r = new Result( verb );
@@ -548,7 +551,7 @@ class OpenShiftDSL implements Serializable {
             r.actions.add((OcAction.OcActionResult)script._OcAction(stepArgs));
         } else {
             // looks like a subVerb was passed in (e.g. openshift.create( "serviceaccount", "jenkins" ) )
-            r.actions.add((OcAction.OcActionResult)script._OcAction( buildCommonArgs(verb, [s ], userArgs, "-o=name" ) ));
+            r.actions.add((OcAction.OcActionResult)script._OcAction( buildCommonArgs(verb, [s], userArgs, "-o=name" ) ));
         }
         r.failIf( verb + " returned an error" );
         return new OpenShiftResourceSelector( r, OpenShiftDSL.splitNames( r.out ) );
@@ -569,7 +572,6 @@ class OpenShiftDSL implements Serializable {
 
     public ArrayList<HashMap> process(Object obj,Object... oargs) throws AbortException {
         String[] args = toStringArray(oargs);
-        Result r;
 
         if ( obj instanceof Map ) {
             if ( obj.kind != "Template" ) {
@@ -582,21 +584,24 @@ class OpenShiftDSL implements Serializable {
             obj = JsonOutput.toJson( template );
         }
 
-        String target = obj.toString();
-        if ( target.contains("{") ) { // is the string JSON?
-            String json = obj.toString();
-            FilePath f = currentContext.exec.getWorkspaceFilePath().createTextTempFile( "process", ".json", json, false );
+        String s = obj.toString();
+        boolean markup = s.contains("{") || s.contains(":")
+        boolean httpref = s.toLowerCase().startsWith("http")
+        Result r = new Result( "process" )
+        if ( markup && !httpref ) { // does this look like json or yaml?
+            FilePath f = currentContext.exec.getWorkspaceFilePath().createTextTempFile( "process", ".markup", s, false );
             try {
-                r = new Result( "process" );
                 r.actions.add((OcAction.OcActionResult)script._OcAction( buildCommonArgs("process", ["-f", f.getRemote() ], args, "-o=json" ) ));
                 r.failIf( "process returned an error" );
             } finally {
                 f.delete();
             }
+        } else if (httpref) {
+            r.actions.add((OcAction.OcActionResult)script._OcAction( buildCommonArgs("process", ["-f", s ], args, "-o=json" ) ));
+            r.failIf( "process returned an error" );
         } else {
             // Otherwise, the obj parameter is assumed to be a template name
-            r = new Result( "process" );
-            r.actions.add((OcAction.OcActionResult)script._OcAction( buildCommonArgs("process", [target], args, "-o=json" ) ));
+            r.actions.add((OcAction.OcActionResult)script._OcAction( buildCommonArgs("process", [s], args, "-o=json" ) ));
             r.failIf( "process returned an error" );
         }
         // Output should be JSON; unmarshall into a map and transform into a list of objects.

@@ -98,7 +98,7 @@ Let's start with a "Hello world" style example.
 /** Subsequent examples will demonstrate how to do this. **/
 openshift.withCluster( 'https://10.13.137.207:8443', 'CO8wPaLV2M2yC_jrm00hCmaz5Jgw...' ) {
     openshift.withProject( 'myproject' ) {
-        echo "Hello from project: ${openshift.project()}"
+        echo "Hello from project ${openshift.project()} in cluster ${openshift.cluster()}"
     }
 }
 ```
@@ -113,7 +113,7 @@ scripts won't have to!
 /** The logical name references a Jenkins cluster configuration which implies **/
 /** API Server URL, default credentials, and a default project to use within the closure body. **/
 openshift.withCluster( 'mycluster' ) {
-    echo "Hello from mycluster's default project: ${openshift.project()}"
+    echo "Hello from ${openshift.cluster()}'s default project: ${openshift.project()}"
     
     // But we can easily change project contexts
     openshift.withProject( 'another-project' ) {
@@ -122,7 +122,7 @@ openshift.withCluster( 'mycluster' ) {
     
     // And even scope operations to other clusters within the same script
     openshift.withCluster( 'myothercluster' ) {
-        echo "Hello from myothercluster's default project: ${openshift.project()}"
+        echo "Hello from ${openshift.cluster()}'s default project: ${openshift.project()}"
     }
 }
 ```
