@@ -21,6 +21,14 @@ public class RawStep extends BaseStep {
         this.command = command;
         this.arguments = arguments;
     }
+    
+    public String getCommand() {
+        return command;
+    }
+    
+    public String getArguments() {
+        return arguments;
+    }
 
     @Override
     public boolean perform(final AbstractBuild build, Launcher launcher,
