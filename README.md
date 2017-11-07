@@ -8,7 +8,7 @@
 
 - [Overview](#overview)
 - [Reader Prerequisites](#reader-prerequisites)
-- [Installing](#installing)
+- [Installing and developing](#installing-and-developing)
 - [Examples](#examples)
   - [Hello, World](#hello-world)
   - [Centralizing Cluster Configuration](#centralizing-cluster-configuration)
@@ -20,8 +20,8 @@
   - [Deleting objects. Easy.](#deleting-objects-easy)
   - [Creating objects. Easier than you were expecting... hopefully.](#creating-objects-easier-than-you-were-expecting-hopefully)
   - [Need to update an object without replacing it?](#need-to-update-an-object-without-replacing-it)
-  - [Can't live without OpenShift templates? No problem.](#cant-live-without-openshift-templates-no-problem)
-  - [Want to promote / migrate objects between environments?](#want-to-promote--migrate-objects-between-environments)
+  - [Cannot live without OpenShift templates? No problem.](#cannot-live-without-openshift-templates-no-problem)
+  - [Want to promote or migrate objects between environments?](#want-to-promote-or-migrate-objects-between-environments)
   - [Error handling](#error-handling)
   - [Troubleshooting](#troubleshooting)
   - [Who are you, really?](#who-are-you-really)
@@ -55,7 +55,7 @@ the remainder of this document. Readers may also find it useful to understand ba
 since pipeline scripts are written using Groovy (Note: Jenkins sandboxes and [interferes](https://issues.jenkins-ci.org/browse/JENKINS-26481) 
 with the use of some Groovy facilities). 
 
-## Installing
+## Installing and developing
 This plugin is available at the [Jenkins Update Center](https://updates.jenkins-ci.org/download/plugins/openshift-client/) and is included
 in the [OpenShift Jenkins image.](https://github.com/openshift/jenkins)
 
@@ -83,6 +83,9 @@ Otherwise, if you are interested in building this plugin locally, follow these s
 You should now be able to [configure an OpenShift Cluster](#configuring-an-openshift-cluster). 
 Before running a job, you may also need to ensure your Jenkins nodes [have the 'oc' binary](#setting-up-jenkins-nodes) 
 installed.
+
+If you want to test your changes against a running OpenShift server using the regression test suite located 
+in the OpenShift Origin repository, see [these instructions.](https://github.com/openshift/jenkins-client-plugin/blob/master/PR-Testing/README)
 
 ## Examples
 
@@ -370,7 +373,7 @@ openshift.withCluster( 'mycluster' ) {
 }   
 ```
 
-### Can't live without OpenShift templates? No problem.
+### Cannot live without OpenShift templates? No problem.
 
 ```groovy
 openshift.withCluster( 'mycluster' ) {
@@ -409,7 +412,7 @@ openshift.withCluster( 'mycluster' ) {
 }
 ```
 
-### Want to promote / migrate objects between environments?
+### Want to promote or migrate objects between environments?
 
 ```groovy
 openshift.withCluster( 'devcluster' ) {
