@@ -8,12 +8,18 @@ import com.openshift.jenkins.plugins.OpenShift;
 import com.openshift.jenkins.plugins.OpenShiftTokenCredentials;
 import com.openshift.jenkins.plugins.freestyle.model.AdvancedArgument;
 import com.openshift.jenkins.plugins.util.ClientCommandBuilder;
+
+import hudson.EnvVars;
+import hudson.Launcher;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
+import hudson.model.Computer;
+import hudson.model.Run;
 import hudson.model.TaskListener;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.Builder;
 import hudson.util.ListBoxModel;
+
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
 
@@ -26,6 +32,8 @@ import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 
 public abstract class BaseStep extends Builder {
 
@@ -53,6 +61,10 @@ public abstract class BaseStep extends Builder {
     public String getClusterName() {
         return clusterName;
     }
+    
+    public String getClusterName(Map<String, String> overrides) {
+        return getOverride(getClusterName(), overrides);
+    }
 
     @DataBoundSetter
     public void setProject(String project) {
@@ -63,8 +75,16 @@ public abstract class BaseStep extends Builder {
         return project;
     }
 
+    public String getProject(Map<String, String> overrides) {
+        return getOverride(getProject(), overrides);
+    }
+
     public String getCredentialsId() {
         return credentialsId;
+    }
+
+    public String getCredentialsId(Map<String, String> overrides) {
+        return getOverride(getCredentialsId(), overrides);
     }
 
     @DataBoundSetter
@@ -76,11 +96,19 @@ public abstract class BaseStep extends Builder {
         return logLevel;
     }
 
+    public String getLogLevel(Map<String, String> overrides) {
+        return getOverride(getLogLevel(), overrides);
+    }
+
     protected boolean isVerbose() {
         if (Strings.isNullOrEmpty(logLevel)) {
             return false;
         }
-        return (Integer.parseInt(logLevel) > 0);
+        try {
+            return (Integer.parseInt(logLevel) > 0);
+        } catch (Throwable t) {
+            return false;
+        }
     }
 
     @DataBoundSetter
@@ -97,8 +125,8 @@ public abstract class BaseStep extends Builder {
         this.advancedArguments = advancedArguments;
     }
 
-    protected ClusterConfig getCluster() {
-        return (new OpenShift.DescriptorImpl()).getClusterConfig(clusterName);
+    protected ClusterConfig getCluster(Map<String, String> overrides) {
+        return (new OpenShift.DescriptorImpl()).getClusterConfig(getClusterName(overrides));
     }
 
     protected boolean runOcCommand(final AbstractBuild build,
@@ -106,12 +134,13 @@ public abstract class BaseStep extends Builder {
             final List verbArgs, final List userArgs, final List options,
             final List verboseOptions, final OcProcessRunner runner)
             throws IOException, InterruptedException {
-        ClusterConfig c = getCluster();
+        final Map<String, String> overrides = consolidateEnvVars(listener, build, null);
+        ClusterConfig c = getCluster(overrides);
         final String server, project, token, caContent;
 
         if (advancedArguments != null) {
             for (AdvancedArgument aa : advancedArguments) {
-                userArgs.add(aa.getValue());
+                userArgs.add(aa.getValue(overrides));
             }
         }
 
@@ -131,14 +160,14 @@ public abstract class BaseStep extends Builder {
             }
         }
 
-        if (Strings.isNullOrEmpty(this.project)) { // No project was provided
+        if (Strings.isNullOrEmpty(getProject(overrides))) { // No project was provided
                                                    // for this step
             if (c != null) { // But a cluster definition was provided
                 project = c.getDefaultProject();
                 if (Strings.isNullOrEmpty(project)) {
                     throw new IOException(
                             "No project defined in step or in cluster: "
-                                    + clusterName);
+                                    + getClusterName(overrides));
                 }
             } else {
                 project = new String(Files.readAllBytes(Paths
@@ -146,10 +175,10 @@ public abstract class BaseStep extends Builder {
                         StandardCharsets.UTF_8);
             }
         } else {
-            project = this.project;
+            project = this.getProject(overrides);
         }
 
-        String actualCredentialsId = credentialsId;
+        String actualCredentialsId = getCredentialsId(overrides);
         if (Strings.isNullOrEmpty(actualCredentialsId)) { // No credential
                                                           // information was
                                                           // provided for this
@@ -159,7 +188,7 @@ public abstract class BaseStep extends Builder {
                 if (Strings.isNullOrEmpty(actualCredentialsId)) {
                     throw new IOException(
                             "No credentials defined in step or in cluster: "
-                                    + clusterName);
+                                    + getClusterName(overrides));
                 }
             }
         }
@@ -195,7 +224,7 @@ public abstract class BaseStep extends Builder {
                         final ClientCommandBuilder cmdBuilder = new ClientCommandBuilder(
                                 server, project, verb, verbArgs, userArgs,
                                 options, verboseOptions, token, Integer
-                                        .parseInt(logLevel));
+                                        .parseInt(getLogLevel(overrides)));
                         ProcessBuilder pb = new ProcessBuilder();
                         pb.command(cmdBuilder.buildCommand(false));
                         listener.getLogger().println(
@@ -251,6 +280,77 @@ public abstract class BaseStep extends Builder {
                         return true;
                     }
                 });
+    }
+    
+    // borrowed from openshift pipeline plugin
+    protected Map<String, String> consolidateEnvVars(TaskListener listener,
+            AbstractBuild<?, ?> build,
+            Launcher launcher) {    
+        // EnvVars extends TreeMap
+        TreeMap<String, String> overrides = new TreeMap<String, String>();
+        // merge from all potential sources
+        if (build != null) {
+            try {
+                EnvVars buildEnv = build.getEnvironment(listener);
+                if (isVerbose())
+                    listener.getLogger()
+                            .println("build env vars:  " + buildEnv);
+                overrides.putAll(buildEnv);
+            } catch (IOException | InterruptedException e) {
+                if (isVerbose())
+                    e.printStackTrace(listener.getLogger());
+            }
+        }
+
+        try {
+            EnvVars computerEnv = null;
+            Computer computer = Computer.currentComputer();
+            if (computer != null) {
+                computerEnv = computer.getEnvironment();
+            } else {
+                if (launcher != null)
+                    computer = launcher.getComputer();
+                if (computer != null) {
+                    computerEnv = computer.getEnvironment();
+                }
+            }
+            if (isVerbose())
+                listener.getLogger().println(
+                        "computer env vars:  " + computerEnv);
+            if (computerEnv != null)
+                overrides.putAll(computerEnv);
+        } catch (IOException | InterruptedException e2) {
+            if (isVerbose())
+                e2.printStackTrace(listener.getLogger());
+        }
+
+        return overrides;
+    }
+    
+    // borrowed from openshift pipeline plugin
+    public static String pruneKey(String key) {
+        if (key == null)
+            key = "";
+        if (key.startsWith("$"))
+            return key.substring(1, key.length()).trim();
+        return key.trim();
+    }
+
+    // borrowed from openshift pipeline plugin
+    public static String getOverride(String key, Map<String, String> overrides) {
+        String val = pruneKey(key);
+        // try override when the key is the entire parameter ... we don't just
+        // use
+        // replaceMacro cause we also support PARM with $ or ${}
+        if (overrides != null && overrides.containsKey(val)) {
+            val = overrides.get(val);
+        } else {
+            // see if it is a mix used key (i.e. myapp-${VERSION}) or ${val}
+            String tmp = hudson.Util.replaceMacro(key, overrides);
+            if (tmp != null && tmp.length() > 0)
+                val = tmp;
+        }
+        return val;
     }
 
     public static abstract class BaseStepDescriptor extends
