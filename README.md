@@ -40,6 +40,9 @@ DSL Plugin is a Jenkins plugin which aims to provide a readable, concise, compre
 plugin leverages an OpenShift command line tool (oc) which must be available on the nodes executing the script
 (options for getting the binary on your nodes can be found [here](#setting-up-jenkins-nodes)).
 
+Starting with the 3.7 release of OpenShift, this plugin is now considered GA, is fully supported, and is included
+in the OpenShift Jenkins images. 
+
 If you are interested in the legacy Jenkins plugin, you can find it
 [here](https://github.com/openshift/jenkins-plugin).
 
