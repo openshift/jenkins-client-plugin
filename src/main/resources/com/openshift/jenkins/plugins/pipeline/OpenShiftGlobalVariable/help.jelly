@@ -53,13 +53,13 @@
                     Declares that OpenShift operations within the closure body should be executed against the
                     specified clusterName. The statement also implicitly acts as both a
                     <a href="#openshift_withProject"><code>openshift.withProject</code></a> (establishing the default project within
-                    the closure) and <a href="#openshift_doAs"><code>openshift.doAs</code></a> (establishing the default authorization
+                    the closure) and <a href="#openshift_withCredentials"><code>openshift.withCredentials</code></a> (establishing the default authorization
                     token within the closure).
                     <br />
                     <br />
                     <code>withCluster</code> may not be contained within a
                     <a href="#openshift_withProject"><code>openshift.withProject</code></a> or
-                    <a href="#openshift_doAs"><code>openshift.doAs</code></a> closure.
+                    <a href="#openshift_withCredentials"><code>openshift.withCredentials</code></a> closure.
                     <br />
                     <br />
                     When <code>withCluster</code> closures are nested within each other, OpenShift operations will use the
@@ -75,7 +75,7 @@
                             scripts from changes to your server (e.g. a change in its IP address). It will also allow
                             <code>withCluster</code> to implicitly act as both
                             <a href="#openshift_withProject"><code>openshift.withProject</code></a> (changing the target project within
-                            the closure) and <a href="#openshift_doAs"><code>openshift.doAs</code></a> (changing the authorization
+                            the closure) and <a href="#openshift_withCredentials"><code>openshift.withCredentials</code></a> (changing the authorization
                             token within the closure) if project and authorization information is associated with the clusterName
                             configuration.
                             <br />
@@ -125,16 +125,25 @@
                     Returns true if SkipTLSVerify is set for the server connection, false otherwise.
                 </p>
             </dd>
-
             <a name="openshift_doAs"/>
-            <dt><code>openshift.doAs(credential:String):Object {…}</code></dt>
+             <dt><code>openshift.doAs(credential:String):Object {…}</code></dt>
+            <dd>
+                <p>
+                  DEPRECATED: See <a href="#openshift_withCredentials">openshift.withCredentials</a>
+
+                  doAs() has been deprecated in favor of withCredentials(), but is currently
+                  still supported for use in existing scripts.
+                </p>
+            </dd>
+            <a name="openshift_withCredentials"/>
+            <dt><code>openshift.withCredentials(credential:String):Object {…}</code></dt>
             <dd>
                 <p>
                     Specifies that OpenShift operations within the closure body should use the identified credential.
                     The return value is the value returned by (or the value of the last statement within) the closure.
                     <br />
                     <br />
-                    When <code>doAs</code> closures are nested, OpenShift operations will use the
+                    When <code>withCredentials</code> closures are nested, OpenShift operations will use the
                     credential information associated with the most tightly scoped occurrence.
                     <br />
                     <br />
@@ -244,7 +253,7 @@
                     are encountered. That is, the context of surrounding
                     <a href="#openshift_withCluster"><code>openshift.withCluster</code></a>,
                     <a href="#openshift_withProject"><code>openshift.withProject</code></a>,
-                    <a href="#openshift_doAs"><code>openshift.doAs</code></a> closures. For example, a Selector
+                    <a href="#openshift_withCredentials"><code>openshift.withCredentials</code></a> closures. For example, a Selector
                     can be established once and subsequently used within a variety of
                     <code>openshift.withCluster</code> closures. Each time a method
                     is invoked on the Selector, the clusterName affected will differ depending on the

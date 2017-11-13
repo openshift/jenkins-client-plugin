@@ -51,25 +51,21 @@ class OpenShiftDSL implements Serializable {
     }
 
     public synchronized Capabilities getCapabilities() {
-          String key = script.env.NODE_NAME
-          Capabilities caps = nodeCapabilities.get(key)
-          if (caps != null) {
-                return caps
-          } else {
-                caps = new Capabilities()
-                ArrayList<String> g = new ArrayList<String>();
-                g.add("get");
-                OcAction.OcActionResult versionCheck = (OcAction.OcActionResult)script._OcAction(buildCommonArgs("help", g, null, null));
-                LOGGER.log(Level.FINE, "getCapabilities return from oc help get " + versionCheck.out);
-                if (versionCheck.out.contains("--ignore-not-found")) {
-                    caps.ignoreNotFound = true;
-                } else {
-                    caps.ignoreNotFound = false;
-                }
-                nodeCapabilities.put(key, caps)
-                LOGGER.log(Level.FINE, "getCapabilities nodeCapabilites: " + nodeCapabilities);
-                return caps
-          }
+        String key = script.env.NODE_NAME
+        Capabilities caps = nodeCapabilities.get(key)
+        if (caps != null) {
+            return caps
+        } else {
+            caps = new Capabilities()
+            ArrayList<String> g = new ArrayList<String>();
+            g.add("get");
+            OcAction.OcActionResult versionCheck = (OcAction.OcActionResult)script._OcAction(buildCommonArgs("help", g, null, null));
+            LOGGER.log(Level.FINE, "getCapabilities return from oc help get " + versionCheck.out);
+            caps.ignoreNotFound = versionCheck.out.contains("--ignore-not-found")
+            nodeCapabilities.put(key, caps)
+            LOGGER.log(Level.FINE, "getCapabilities nodeCapabilities: " + nodeCapabilities);
+            return caps
+        }
     }
 
     private Context currentContext = null;
@@ -83,8 +79,8 @@ class OpenShiftDSL implements Serializable {
             "rc"  : "replicationcontroller",
             "dc"  : "deploymentconfig" ]
 
-    enum ContextId implements Serializable{
-        WITH_CLUSTER("openshift.withCluster"), WITH_PROJECT("openshift.withProject"), DO_AS("openshift.doAs")
+    enum ContextId implements Serializable {
+        WITH_CLUSTER("openshift.withCluster"), WITH_PROJECT("openshift.withProject"), WITH_CREDENTIALS("openshift.withCredentials")
         private final String name;
         ContextId(String name) {
             this.@name = name;
@@ -116,7 +112,7 @@ class OpenShiftDSL implements Serializable {
 
         public <V> V run(Closure<V> body) {
             if (destroyOnReturn == null) {
-                throw new IllegalStateException(this.getClass() + " has already been perform once and cannot be used again");
+                throw new IllegalStateException(this.getClass() + " has already been performed once and cannot be used again");
             }
             Context lastContext = currentContext;
             currentContext = this;
@@ -255,12 +251,11 @@ class OpenShiftDSL implements Serializable {
     }
 
     @NonCPS
-    private void dieIfWithout(ContextId me, Context context, ContextId required) throws AbortException {
+    private void dieIfNotWithin(ContextId me, Context context, ContextId required) throws AbortException {
         if (contextContains(context, required)) {
             throw new AbortException(me.toString() + " can only be used within a " + required.toString() + " closure body");
         }
     }
-
 
     public void failUnless(b) {
         b = (new Boolean(b)).booleanValue();
@@ -298,17 +293,19 @@ class OpenShiftDSL implements Serializable {
 
             // Note that withCluster creates a new Context with null parent. This means that it does not allow
             // operations search outside of its context for more broadly scoped information (i.e.
-            // in the DSL: doAs(y){ withCluster(...){ x } }, the operation x will not see the credential y.
+            // in the DSL: withCredentials(y){ withCluster(...){ x } }, the operation x will not see the credential y.
             // Therefore, to enforce DSL clarity, forbid withCluster from being wrapped.
-            dieIfWithin(ContextId.WITH_CLUSTER, currentContext, ContextId.WITH_PROJECT, ContextId.DO_AS)
+            dieIfWithin(ContextId.WITH_CLUSTER, currentContext, ContextId.WITH_PROJECT, ContextId.WITH_CREDENTIALS)
 
             Context context = new Context(null, ContextId.WITH_CLUSTER);
 
             // Determine if name is a URL or a clusterName name. It is treated as a URL if it is *not* found
             // as a clusterName configuration name.
-            ClusterConfig cc = config.getClusterConfig(name);
+            ClusterConfig cc = null;
 
-            if (name == null) {
+            if (name != null) {
+                config.getClusterConfig(name);
+            } else {
                 // See if a clusterName named "default" has been defined.
                 cc = config.getClusterConfig("default");
             }
@@ -344,7 +341,7 @@ class OpenShiftDSL implements Serializable {
 
     public <V> V withProject(Object oprojectName=null, Closure<V> body) {
         String projectName = toSingleString(oprojectName);
-        dieIfWithout(ContextId.WITH_PROJECT, currentContext, ContextId.WITH_CLUSTER)
+        dieIfNotWithin(ContextId.WITH_PROJECT, currentContext, ContextId.WITH_CLUSTER)
         Context context = new Context(currentContext, ContextId.WITH_PROJECT);
         context.setProject(projectName);
         return context.run {
@@ -352,15 +349,20 @@ class OpenShiftDSL implements Serializable {
         }
     }
 
-
-    public <V> V doAs(Object ocredentialId=null, Closure<V> body) {
+    public <V> V withCredentials(Object ocredentialId=null, Closure<V> body) {
         String credentialId = toSingleString(ocredentialId);
-        dieIfWithout(ContextId.DO_AS, currentContext, ContextId.WITH_CLUSTER)
-        Context context = new Context(currentContext, ContextId.DO_AS);
+        dieIfNotWithin(ContextId.WITH_CREDENTIALS, currentContext, ContextId.WITH_CLUSTER)
+        Context context = new Context(currentContext, ContextId.WITH_CREDENTIALS);
         context.setCredentialsId(credentialId);
         return context.run {
             body()
         }
+    }
+
+    // Will eventually be deprecated in favor of withCredentials
+    public <V> V doAs(Object ocredentialId=null, Closure<V> body) {
+        script.print("WARNING: doAs() is deprecated, use withCredentials() instead")
+        return withCredentials(ocredentialId, body)
     }
 
     public void logLevel(int v) {
@@ -408,12 +410,12 @@ class OpenShiftDSL implements Serializable {
                 options:optionsBase,
                 token:currentContext.getToken(),
                 logLevel:logLevel
-           ]
+        ]
         return args;
     }
 
     /**
-     * Splits oc verb -o=name output in a list of qualified object names.
+     * Splits oc verb -o=name output into a list of qualified object names.
      */
     public static ArrayList<String> splitNames(String out) {
         String[] names = (out == null ? new String[0] : out.trim().split("\n"));
@@ -471,7 +473,7 @@ class OpenShiftDSL implements Serializable {
     }
 
     /**
-     * @param obj A OpenShift object modeled as a Map
+     * @param obj An OpenShift object modeled as a Map
      * @return A Java List containing OpenShift objects. If the parameter models an OpenShift List,
      *          the object will be "unwrapped" and the resulting Java List will contain an entry for each item
      *          in the OpenShift List obj. If the obj is not a list, the return name will be a list with
@@ -494,13 +496,13 @@ class OpenShiftDSL implements Serializable {
     }
 
     /**
-     * @param obj A OpenShift object modeled as a Map or multiple OpenShift objects as List<Map>
+     * @param obj An OpenShift object modeled as a Map or multiple OpenShift objects as List<Map>
      * @return If the parameter is a List, it will be combined into a single OpenShift List model. Otherwise,
-     *          the parameter will be returned, unchanged.
+     *          the parameter will be returned unchanged.
      */
     @NonCPS
     public Object toSingleObject(Object obj) {
-        if (obj instanceof List == false) {
+        if (!(obj instanceof List)) {
             return obj;
         }
         // Model an OpenShift List
@@ -1032,7 +1034,7 @@ class OpenShiftDSL implements Serializable {
 
             r.actions.add(
                     (OcAction.OcActionResult)script._OcAction(buildCommonArgs("label", verbArgs, userArgs))
-           );
+            );
             r.failIf("Error during label");
             return r;
         }
@@ -1053,7 +1055,7 @@ class OpenShiftDSL implements Serializable {
             args.put("streamStdOutToConsolePrefix", "describe");
             r.actions.add(
                     (OcAction.OcActionResult)script._OcAction(args)
-           );
+            );
             r.failIf("Error during describe");
             return r;
         }
@@ -1075,8 +1077,8 @@ class OpenShiftDSL implements Serializable {
 
         public boolean exists() throws AbortException {
             if (objectList != null) {
-                  // If object names are explicitly given, make sure they *all* exists
-                  return objectList.size() > 0 && count() == objectList.size()
+                // If object names are explicitly given, make sure they *all* exists
+                return objectList.size() > 0 && count() == objectList.size()
             }
             return count() > 0
         }
@@ -1088,7 +1090,7 @@ class OpenShiftDSL implements Serializable {
                     boolean result = true;
                     it.withEach {
                         Object r = body.call(it);
-                        if (r instanceof Boolean == false || ((Boolean)r).booleanValue() == false) {
+                        if (!(r instanceof Boolean) || !((Boolean) r).booleanValue()) {
                             result = false;
                         }
                     }
@@ -1155,7 +1157,7 @@ class OpenShiftDSL implements Serializable {
             HashMap m = _asSingleMap(mode);
             if (m.kind == "List") {
                 if (m.items == null || m.items.size() == 0) {
-                        throw new AbortException("Expected single object, but found selection empty");
+                    throw new AbortException("Expected single object, but found selection empty");
                 }
                 if (m.items != null && m.items.size() > 1) {
                     throw new AbortException("Expected single object, but found multiple in selection " + m);
@@ -1217,7 +1219,7 @@ class OpenShiftDSL implements Serializable {
                 args.put("streamStdOutToConsolePrefix", "logs:"+name);
                 r.actions.add(
                         (OcAction.OcActionResult)script._OcAction(args)
-               );
+                );
             }
             r.failIf("Error running logs on at least one item: " + names.toString());
             return r;
@@ -1238,7 +1240,7 @@ class OpenShiftDSL implements Serializable {
                 }
                 r.actions.add(
                         (OcAction.OcActionResult)script._OcAction(args)
-               );
+                );
             }
             r.failIf("Error running start-build on at least one item: " + names.toString());
             ArrayList<String> resultOutput = new ArrayList<String>();
@@ -1260,7 +1262,7 @@ class OpenShiftDSL implements Serializable {
             for (String name : names) {
                 r.actions.add(
                         (OcAction.OcActionResult)script._OcAction(buildCommonArgs(verb, [name.toString()], userArgs))
-               );
+                );
             }
             r.failIf("Error running " + verb + " on at least one item: " + names.toString());
             return r;
@@ -1333,7 +1335,7 @@ class OpenShiftDSL implements Serializable {
             for (String name : names) {
                 String k = name.split("/")[0]
                 if (k.equals(kind) || (k+"s").equals(kind) ||
-                     (kind+"s").equals(k)) {
+                        (kind+"s").equals(k)) {
                     newList.add(name);
                 } else {
                     if (expandedKind != null) {
@@ -1430,7 +1432,7 @@ class OpenShiftDSL implements Serializable {
     }
 
 
-        private <V> V node(Closure<V> body) {
+    private <V> V node(Closure<V> body) {
         if (script.env.NODE_NAME != null) {
             // Already inside a node block.
             body()
