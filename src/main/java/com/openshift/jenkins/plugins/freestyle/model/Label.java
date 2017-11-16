@@ -4,10 +4,14 @@ import hudson.Extension;
 import hudson.model.AbstractDescribableImpl;
 import hudson.model.Descriptor;
 import hudson.util.FormValidation;
+
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 
+import com.openshift.jenkins.plugins.freestyle.BaseStep;
+
 import java.io.Serializable;
+import java.util.Map;
 
 public class Label extends AbstractDescribableImpl<Label> implements
         Serializable {
@@ -25,8 +29,16 @@ public class Label extends AbstractDescribableImpl<Label> implements
         return name;
     }
 
+    public String getName(Map<String, String> overrides) {
+        return BaseStep.getOverride(getName(), overrides);
+    }
+
     public String getValue() {
         return value;
+    }
+
+    public String getValue(Map<String, String> overrides) {
+        return BaseStep.getOverride(getValue(), overrides);
     }
 
     @Extension

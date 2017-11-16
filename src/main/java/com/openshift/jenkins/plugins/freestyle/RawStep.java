@@ -7,6 +7,7 @@ import hudson.model.BuildListener;
 import hudson.util.FormValidation;
 
 import java.io.IOException;
+import java.util.Map;
 
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
@@ -26,20 +27,29 @@ public class RawStep extends BaseStep {
         return command;
     }
     
+    public String getCommand(Map<String, String> overrides) {
+        return getOverride(getCommand(), overrides);
+    }
+
     public String getArguments() {
         return arguments;
+    }
+
+    public String getArguments(Map<String, String> overrides) {
+        return getOverride(getArguments(), overrides);
     }
 
     @Override
     public boolean perform(final AbstractBuild build, Launcher launcher,
             final BuildListener listener) throws IOException,
             InterruptedException {
-        return withTempInput("markup", command, new WithTempInputRunnable() {
+        final Map<String, String> overrides = consolidateEnvVars(listener, build, launcher);
+        return withTempInput("markup", getCommand(overrides), new WithTempInputRunnable() {
             @Override
             public boolean perform(String markupFilename) throws IOException,
                     InterruptedException {
-                return standardRunOcCommand(build, listener, command,
-                        toList(arguments), toList(), toList(), toList());
+                return standardRunOcCommand(build, listener, getCommand(overrides),
+                        toList(getArguments(overrides)), toList(), toList(), toList());
             }
         });
     }

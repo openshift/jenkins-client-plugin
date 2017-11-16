@@ -1,15 +1,18 @@
 package com.openshift.jenkins.plugins.freestyle;
 
 import com.openshift.jenkins.plugins.freestyle.model.ResourceSelector;
+
 import hudson.Extension;
 import hudson.Launcher;
 import hudson.model.AbstractBuild;
 import hudson.model.BuildListener;
+
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 
 public class DeleteStep extends BaseStep {
 
@@ -42,7 +45,8 @@ public class DeleteStep extends BaseStep {
     @Override
     public boolean perform(AbstractBuild build, Launcher launcher,
             BuildListener listener) throws IOException, InterruptedException {
-        List<String> base = selector.asSelectionArgs();
+        final Map<String, String> overrides = consolidateEnvVars(listener, build, null);
+        List<String> base = selector.asSelectionArgs(overrides);
         if (isIgnoreNotFound()) {
             base.add("--ignore-not-found");
         }

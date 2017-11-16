@@ -4,10 +4,14 @@ import hudson.Extension;
 import hudson.model.AbstractDescribableImpl;
 import hudson.model.Descriptor;
 import hudson.util.FormValidation;
+
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 
+import com.openshift.jenkins.plugins.freestyle.BaseStep;
+
 import java.io.Serializable;
+import java.util.Map;
 
 public class AdvancedArgument extends AbstractDescribableImpl<AdvancedArgument>
         implements Serializable {
@@ -21,6 +25,10 @@ public class AdvancedArgument extends AbstractDescribableImpl<AdvancedArgument>
 
     public String getValue() {
         return value;
+    }
+    
+    public String getValue(Map<String, String> overrides) {
+        return BaseStep.getOverride(getValue(), overrides);
     }
 
     @Extension

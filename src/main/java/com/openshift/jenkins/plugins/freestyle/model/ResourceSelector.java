@@ -1,10 +1,13 @@
 package com.openshift.jenkins.plugins.freestyle.model;
 
 import com.google.common.base.Strings;
+import com.openshift.jenkins.plugins.freestyle.BaseStep;
+
 import hudson.Extension;
 import hudson.model.AbstractDescribableImpl;
 import hudson.model.Descriptor;
 import net.sf.json.JSONObject;
+
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.StaplerRequest;
@@ -12,6 +15,7 @@ import org.kohsuke.stapler.StaplerRequest;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 public class ResourceSelector extends AbstractDescribableImpl<ResourceSelector>
         implements Serializable {
@@ -24,12 +28,12 @@ public class ResourceSelector extends AbstractDescribableImpl<ResourceSelector>
 
     private List<ResourceName> names;
 
-    public boolean isSelectionType(String type) {
+    /*public boolean isSelectionType(String type) {
         if (SELECT_BY_KIND.equals(type)) {
             return !Strings.isNullOrEmpty(kind);
         }
         return true;
-    }
+    }*/
 
     @DataBoundConstructor
     public ResourceSelector() {
@@ -42,6 +46,10 @@ public class ResourceSelector extends AbstractDescribableImpl<ResourceSelector>
 
     public String getKind() {
         return kind;
+    }
+
+    public String getKind(Map<String, String> overrides) {
+        return BaseStep.getOverride(getKind(), overrides);
     }
 
     @DataBoundSetter
@@ -62,20 +70,20 @@ public class ResourceSelector extends AbstractDescribableImpl<ResourceSelector>
         return names;
     }
 
-    public List<String> asSelectionArgs() {
+    public List<String> asSelectionArgs(Map<String, String> overrides) {
         ArrayList<String> args = new ArrayList<String>();
 
         if (names != null) {
             for (ResourceName res : names) {
-                args.add(res.getName());
+                args.add(res.getName(overrides));
             }
         } else {
-            args.add(kind);
+            args.add(getKind(overrides));
 
             if (labels != null) {
                 StringBuilder labelBuilder = new StringBuilder();
                 for (Label e : labels) {
-                    labelBuilder.append(e.getName() + "=" + e.getValue() + ",");
+                    labelBuilder.append(e.getName(overrides) + "=" + e.getValue(overrides) + ",");
                 }
                 labelBuilder.deleteCharAt(labelBuilder.length() - 1);
                 args.add("-l " + labelBuilder.toString());

@@ -2,11 +2,13 @@ package com.openshift.jenkins.plugins.freestyle;
 
 import com.google.common.base.Strings;
 import com.openshift.jenkins.plugins.freestyle.model.ResourceSelector;
+
 import hudson.Extension;
 import hudson.Launcher;
 import hudson.model.AbstractBuild;
 import hudson.model.BuildListener;
 import hudson.util.FormValidation;
+
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
@@ -15,6 +17,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class WatchStep extends BaseStep {
@@ -46,8 +49,16 @@ public class WatchStep extends BaseStep {
         return template;
     }
 
+    public String getTemplate(Map<String, String> overrides) {
+        return getOverride(getTemplate(), overrides);
+    }
+
     public String getSuccessPattern() {
         return successPattern;
+    }
+
+    public String getSuccessPattern(Map<String, String> overrides) {
+        return getOverride(getSuccessPattern(), overrides);
     }
 
     @DataBoundSetter
@@ -59,6 +70,10 @@ public class WatchStep extends BaseStep {
         return failPattern;
     }
 
+    public String getFailPattern(Map<String, String> overrides) {
+        return getOverride(getFailPattern(), overrides);
+    }
+
     @DataBoundSetter
     public void setFailPattern(String failPattern) {
         this.failPattern = failPattern;
@@ -68,11 +83,12 @@ public class WatchStep extends BaseStep {
     public boolean perform(final AbstractBuild build, Launcher launcher,
             final BuildListener listener) throws IOException,
             InterruptedException {
+        final Map<String, String> overrides = consolidateEnvVars(listener, build, launcher);
         final AtomicBoolean watchSatisfied = new AtomicBoolean(false);
         final AtomicBoolean watchResult = new AtomicBoolean(false);
-        List<String> base = selector.asSelectionArgs();
+        List<String> base = selector.asSelectionArgs(overrides);
         base.add("--watch");
-        base.add("--template=" + template);
+        base.add("--template=" + getTemplate(overrides));
         base.add("-o=template");
         while (!watchSatisfied.get()) { // Watch can simply timeout, so we may
                                         // need to reinvoke. Loop until we get
@@ -129,13 +145,13 @@ public class WatchStep extends BaseStep {
                                             }
 
                                             if (totalOutput
-                                                    .indexOf(successPattern) > -1) {
+                                                    .indexOf(getSuccessPattern(overrides)) > -1) {
                                                 watchSatisfied.set(true);
                                                 watchResult.set(true);
                                                 listener.getLogger()
                                                         .println(
                                                                 "Found success pattern: '"
-                                                                        + successPattern
+                                                                        + getSuccessPattern(overrides)
                                                                         + "' in: \n>>>\n"
                                                                         + totalOutput
                                                                         + "\n<<<");
@@ -143,15 +159,15 @@ public class WatchStep extends BaseStep {
                                             }
 
                                             if (!Strings
-                                                    .isNullOrEmpty(failPattern)
+                                                    .isNullOrEmpty(getFailPattern(overrides))
                                                     && totalOutput
-                                                            .indexOf(failPattern) > -1) {
+                                                            .indexOf(getFailPattern(overrides)) > -1) {
                                                 watchSatisfied.set(true);
                                                 watchResult.set(false);
                                                 listener.getLogger()
                                                         .println(
                                                                 "Found failure pattern: '"
-                                                                        + failPattern
+                                                                        + getFailPattern(overrides)
                                                                         + "' in: \n>>>\n"
                                                                         + totalOutput
                                                                         + "\n<<<");
