@@ -71,14 +71,11 @@ public class ClientCommandBuilder implements Serializable {
 
         String toolName = (new OpenShift.DescriptorImpl()).getClientToolName();
         cmd.add(toolName);
-        cmd.add(verb);
-
-        cmd.addAll(toStringArray(verbArgs));
-
-        cmd.addAll(toStringArray(userArgs));
-
-        cmd.addAll(toStringArray(options));
-
+        
+        // in general with 'oc' having arguments like --server or --namespace precede the verb helps
+        // with some of the exec/rsh type scenarios ....oc rsh in particular was 
+        // confusing args like --server as arguments into the command the user was 
+        // trying to execute in the target pod, etc.
         if (this.server != null) {
             cmd.add("--server=" + server);
         }
@@ -111,6 +108,14 @@ public class ClientCommandBuilder implements Serializable {
                 cmd.add("--token=" + token);
             }
         }
+        
+        cmd.add(verb);
+
+        cmd.addAll(toStringArray(verbArgs));
+
+        cmd.addAll(toStringArray(userArgs));
+
+        cmd.addAll(toStringArray(options));
 
         return cmd;
     }

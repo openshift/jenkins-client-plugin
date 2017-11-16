@@ -72,6 +72,10 @@ try {
                 echo "Database will run in deployment config: ${dcs.name()}"
                 // Find a least one pod related to the DeploymentConfig and wait it satisfies a condition
                 dcs.related('pods').untilEach(1) {
+                    // some example debug of the pod in question
+                    // commented out until v1.0.3 of the plugin is in the openshift jenkins image 
+                    //shortname = it.object().metadata.name
+                    //echo openshift.rsh("${shortname}", "hostname").out
                     // untilEach only terminates when each selected item causes the body to return true
                     return it.object().status.phase != 'Pending'
                 }
