@@ -173,6 +173,13 @@ try {
                 openshift.failUnless(emptySelector.names().size() == 0)
                 emptySelector.delete() // Should have no impact
                 emptySelector.label(["x":"y"]) // Should have no impact
+                
+                // sanity check for latest and cancel
+                // commented out until v1.0.3 of the plugin is available in the openshift jenkins centos image
+                //dc2Selector.rollout().latest()
+                //sleep 3 SECONDS
+                //dc2Selector.rollout().cancel()
+                
 
             }
         }

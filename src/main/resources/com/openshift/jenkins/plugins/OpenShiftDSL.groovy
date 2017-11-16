@@ -1352,6 +1352,7 @@ class OpenShiftDSL implements Serializable {
             return r;
         }
 
+        public Result cancel(Object...args) throws AbortException { return runSubVerb("cancel", args); }
         public Result history(Object...args) throws AbortException { return runSubVerb("history", args, true); }
         public Result latest(Object...args) throws AbortException { return runSubVerb("latest", args); }
         public Result pause(Object...args) throws AbortException { return runSubVerb("pause", args); }
