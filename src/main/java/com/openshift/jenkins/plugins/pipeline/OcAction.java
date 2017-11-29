@@ -208,6 +208,10 @@ public class OcAction extends AbstractStepImpl {
                         .println(
                                 "Consider removing those options from startBuild and using the logs() command to follow the build output.");
             }
+            
+            // explicitly set KUBECONFIG such that use of this plugin in a non-openshift pod will not pick up a rogue .kube/config
+            // when we fork `oc`; for now, using the default setting when running in a openshift pod (presuming that is safe enough)
+            envVars.put("KUBECONFIG", "/var/lib/origin/openshift.local.config/master/admin.kubeconfig");
 
             try {
                 final DurableTask task;
