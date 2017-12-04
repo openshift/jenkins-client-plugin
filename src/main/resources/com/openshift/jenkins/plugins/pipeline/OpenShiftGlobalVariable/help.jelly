@@ -476,6 +476,10 @@
                 <code>openshift.policy(args...:String):Result</code><br />
                 <a name="openshift_run"/>
                 <code>openshift.run(args...:String):Result</code><br />
+                <a name="openshift_rsh"/>
+                <code>openshift.rsh(args...:String):Result</code><br />
+                <a name="openshift_rsync"/>
+                <code>openshift.rsync(args...:String):Result</code><br />
                 <a name="openshift_secrets"/>
                 <code>openshift.secrets(args...:String):Result</code><br />
                 <a name="openshift_set"/>
