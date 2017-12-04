@@ -40,6 +40,19 @@ DSL Plugin is a Jenkins plugin which aims to provide a readable, concise, compre
 plugin leverages an OpenShift command line tool (oc) which must be available on the nodes executing the script
 (options for getting the binary on your nodes can be found [here](#setting-up-jenkins-nodes)).
 
+The DSL provided by this plugin can coexist with both the declarative and scripted syntaxes of Jenkins Pipeline.
+Keep in mind that per the requirements of declarative pipelines, the
+
+```groovy
+pipeline {
+
+...
+
+}
+```
+
+directive must be the outer most closure to fully enable all the declarative pipeline semantics and features.
+
 Starting with the 3.7 release of OpenShift, this plugin is now considered GA, is fully supported, and is included
 in the OpenShift Jenkins images. 
 
