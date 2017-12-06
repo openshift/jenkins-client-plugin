@@ -63,12 +63,12 @@ public class ClusterConfig extends AbstractDescribableImpl<ClusterConfig>
     }
 
     public boolean isSkipTlsVerify() {
-        return skipTlsVerify;
+        return this.skipTlsVerify;
     }
 
     @DataBoundSetter
-    public void setSkipTlsVerify(boolean skipTlsVerify) {
-        this.skipTlsVerify = skipTlsVerify;
+    public void setSkipTlsVerify(boolean skipTLSVerify) {
+        this.skipTlsVerify = skipTLSVerify;
     }
 
     public String getDefaultProject() {

@@ -35,11 +35,11 @@ public class OcWatch extends AbstractStepImpl {
     private final ClientCommandBuilder cmdBuilder;
 
     @DataBoundConstructor
-    public OcWatch(String server, String project, String verb, List verbArgs,
-            List userArgs, List options, List verboseOptions, String token,
+    public OcWatch(String server, String project, boolean skipTLSVerify, String caPath, String verb, List advArgs, List verbArgs,
+            List userArgs, List options, String token,
             int logLevel) {
-        this.cmdBuilder = new ClientCommandBuilder(server, project, verb,
-                verbArgs, userArgs, options, verboseOptions, token, logLevel);
+        this.cmdBuilder = new ClientCommandBuilder(server, project, skipTLSVerify, caPath, verb,
+                advArgs, verbArgs, userArgs, options, token, logLevel);
     }
 
     @Extension

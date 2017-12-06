@@ -61,7 +61,7 @@ public abstract class BaseStep extends Builder {
     public String getClusterName() {
         return clusterName;
     }
-    
+
     public String getClusterName(Map<String, String> overrides) {
         return getOverride(getClusterName(), overrides);
     }
@@ -132,28 +132,31 @@ public abstract class BaseStep extends Builder {
     protected boolean runOcCommand(final AbstractBuild build,
             final TaskListener listener, final String verb,
             final List verbArgs, final List userArgs, final List options,
-            final List verboseOptions, final OcProcessRunner runner)
+            final OcProcessRunner runner)
             throws IOException, InterruptedException {
         final Map<String, String> overrides = consolidateEnvVars(listener, build, null);
         ClusterConfig c = getCluster(overrides);
         final String server, project, token, caContent;
+        String selectedCAPath = "";
+        boolean shouldSkipTLSVerify = false;
+
+        ArrayList<String> advArgs = new ArrayList<String>();
 
         if (advancedArguments != null) {
-            for (AdvancedArgument aa : advancedArguments) {
-                userArgs.add(aa.getValue(overrides));
+            for (AdvancedArgument advArg : advancedArguments) {
+                advArgs.add(advArg.getValue(overrides));
             }
         }
 
         if (c == null) { // if null, we assume the cluster is running the
                          // Jenkins node.
             server = ClusterConfig.getHostClusterApiServerUrl();
-            verboseOptions.add("--certificate-authority="
-                    + SERVICE_ACCOUNT_CA_PATH);
+            selectedCAPath = SERVICE_ACCOUNT_CA_PATH;
             caContent = null;
         } else {
             server = c.getServerUrl();
             if (c.isSkipTlsVerify()) {
-                options.add("--insecure-skip-tls-verify");
+                shouldSkipTLSVerify = true;
                 caContent = null;
             } else {
                 caContent = c.getServerCertificateAuthority();
@@ -209,21 +212,22 @@ public abstract class BaseStep extends Builder {
             token = new String(Files.readAllBytes(Paths
                     .get(SERVICE_ACCOUNT_TOKEN_PATH)), StandardCharsets.UTF_8);
         }
-
+        final String finalSelectedCAPath = selectedCAPath;
+        final boolean finalShouldSkipTLSVerify = shouldSkipTLSVerify;
+        final List finalAdvArgs = advArgs;
         return withTempInput("serviceca", caContent,
                 new WithTempInputRunnable() {
                     @Override
                     public boolean perform(String filename) throws IOException,
                             InterruptedException {
-                        if (filename != null) { // this will be null if we are
+                        if (filename == null) { // this will be null if we are
                                                 // running within the cluster or
                                                 // TLS verify is disabled
-                            verboseOptions.add("--certificate-authority="
-                                    + filename);
+                            filename = finalSelectedCAPath;
                         }
                         final ClientCommandBuilder cmdBuilder = new ClientCommandBuilder(
-                                server, project, verb, verbArgs, userArgs,
-                                options, verboseOptions, token, Integer
+                                server, project, finalShouldSkipTLSVerify, filename, verb, finalAdvArgs, verbArgs,
+                                userArgs, options, token, Integer
                                         .parseInt(getLogLevel(overrides)));
                         ProcessBuilder pb = new ProcessBuilder();
                         pb.command(cmdBuilder.buildCommand(false));
@@ -237,22 +241,17 @@ public abstract class BaseStep extends Builder {
 
     protected boolean standardRunOcCommand(final AbstractBuild build,
             final TaskListener listener, String verb, List verbArgs,
-            List userArgs, List options, List verboseOptions)
+            List userArgs, List options)
             throws IOException, InterruptedException {
         return runOcCommand(build, listener, verb, verbArgs, userArgs, options,
-                verboseOptions, new OcProcessRunner() {
+                new OcProcessRunner() {
                     @Override
                     public boolean perform(ProcessBuilder pb)
                             throws IOException, InterruptedException {
                         pb.redirectErrorStream(true); // Merge stdout & stderr
                         Process process = pb.start();
-                        final InputStream output = process.getInputStream(); // stream
-                                                                             // for
-                                                                             // combined
-                                                                             // stdout
-                                                                             // &
-                                                                             // stderr
-
+                        // stream for combined stdout & stderr
+                        final InputStream output = process.getInputStream();
                         new Thread(new Runnable() {
                             @Override
                             public void run() {
@@ -281,11 +280,11 @@ public abstract class BaseStep extends Builder {
                     }
                 });
     }
-    
+
     // borrowed from openshift pipeline plugin
     protected Map<String, String> consolidateEnvVars(TaskListener listener,
             AbstractBuild<?, ?> build,
-            Launcher launcher) {    
+            Launcher launcher) {
         // EnvVars extends TreeMap
         TreeMap<String, String> overrides = new TreeMap<String, String>();
         // merge from all potential sources
@@ -326,7 +325,7 @@ public abstract class BaseStep extends Builder {
 
         return overrides;
     }
-    
+
     // borrowed from openshift pipeline plugin
     public static String pruneKey(String key) {
         if (key == null)

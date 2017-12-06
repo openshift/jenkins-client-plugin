@@ -112,6 +112,20 @@
                 </p>
             </dd>
 
+            <a name="openshift_skiptlsverify"/>
+            <dt><code>openshift.skipTLSVerify():Boolean</code></dt>
+            <dd>
+
+                <p>
+                    <p  style="margin-left: 1em; color:#657383;">
+                        <code>
+                            echo "SkipTLSVerify is set to $${openshift.skipTLSVerify()}"<br />
+                        </code>
+                    </p>
+                    Returns true if SkipTLSVerify is set for the server connection, false otherwise.
+                </p>
+            </dd>
+
             <a name="openshift_doAs"/>
             <dt><code>openshift.doAs(credential:String):Object {…}</code></dt>
             <dd>

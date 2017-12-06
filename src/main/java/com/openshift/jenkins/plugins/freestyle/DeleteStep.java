@@ -51,7 +51,7 @@ public class DeleteStep extends BaseStep {
             base.add("--ignore-not-found");
         }
         return standardRunOcCommand(build, listener, "delete", base, toList(),
-                toList(), toList());
+                toList());
     }
 
     @Extension

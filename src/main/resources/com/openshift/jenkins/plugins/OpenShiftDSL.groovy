@@ -87,7 +87,7 @@ class OpenShiftDSL implements Serializable {
         private String credentialsId;
         private String serverUrl;
         private String serverCertificateAuthorityPath;
-        private Boolean skipTlsVerify;
+        private Boolean skipTLSVerify;
         private String project;
         private ContextId id;
 
@@ -191,21 +191,20 @@ class OpenShiftDSL implements Serializable {
             return ClusterConfig.getHostClusterApiServerUrl();
         }
 
-        public void setServerUrl(String serverUrl, boolean skipTlsVerify) {
+        public void setServerUrl(String serverUrl, boolean skipTLSVerify) {
             this.@serverUrl = Util.fixEmptyAndTrim(serverUrl);
-            this.@skipTlsVerify = skipTlsVerify;
+            this.@skipTLSVerify = skipTLSVerify;
         }
 
-        public boolean isSkipTlsVerify() {
-            if (this.@skipTlsVerify != null) {
-                return this.@skipTlsVerify;
+        public boolean isSkipTLSVerify() {
+            if (this.@skipTLSVerify != null) {
+                return this.@skipTLSVerify;
             }
             if (parent != null) {
-                return parent.isSkipTlsVerify();
+                return parent.isSkipTLSVerify();
             }
             return false;
         }
-
     }
 
     /**
@@ -246,13 +245,16 @@ class OpenShiftDSL implements Serializable {
         }
     }
 
-
     public String project() {
         return currentContext.getProject();
     }
 
     public String cluster() {
         return currentContext.getServerUrl();
+    }
+
+    public boolean skipTLSVerify() {
+        return currentContext.isSkipTLSVerify();
     }
 
     /**
@@ -301,7 +303,7 @@ class OpenShiftDSL implements Serializable {
                 context.setServerCertificateAuthorityContent(cc.getServerCertificateAuthority());
                 context.setCredentialsId(cc.credentialsId);
                 context.setProject(cc.defaultProject);
-                context.setServerUrl(cc.getServerUrl(), cc.isSkipTlsVerify());
+                context.setServerUrl(cc.getServerUrl(), cc.isSkipTLSVerify());
             }
 
             if (credentialId != null) {
@@ -366,27 +368,18 @@ class OpenShiftDSL implements Serializable {
             optionsBase.addAll(overrideArgs);
         }
 
-        List verboseOptionsBase = []
-        if (currentContext.isSkipTlsVerify()) {
-            optionsBase.add("--insecure-skip-tls-verify");
-        } else {
-            String caPath = currentContext.getServerCertificateAuthorityPath()
-            if (caPath != null) {
-                verboseOptionsBase.add("--certificate-authority=" + currentContext.getServerCertificateAuthorityPath());
-            }
-        }
-
         ArrayList<String> userArgsList = (userArgsArray==null)?new ArrayList<String>():Arrays.asList(userArgsArray);
 
         // These arguments will be mapped, by name, to the constructor parameters of OcAction
         Map args = [
                 server:currentContext.getServerUrl(),
                 project:(getProject ? currentContext.getProject() : null),
+                skipTLSVerify: currentContext.isSkipTLSVerify(),
+                caPath: currentContext.getServerCertificateAuthorityPath(),
                 verb:verb,
                 verbArgs:verbArgs,
                 userArgs:userArgsList,
                 options:optionsBase,
-                verboseOptions: verboseOptionsBase,
                 token:currentContext.getToken(),
                 logLevel:logLevel
            ]
