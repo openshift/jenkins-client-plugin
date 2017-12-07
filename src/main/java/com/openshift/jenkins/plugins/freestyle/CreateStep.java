@@ -39,8 +39,7 @@ public class CreateStep extends BaseStep {
             public boolean perform(String markupFilename) throws IOException,
                     InterruptedException {
                 return standardRunOcCommand(build, listener, "create",
-                        toList("-f", markupFilename), toList(), toList(),
-                        toList());
+                        toList("-f", markupFilename), toList(), toList());
             }
         });
     }

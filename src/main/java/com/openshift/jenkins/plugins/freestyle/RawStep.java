@@ -22,11 +22,11 @@ public class RawStep extends BaseStep {
         this.command = command;
         this.arguments = arguments;
     }
-    
+
     public String getCommand() {
         return command;
     }
-    
+
     public String getCommand(Map<String, String> overrides) {
         return getOverride(getCommand(), overrides);
     }
@@ -49,7 +49,7 @@ public class RawStep extends BaseStep {
             public boolean perform(String markupFilename) throws IOException,
                     InterruptedException {
                 return standardRunOcCommand(build, listener, getCommand(overrides),
-                        toList(getArguments(overrides)), toList(), toList(), toList());
+                        toList(getArguments(overrides)), toList(), toList());
             }
         });
     }

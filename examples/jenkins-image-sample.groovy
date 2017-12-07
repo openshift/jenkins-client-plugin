@@ -73,9 +73,9 @@ try {
                 // Find a least one pod related to the DeploymentConfig and wait it satisfies a condition
                 dcs.related('pods').untilEach(1) {
                     // some example debug of the pod in question
-                    // commented out until v1.0.3 of the plugin is in the openshift jenkins image 
+                    // commented out until v1.0.3 of the plugin is in the openshift jenkins image
                     //shortname = it.object().metadata.name
-                    //echo openshift.rsh("${shortname}", "hostname").out
+                    //echo openshift.rsh("${shortname}", "ps ax").out
                     // untilEach only terminates when each selected item causes the body to return true
                     return it.object().status.phase != 'Pending'
                 }
@@ -177,14 +177,12 @@ try {
                 openshift.failUnless(emptySelector.names().size() == 0)
                 emptySelector.delete() // Should have no impact
                 emptySelector.label(["x":"y"]) // Should have no impact
-                
+
                 // sanity check for latest and cancel
                 // commented out until v1.0.3 of the plugin is available in the openshift jenkins centos image
                 //dc2Selector.rollout().latest()
                 //sleep 3 SECONDS
                 //dc2Selector.rollout().cancel()
-                
-
             }
         }
     }

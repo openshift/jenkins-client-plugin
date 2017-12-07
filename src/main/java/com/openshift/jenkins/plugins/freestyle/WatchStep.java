@@ -95,7 +95,7 @@ public class WatchStep extends BaseStep {
                                         // true-positive feedback.
             final StringBuffer totalOutput = new StringBuffer();
             runOcCommand(build, listener, "get", base, toList(), toList(),
-                    toList(), new OcProcessRunner() {
+                    new OcProcessRunner() {
 
                         @Override
                         public boolean perform(ProcessBuilder pb)

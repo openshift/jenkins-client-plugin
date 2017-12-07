@@ -38,12 +38,12 @@ public class OcAction extends AbstractStepImpl {
     private final HashMap<String, String> reference;
 
     @DataBoundConstructor
-    public OcAction(String server, String project, String verb, List verbArgs,
-            List userArgs, List options, List verboseOptions, String token,
+    public OcAction(String server, String project, boolean skipTLSVerify, String caPath,
+            String verb, List advArgs, List verbArgs, List userArgs, List options, String token,
             String streamStdOutToConsolePrefix,
             HashMap<String, String> reference, int logLevel) {
-        this.cmdBuilder = new ClientCommandBuilder(server, project, verb,
-                verbArgs, userArgs, options, verboseOptions, token, logLevel);
+        this.cmdBuilder = new ClientCommandBuilder(server, project, skipTLSVerify, caPath,
+                verb, advArgs, verbArgs, userArgs, options, token, logLevel);
         this.verbose = (logLevel > 0);
         this.streamStdOutToConsolePrefix = streamStdOutToConsolePrefix;
         // Reference is used to output information about, for example, file

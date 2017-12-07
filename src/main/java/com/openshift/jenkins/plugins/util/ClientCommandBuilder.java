@@ -10,29 +10,33 @@ public class ClientCommandBuilder implements Serializable {
 
     public final String server;
     public final String project;
+    public final boolean skipTLSVerify;
+    public final String caPath;
     public final String verb;
+    public final List advArgs;
     protected final List verbArgs;
     protected final List userArgs;
     protected final List options;
     protected final String token;
-    protected final List verboseOptions;
     public final int logLevel;
 
-    public ClientCommandBuilder(String server, String project, String verb,
-            List verbArgs, List userArgs, List options, List verboseOptions,
+    public ClientCommandBuilder(String server, String project, boolean skipTLSVerify, String caPath,
+            String verb, List advArgs, List verbArgs, List userArgs, List options,
             String token, int logLevel) {
         if (token != null && (token.contains("\r") || token.contains("\n")))
             throw new IllegalArgumentException(
                     "tokens cannot contain carriage returns or new lines");
         this.server = server;
         this.project = project;
+        this.skipTLSVerify = skipTLSVerify;
+        this.caPath = caPath;
         this.verb = verb == null ? "help" : verb;
+        this.advArgs = advArgs;
         this.verbArgs = verbArgs;
         this.userArgs = userArgs;
         this.options = options;
         this.token = token;
         this.logLevel = logLevel;
-        this.verboseOptions = verboseOptions;
     }
 
     private static List<String> toStringArray(List l) {
@@ -59,7 +63,7 @@ public class ClientCommandBuilder implements Serializable {
 
     /**
      * Builds the command line to invoke.
-     * 
+     *
      * @param redacted
      *            Requests the command line be constructed for logging purposes.
      *            Sensitive information will be stripped. Verbose information
@@ -71,13 +75,23 @@ public class ClientCommandBuilder implements Serializable {
 
         String toolName = (new OpenShift.DescriptorImpl()).getClientToolName();
         cmd.add(toolName);
-        
+
         // in general with 'oc' having arguments like --server or --namespace precede the verb helps
-        // with some of the exec/rsh type scenarios ....oc rsh in particular was 
-        // confusing args like --server as arguments into the command the user was 
+        // with some of the exec/rsh type scenarios ....oc rsh in particular was
+        // confusing args like --server as arguments into the command the user was
         // trying to execute in the target pod, etc.
         if (this.server != null) {
             cmd.add("--server=" + server);
+        }
+
+        cmd.addAll(toStringArray(this.advArgs));
+
+        if (this.skipTLSVerify) {
+             cmd.add("--insecure-skip-tls-verify");
+        } else {
+            if (this.caPath != null) {
+                cmd.add("--certificate-authority=" + this.caPath);
+            }
         }
 
         if (this.project != null) {
@@ -92,7 +106,6 @@ public class ClientCommandBuilder implements Serializable {
         // the server CA),
         // so hide them unless we are in logLevel mode.
         if (!redacted || logLevel > 0) {
-            cmd.addAll(toStringArray(verboseOptions));
             if (!hasArg(cmd, "--loglevel")) {
                 cmd.add("--loglevel=" + logLevel);
             }
@@ -108,7 +121,7 @@ public class ClientCommandBuilder implements Serializable {
                 cmd.add("--token=" + token);
             }
         }
-        
+
         cmd.add(verb);
 
         cmd.addAll(toStringArray(verbArgs));
