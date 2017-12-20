@@ -1185,7 +1185,8 @@
                     subsequent watch events will re-invoke the body. Within the body, the <code>it</code> variable
                     will be bound to the receiver <code>Selector</code>.<br />
                     The watch body must return a boolean: <code>true</code> to exit the watch or <code>false</code>
-                    to continue it.<br />
+                    to continue it. <br/>
+                    If the closure body throws an exception, the watch will terminate and the exception will be propagated.<br />
                     The author is encouraged to wrap this operation in a pipeline <code>timeout</code> step since there is no
                     guarantee the body will be executed again after the first invocation.<br />
                     If the API server gracefully disconnects the watch connection (e.g. due to watch inactivity),
@@ -1223,9 +1224,10 @@
                     The <code>it</code> variable will be bound to a <code>Selector</code> for the single object to analyze
                     with the body invocation. If the selected object satisfies the user's condition, the body should
                     return true; if it does not, the body should return false.<br />
-                    <code>untilEach</code> will not terminate until the number of objects selected by the receiver
-                    is greater-than or equal to the minimumCount and the closure body returns true for each
-                    selected object.
+                    If the closure body throws an exception, <code>untilEach</code> will terminate and the exception will be propagated.<br />
+                    Unless an exception is thrown by the closure, <code>untilEach</code> will not terminate
+                    until the number of objects selected by the receiver is greater-than or equal to the minimumCount
+                    and the closure body returns true for each selected object.
                 </p>
             </dd>
 
