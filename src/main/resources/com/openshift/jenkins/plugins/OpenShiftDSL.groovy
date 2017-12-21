@@ -2,21 +2,16 @@ package com.openshift.jenkins.plugins
 
 import com.cloudbees.groovy.cps.NonCPS
 import com.cloudbees.plugins.credentials.CredentialsProvider
-
-import com.openshift.jenkins.plugins.pipeline.OcContextInit
 import com.openshift.jenkins.plugins.pipeline.OcAction
-
+import com.openshift.jenkins.plugins.pipeline.OcContextInit
 import groovy.json.JsonOutput
 import groovy.json.JsonSlurper
-
 import hudson.AbortException
 import hudson.FilePath
 import hudson.Util
 
-import java.util.Arrays;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
+import java.util.logging.Level
+import java.util.logging.Logger
 
 class OpenShiftDSL implements Serializable {
 
@@ -1058,26 +1053,40 @@ class OpenShiftDSL implements Serializable {
             return el;
         }
 
-        /**
-         * Returns all objects selected by the receiver as a HashMap
-         * modeling the associated server objects. If no objects are selected,
-         * an OpenShift List with zero items will be returned.
-         */
-        private HashMap _asSingleMap(Map mode=null) throws AbortException {
+        private String _asMarkup(String markupType, Map mode=null) throws AbortException {
             boolean exportable = false;
             if (mode != null) {
                 exportable = (new Boolean(mode.get("exportable", new Boolean(false)))).booleanValue();
             }
 
             if (_isEmptyStatic()) {
-                return _emptyListModel();
+                return "";
             }
 
             String verb = exportable?"export":"get"
-            OcAction.OcActionResult r = (OcAction.OcActionResult)script._OcAction(buildCommonArgs(verb, selectionArgs(), null, "-o=json"));
-            r.failIf("Unable to retrieve object json with " + verb);
-            HashMap m = serializableMap(r.out);
-            return m;
+            OcAction.OcActionResult r = (OcAction.OcActionResult)script._OcAction(buildCommonArgs(verb, selectionArgs(), null, "-o="+markupType ));
+            r.failIf("Unable to retrieve object markup with " + verb);
+            return r.out;
+        }
+
+        public String asJson(Map mode=null) throws AbortException {
+            return _asMarkup("json", mode);
+        }
+
+        public String asYaml(Map mode=null) throws AbortException {
+            return _asMarkup("yaml", mode);
+        }
+
+        /**
+         * Returns all objects selected by the receiver as a HashMap
+         * modeling the associated server objects. If no objects are selected,
+         * an OpenShift List with zero items will be returned.
+         */
+        private HashMap _asSingleMap(Map mode=null) throws AbortException {
+            if (_isEmptyStatic()) {
+                return _emptyListModel();
+            }
+            return serializableMap(asJson(mode));
         }
 
         public ArrayList<Map> objects(Map mode=null) throws AbortException {

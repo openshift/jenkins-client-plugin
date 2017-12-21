@@ -951,6 +951,27 @@
                 </p>
             </dd>
 
+            <dt>
+                <a name="Selector_asJson"/>
+                <code>Selector.asJson([mode:Map]):Map</code><br />
+            </dt>
+            <dd>
+                <p>
+                    The <code>asJson</code> method returns a JSON string representation of the objects selected by the
+                    receiver.
+                </p>
+            </dd>
+
+            <dt>
+                <a name="Selector_asYaml"/>
+                <code>Selector.asYaml([mode:Map]):Map</code><br />
+            </dt>
+            <dd>
+                <p>
+                    The <code>asYaml</code> method returns a YAML string representation of the objects selected by the
+                    receiver.
+                </p>
+            </dd>
 
             <dt>
                 <a name="Selector_freeze"/>
