@@ -67,6 +67,9 @@ try {
                     echo "${verb} ${it.name()} from template with labels ${it.object().metadata.labels}"
                 }
 
+                // Demonstrate creation of selector from list of qualified names if you did not have a selector already
+                // objects = openshift.selector(objects.names())
+
                 // Filter created objects and create a selector which selects only the new DeploymentConfigs
                 def dcs = objects.narrow("dc")
                 echo "Database will run in deployment config: ${dcs.name()}"

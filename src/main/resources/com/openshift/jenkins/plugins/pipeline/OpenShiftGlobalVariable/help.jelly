@@ -223,6 +223,10 @@
                             <code>openshift.selector(qualifiedName:String):StaticSelector</code><br />
                             <i style="margin-left: 1em; color:#657383;">Example: <code>openshift.selector("dc/mysql")</code></i>
                         </li>
+                        <li>
+                            <code>openshift.selector(names:List<![CDATA[&lt;]]>String<![CDATA[&gt;]]>):StaticSelector</code><br />
+                            <i style="margin-left: 1em; color:#657383;">Example: <code>openshift.selector([ "dc/jenkins", "build/ruby1" ])</code></i>
+                        </li>
                     </ul>
                 </p>
                 <p>
