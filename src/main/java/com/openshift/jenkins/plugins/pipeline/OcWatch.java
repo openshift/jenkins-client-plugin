@@ -34,10 +34,13 @@ public class OcWatch extends AbstractStepImpl {
 
     private final ClientCommandBuilder cmdBuilder;
 
+    private final int watchLoglevel;
+
     @DataBoundConstructor
     public OcWatch(String server, String project, boolean skipTLSVerify, String caPath, String verb, List advArgs, List verbArgs,
-            List userArgs, List options, String token,
-            int logLevel) {
+                   List userArgs, List options, String token,
+                   int logLevel) {
+        this.watchLoglevel = logLevel;
         this.cmdBuilder = new ClientCommandBuilder(server, project, skipTLSVerify, caPath, verb,
                 advArgs, verbArgs, userArgs, options, token, logLevel);
     }
@@ -94,7 +97,9 @@ public class OcWatch extends AbstractStepImpl {
         @StepContextParameter
         private transient EnvVars envVars;
 
-        /** Unused, just to force the descriptor to request it. */
+        /**
+         * Unused, just to force the descriptor to request it.
+         */
         @StepContextParameter
         private transient TaskListener listener;
 
@@ -105,15 +110,13 @@ public class OcWatch extends AbstractStepImpl {
             Integer exitStatus = -1;
             try {
 
-                FilePath stderrTmp = filePath.createTextTempFile("watchstderr",
-                        ".txt", "", false);
+                FilePath stderrTmp = filePath.createTextTempFile("watchstderr", ".txt", "", false);
                 try {
 
-                    master: while (true) {
+                    master:
+                    while (true) {
                         String commandString = step.cmdBuilder.asString(false);
-                        commandString += " 2> " + stderrTmp.getRemote()
-                                + " 1>&2"; // pipe stdout to stderr to avoid any
-                                           // buffering
+                        commandString += " 2> " + stderrTmp.getRemote()  + " 1>&2"; // pipe stdout to stderr to avoid any buffering
 
                         final DurableTask task;
                         if (launcher.isUnix()) {
@@ -126,10 +129,8 @@ public class OcWatch extends AbstractStepImpl {
                         // extraneous details I don't want appearing in the
                         // console
                         // e.g. "[_OcWatch] Running shell script"
-                        QuietTaskListenerFactory.QuietTasklistener quiet = QuietTaskListenerFactory
-                                .build(listener);
-                        Controller dtc = task.launch(envVars, filePath,
-                                launcher, quiet);
+                        QuietTaskListenerFactory.QuietTasklistener quiet = QuietTaskListenerFactory.build(listener);
+                        Controller dtc = task.launch(envVars, filePath, launcher, quiet);
 
                         try {
                             long reCheckSleep = 250;
@@ -140,19 +141,22 @@ public class OcWatch extends AbstractStepImpl {
                             do {
 
                                 byte[] newOutput;
-                                try (InputStream is = stderrTmp
-                                        .readFromOffset(outputSize)) {
+                                try (InputStream is = stderrTmp.readFromOffset(outputSize)) {
                                     newOutput = IOUtils.toByteArray(is);
                                 }
                                 outputSize += newOutput.length;
 
                                 if (newOutput.length > 0 || firstPass) {
                                     firstPass = false;
-                                    reCheckSleep = Math.max(250,
-                                            reCheckSleep / 2);
+                                    reCheckSleep = Math.max(250, reCheckSleep / 2);
 
-                                    listener.getLogger().println(
-                                            "Running watch closure body");
+                                    if ( step.watchLoglevel > 0 ) {
+                                        listener.getLogger().println("Received verbose watch output>>>");
+                                        listener.getLogger().println(new String(newOutput, "utf-8"));
+                                        listener.getLogger().println("<<<");
+                                    }
+
+                                    listener.getLogger().println("Running watch closure body");
                                     // oc errors like
                                     // "Unable to connect to the server: net/http: TLS handshake timeout"
                                     // currently can only be
