@@ -298,7 +298,7 @@ class OpenShiftDSL implements Serializable {
                 context.setServerCertificateAuthorityContent(cc.getServerCertificateAuthority());
                 context.setCredentialsId(cc.credentialsId);
                 context.setProject(cc.defaultProject);
-                context.setServerUrl(cc.getServerUrl(), cc.isSkipTLSVerify());
+                context.setServerUrl(cc.getServerUrl(), cc.isSkipTlsVerify());
             }
 
             if (credentialId != null) {
@@ -1012,9 +1012,15 @@ class OpenShiftDSL implements Serializable {
         }
 
         public void watch(Closure<?> body) {
+
             if (_isEmptyStatic()) {
                 throw new AbortException("Selector is static and empty; watch would never terminate.");
             }
+
+            if ( objectList != null && objectList.size() != 1 ) {
+                throw new AbortException("oc client watch does not support watching multiple named resources (watch a kind or a set of labeled objects instead).");
+            }
+
             script._OcWatch(buildCommonArgs("get", selectionArgs(), null, "-w", "--watch-only", "-o=name")) {
                 body.call(this);
             }
