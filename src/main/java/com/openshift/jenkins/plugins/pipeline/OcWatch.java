@@ -2,10 +2,8 @@ package com.openshift.jenkins.plugins.pipeline;
 
 import com.openshift.jenkins.plugins.util.ClientCommandBuilder;
 import com.openshift.jenkins.plugins.util.QuietTaskListenerFactory;
-
 import hudson.*;
 import hudson.model.TaskListener;
-
 import org.apache.commons.io.IOUtils;
 import org.jenkinsci.plugins.durabletask.BourneShellScript;
 import org.jenkinsci.plugins.durabletask.Controller;
@@ -18,10 +16,8 @@ import org.jenkinsci.plugins.workflow.steps.StepContextParameter;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 import javax.inject.Inject;
-
 import java.io.InputStream;
 import java.util.List;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import static com.openshift.jenkins.plugins.pipeline.OcAction.exitStatusRaceConditionBugWorkaround;
@@ -80,8 +76,7 @@ public class OcWatch extends AbstractStepImpl {
     }
 
     // Based on implementation of WaitForConditionStep
-    public static final class Execution extends
-            AbstractSynchronousNonBlockingStepExecution<Void> {
+    public static final class Execution extends AbstractSynchronousNonBlockingStepExecution<Void> {
 
         private static final long serialVersionUID = 1;
 
@@ -116,7 +111,9 @@ public class OcWatch extends AbstractStepImpl {
                     master:
                     while (true) {
                         String commandString = step.cmdBuilder.asString(false);
-                        commandString += " 2> " + stderrTmp.getRemote()  + " 1>&2"; // pipe stdout to stderr to avoid any buffering
+
+                        // pipe stdout to stderr to avoid any buffering
+                        commandString += " 2> " + stderrTmp.getRemote() + " 1>&2";
 
                         final DurableTask task;
                         if (launcher.isUnix()) {
@@ -157,73 +154,39 @@ public class OcWatch extends AbstractStepImpl {
                                     }
 
                                     listener.getLogger().println("Running watch closure body");
-                                    // oc errors like
-                                    // "Unable to connect to the server: net/http: TLS handshake timeout"
-                                    // currently can only be
-                                    // deciphered from the exceptions messages
-                                    // (typically within a
-                                    // java.util.concurrent.ExecutionException
-                                    // caused by
-                                    // hudson.AbortException chain) as the
-                                    // exception types are generic and the rc
-                                    // are always 1;
-                                    // For now, we are applying a generic and
-                                    // conservative retry approach
                                     try {
-                                        Object o = getContext()
-                                                .newBodyInvoker().start().get(); // Run
-                                                                                 // body
-                                                                                 // and
-                                                                                 // get
-                                                                                 // result
-                                        if (o instanceof Boolean == false) {
-                                            getContext()
-                                                    .onFailure(
-                                                            new ClassCastException(
-                                                                    "watch body return value "
-                                                                            + o
-                                                                            + " is not boolean"));
-                                        }
-                                        if ((Boolean) o) {
-                                            listener.getLogger()
-                                                    .println(
-                                                            "watch closure returned true; terminating watch");
+                                        // Run body and get result
+                                        Object o = getContext().newBodyInvoker().start().get();
+
+                                        // If the watch body returns a Boolean and it is true, time to exit
+                                        if (o instanceof Boolean && (Boolean)o) {
+                                            listener.getLogger().println("\nwatch closure returned true; terminating watch");
                                             dtc.stop(filePath, launcher);
                                             break master;
                                         }
 
                                         continue;
-                                    } catch (Throwable t) {
-                                        LOGGER.log(Level.FINE, "run", t);
-                                        tries++;
-                                        if (tries > 2)
-                                            throw t;
+                                    } catch ( InterruptedException tie ) { // timeout{} block interrupted us
+                                        listener.getLogger().println("\nwatch closure interrupted (timeout?)");
+                                        getContext().onFailure(tie);
+                                        return null;
+                                    } catch (Exception t) {
                                         String exceptionMsgs = t.getMessage();
-                                        if (t.getCause() != null)
-                                            exceptionMsgs = exceptionMsgs
-                                                    + "; "
-                                                    + t.getCause().getMessage();
-                                        listener.getLogger()
-                                                .println(
-                                                        String.format(
-                                                                "\nAn exception occurred invoking 'oc' against the OpenShift master.  The operation will be retried.  Exception message \"%s\".\n",
-                                                                exceptionMsgs));
-                                        Thread.sleep(125);
-
+                                        if (t.getCause() != null) {
+                                            exceptionMsgs = exceptionMsgs + "; " + t.getCause().getMessage();
+                                        }
+                                        listener.getLogger().println(String.format("\nwatch closure threw an exception: \"%s\".\n", exceptionMsgs));
+                                        getContext().onFailure(t);
+                                        return null;
                                     }
                                 }
 
-                                // Gradually check less frequently if watch is
-                                // not generating output
-                                reCheckSleep = Math.min(10000,
-                                        (int) (reCheckSleep * 1.2f));
-                                listener.getLogger().println(
-                                        "Checking watch output again in "
-                                                + reCheckSleep + "ms");
+                                // Gradually check less frequently if watch is not generating output
+                                reCheckSleep = Math.min(10000, (int) (reCheckSleep * 1.2f));
+                                listener.getLogger().println("Checking watch output again in " + reCheckSleep + "ms");
                                 Thread.sleep(reCheckSleep);
 
-                            } while ((exitStatus = exitStatusRaceConditionBugWorkaround(
-                                    dtc, filePath, launcher)) == null);
+                            } while ((exitStatus = exitStatusRaceConditionBugWorkaround(dtc, filePath, launcher)) == null);
 
                         } finally {
                             dtc.cleanup(filePath);
@@ -233,9 +196,7 @@ public class OcWatch extends AbstractStepImpl {
                         // exitStatus will not be null
                         if (exitStatus.intValue() != 0) {
                             // Looks like the watch command encountered an error
-                            throw new AbortException(
-                                    "watch terminated with an error: "
-                                            + exitStatus);
+                            throw new AbortException("watch invocation terminated with an error: "+ exitStatus);
                         }
                     }
 
