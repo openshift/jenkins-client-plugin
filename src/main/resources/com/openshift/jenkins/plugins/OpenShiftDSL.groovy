@@ -487,6 +487,7 @@ class OpenShiftDSL implements Serializable {
      *      selector("pod")  // Selects all of a name
      *      selector("dc", "jenkins")   // selects a particular instance dc/jenkins
      *      selector("dc/jenkins")   // selects a particular instance dc/jenkins
+     *      selector(["dc/jenkins", "build/ruby1"])   // selects a particular list of resources
      *      selector("dc", [ alabel: 'avalue' ]) // Selects using label values
      * When labels are used, the qualifier will be a map. In other cases, expect a String or null.
      */
@@ -847,9 +848,24 @@ class OpenShiftDSL implements Serializable {
         private ArrayList<String> objectList;
         private String invalidMessage;
 
-        public OpenShiftResourceSelector(String highLevelOperation, Object okind, Object qualifier) {
+        public OpenShiftResourceSelector(String highLevelOperation, Object okind_or_list, Object qualifier) {
             super(highLevelOperation);
-            String kind = toSingleString(okind);
+
+            if (okind_or_list instanceof List) {
+                objectList = toStringList(okind_or_list);
+                this.kind = null;
+                this.invalidMessage = null;
+                return;
+            }
+
+            if (okind_or_list instanceof Object[]) {
+                objectList = new ArrayList<String>(Arrays.asList(toStringArray(okind_or_list)));
+                this.kind = null;
+                this.invalidMessage = null;
+                return;
+            }
+
+            String kind = toSingleString(okind_or_list);
             kind = kind==null?"all":kind;
 
             if (kind.contains("/")) {

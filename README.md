@@ -189,6 +189,8 @@ openshift.withCluster( 'mycluster' ) {
     // Or Kind + Label information
     openshift.selector( 'dc', [ tier: 'frontend' ] ).describe()
 
+    // Or a static list of names
+    openshift.selector( [ 'dc/jenkins', 'build/ruby1' ] ).describe()
 }
 ```
 
