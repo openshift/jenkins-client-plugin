@@ -21,6 +21,7 @@ try {
                 def templateExists = templateSelector.exists()
 
                 def templateGeneratedSelector = openshift.selector('all,secret', [ template: 'mongodb-ephemeral-template' ])
+                //def templateGeneratedSelector = openshift.selector(["dc/mongodb", "service/mongodb", "secret/mongodb"])
 
                 def objectsGeneratedFromTemplate = templateGeneratedSelector.exists()
 
@@ -66,9 +67,6 @@ try {
                     // Each loop binds the variable 'it' to a selector which selects a single object
                     echo "${verb} ${it.name()} from template with labels ${it.object().metadata.labels}"
                 }
-
-                // Demonstrate creation of selector from list of qualified names if you did not have a selector already
-                // objects = openshift.selector(objects.names())
 
                 // Filter created objects and create a selector which selects only the new DeploymentConfigs
                 def dcs = objects.narrow("dc")
@@ -183,9 +181,30 @@ try {
 
                 // sanity check for latest and cancel
                 // commented out until v1.0.3 of the plugin is available in the openshift jenkins centos image
-                //dc2Selector.rollout().latest()
-                //sleep 3 SECONDS
-                //dc2Selector.rollout().cancel()
+                dc2Selector.rollout().latest()
+                sleep 3
+                dc2Selector.rollout().cancel()
+                
+                // validate some watch/selector error handling
+                /*try {
+                    timeout(time: 10, unit: 'SECONDS') {
+                        builds.untilEach {
+                              sleep(20)
+                        }
+                    }
+                    error( "exception did not escape the watch as expected" )
+                } catch ( e ) {
+                    // test successful
+                }
+                try {
+                    builds.watch {
+                        error( "this should be thrown" )
+                    }
+                    error( "exception did not escape the watch as expected" )
+                } catch ( e ) {
+                    // test successful
+                }*/
+                
             }
         }
     }

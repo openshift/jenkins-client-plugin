@@ -4,14 +4,19 @@ import com.cloudbees.groovy.cps.NonCPS
 import com.cloudbees.plugins.credentials.CredentialsProvider
 import com.openshift.jenkins.plugins.pipeline.OcAction
 import com.openshift.jenkins.plugins.pipeline.OcContextInit
+
 import groovy.json.JsonOutput
 import groovy.json.JsonSlurper
 import hudson.AbortException
 import hudson.FilePath
 import hudson.Util
 
+import java.io.IOException
 import java.util.logging.Level
 import java.util.logging.Logger
+
+import org.jenkinsci.plugins.workflow.cps.CpsFlowExecution;
+import org.jenkinsci.plugins.workflow.cps.CpsThread;
 
 class OpenShiftDSL implements Serializable {
 
@@ -26,6 +31,21 @@ class OpenShiftDSL implements Serializable {
 
     private HashMap<String,Capabilities> nodeCapabilities = new HashMap<String,Capabilities>();
 
+    /**
+     * Prints a log message to the Jenkins log, bypassing the echo step.
+     * @param s The message to log
+     */
+    public static void logToTaskListener(String s) {
+        CpsThread thread = CpsThread.current();
+        CpsFlowExecution execution = thread.getExecution();
+
+        try {
+            execution.getOwner().getListener().getLogger().println(s);
+        } catch (IOException e) {
+            LOGGER.log(Level.INFO, "logToTaskListener", e);
+        }
+    }
+    
     public OpenShiftDSL(org.jenkinsci.plugins.workflow.cps.CpsScript script) {
         this.script = script
     }
@@ -1292,9 +1312,10 @@ class OpenShiftDSL implements Serializable {
         public OpenShiftResourceSelector narrow(Object okind) throws AbortException {
             String kind = okind.toString(); // convert gstring to string if necessary
             kind = kind.toLowerCase().trim();
+            String expandedKind = null;
 
             // Expand abbreviations
-            abbreviations.containsKey(kind) && (kind=abbreviations.get(kind));
+            abbreviations.containsKey(kind) && (expandedKind=abbreviations.get(kind));
 
             ArrayList<String> newList = new ArrayList<String>();
             List<String> names = names();
@@ -1303,6 +1324,14 @@ class OpenShiftDSL implements Serializable {
                 if (k.equals(kind) || (k+"s").equals(kind) ||
                      (kind+"s").equals(k)) {
                     newList.add(name);
+                } else {
+                    if (expandedKind != null) {
+                        if (k.equals(expandedKind) || (k+"s").equals(expandedKind) ||
+                            (expandedKind+"s").equals(k)) {
+                           newList.add(name);
+                       }
+       
+                    }
                 }
             }
 
@@ -1330,6 +1359,7 @@ class OpenShiftDSL implements Serializable {
             String[] split = name().split("/");
             String k = split[0];
             String unqualifiedName = split[1];
+            abbreviations.containsKey(k) && (k=abbreviations.get(k));
             switch (k) {
                 case "template" :
                 case "templates" :
