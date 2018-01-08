@@ -243,6 +243,16 @@ class OpenShiftDSL implements Serializable {
             }
         }
     }
+    
+    @NonCPS
+    // for checks in private methods where the public method used, to included in the exception message, is unclear
+    // or embedded
+    private void dieIfWithout(Context context, ContextId required, String verb) throws AbortException {
+        if (!contextContains(context, required)) {
+            verb == "" && (verb = "raw")
+            throw new AbortException("You have illegally attempted a " + verb + " command when not inside a " + required.toString() + " closure body")
+        }
+    }
 
     @NonCPS
     private void dieIfWithout(ContextId me, Context context, ContextId required) throws AbortException {
@@ -371,6 +381,7 @@ class OpenShiftDSL implements Serializable {
     }
 
     private Map buildCommonArgs(boolean getProject, Object overb, List verbArgs, Object[] ouserArgsArray, Object... ooverrideArgs) {
+        dieIfWithout(currentContext, ContextId.WITH_CLUSTER, overb);
         String verb = toSingleString(overb);
         String[] userArgsArray = toStringArray(ouserArgsArray);
         String[] overrideArgs = toStringArray(ooverrideArgs);
