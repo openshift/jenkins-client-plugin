@@ -20,8 +20,7 @@ try {
 
                 def templateExists = templateSelector.exists()
 
-                def templateGeneratedSelector = openshift.selector('all,secret', [ template: 'mongodb-ephemeral-template' ])
-                //def templateGeneratedSelector = openshift.selector(["dc/mongodb", "service/mongodb", "secret/mongodb"])
+                def templateGeneratedSelector = openshift.selector(["dc/mongodb", "service/mongodb", "secret/mongodb"])
 
                 def objectsGeneratedFromTemplate = templateGeneratedSelector.exists()
 
@@ -186,7 +185,7 @@ try {
                 dc2Selector.rollout().cancel()
                 
                 // validate some watch/selector error handling
-                /*try {
+                try {
                     timeout(time: 10, unit: 'SECONDS') {
                         builds.untilEach {
                               sleep(20)
@@ -203,7 +202,7 @@ try {
                     error( "exception did not escape the watch as expected" )
                 } catch ( e ) {
                     // test successful
-                }*/
+                }
                 
             }
         }
