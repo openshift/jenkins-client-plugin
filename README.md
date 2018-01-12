@@ -479,7 +479,7 @@ can be used prevent recoverable errors from causing a build to fail.
 openshift.withCluster( 'mycluster' ) {
 
     try {
-        openshift.doAs( 'some-invalid-token-value' ) {
+        openshift.withCredentials( 'some-invalid-token-value' ) {
             openshift.newProject( 'my-new-project' )
             // ...
         }
@@ -523,22 +523,25 @@ openshift.withCluster( 'mycluster' ) {
 ### Who are you, really?
 Getting advanced? You might need more than just default credentials associated
 with your cluster. You can leverage any OpenShift Token credential type in the Jenkins
-credential store by passing doAs the credential's identifier. If you think
-security is a luxury you can live without (it's not), you can also pass doAs
+credential store by passing withCredentials the credential's identifier. If you think
+security is a luxury you can live without (it's not), you can also pass withCredentials
 a raw token value.
+
+Note: doAs() has been deprecated in favor of withCredentials(), but is currently
+still supported for use in existing scripts
 
 ```groovy
 openshift.withCluster( 'mycluster' ) {
-    openshift.doAs( 'my-normal-credential-id' ) {
+    openshift.withCredentials( 'my-normal-credential-id' ) {
         ...
     }
 
-    openshift.doAs( 'my-privileged-credential-id' ) {
+    openshift.withCredentials( 'my-privileged-credential-id' ) {
         ...
     }
 
     // Raw token value. Not recommended.
-    openshift.doAs( 'CO8wPaLV2M2yC_jrm00hCmaz5Jgw...' ) {
+    openshift.withCredentials( 'CO8wPaLV2M2yC_jrm00hCmaz5Jgw...' ) {
         ...
     }
 }
@@ -602,7 +605,7 @@ on your particular security requirements).
 ![token-config](src/readme/images/token-credential-config.png)
 
 This token can then be selected as the default token for a given Jenkins configuration
-cluster OR used tactically in the DSL with openshift.doAs( 'my-privileged-credential-id' ) {...} .
+cluster OR used tactically in the DSL with openshift.withCredentials( 'my-privileged-credential-id' ) {...} .
 
 ## Setting up Jenkins Nodes
 Each Jenkins node (master/agents) must have a copy of the OpenShift command line tool (oc) installed and in the
