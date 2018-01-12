@@ -975,12 +975,12 @@ class OpenShiftDSL implements Serializable {
         }
 
         @NonCPS
-        private ArrayList<String> flattenLabels(Map labels) {
+        private ArrayList<String> flattenMap(Map pairs) {
             ArrayList<String> args = new ArrayList<>();
-            if (labels == null) {
+            if (pairs == null) {
                 return args;
             }
-            Iterator<Map.Entry> i = labels.entrySet().iterator();
+            Iterator<Map.Entry> i = pairs.entrySet().iterator();
             while (i.hasNext()) {
                 Map.Entry e = i.next();
                 // TODO: handle quotes, newlines, etc?
@@ -1019,26 +1019,34 @@ class OpenShiftDSL implements Serializable {
             return objectList != null && objectList.size() == 0;
         }
 
-        public Result label(Map newLabels, Object... ouserArgs) throws AbortException {
+        private Result runSubVerb(String action, Map pairs, Object... ouserArgs) throws AbortException {
             String[] userArgs = toStringArray(ouserArgs);
             List verbArgs = selectionArgs();
             if (kind != null && labels==null) {
                 verbArgs.add("--all");
             }
-            verbArgs.addAll(flattenLabels(newLabels));
-            Result r = new Result("label");
+            verbArgs.addAll(flattenMap(pairs));
+            Result r = new Result(action);
 
             if (_isEmptyStatic()) {
                 return r;
             }
 
             r.actions.add(
-                    (OcAction.OcActionResult)script._OcAction(buildCommonArgs("label", verbArgs, userArgs))
+                    (OcAction.OcActionResult)script._OcAction(buildCommonArgs(action, verbArgs, userArgs))
             );
-            r.failIf("Error during label");
+            r.failIf("Error during " + action);
             return r;
+
         }
 
+        public Result label(Map newLabels, Object... ouserArgs) throws AbortException {
+            return runSubVerb("label", newLabels, ouserArgs);
+        }
+
+        public Result annotate(Map newAnnotations, Object... ouserArgs) throws AbortException {
+            return runSubVerb("annotate", newAnnotations, ouserArgs);
+        }
 
         public Result describe(Object... ouserArgs) throws AbortException {
             String[] userArgs = toStringArray(ouserArgs);
@@ -1343,7 +1351,6 @@ class OpenShiftDSL implements Serializable {
                             (expandedKind+"s").equals(k)) {
                            newList.add(name);
                        }
-       
                     }
                 }
             }
