@@ -35,6 +35,7 @@ class OpenShiftDSL implements Serializable {
      * Prints a log message to the Jenkins log, bypassing the echo step.
      * @param s The message to log
      */
+    @NonCPS
     public static void logToTaskListener(String s) {
         CpsThread thread = CpsThread.current();
         CpsFlowExecution execution = thread.getExecution();
@@ -108,6 +109,7 @@ class OpenShiftDSL implements Serializable {
             this.@parent = parent;
             this.@id = id;
             this.@exec = script._OcContextInit();
+            
         }
 
         public <V> V run(Closure<V> body) {
@@ -535,12 +537,7 @@ class OpenShiftDSL implements Serializable {
      */
     public OpenShiftResourceSelector selector(Object kind = null, Object qualifier=null) {
         OpenShiftResourceSelector selector = new OpenShiftResourceSelector("selector", kind, qualifier);
-        if (selector.objectList != null) {
-            selector.projectList = new ArrayList<String>();
-            for (int i=0; i < selector.objectList.size(); i++) {
-                selector.projectList.add(project());
-            }
-        }
+        selector.defaultProjectsForObjectList();
         return selector;
     }
 
@@ -555,7 +552,7 @@ class OpenShiftDSL implements Serializable {
         // the context and let oc and the obj json sort out where objects go
         // inconsistent namespaces: we make an invocation of the verb for each object where will will not override the 
         // project if it is set but use the current project if it is not set
-        Object namespace = currentContext.getProject(); // set default in case not list
+        String namespace = null;
         boolean found = false;
         boolean consistent = true;
         ArrayList objList = null;
@@ -571,7 +568,7 @@ class OpenShiftDSL implements Serializable {
                         // consistency check
                         if (!found) {
                             found = true;
-                            namespace = ns;
+                            namespace = ns.toString();
                         } else {
                             if (namespace == null && ns == null)
                                 continue;
@@ -584,10 +581,12 @@ class OpenShiftDSL implements Serializable {
                 }
             }
         }
-        
+                
         Result r = new Result(verb);
         ArrayList<String> projectNames = new ArrayList<String>();
         if (consistent) {
+            if (namespace == null || namespace.trim().length() == 0)
+                namespace = currentContext.getProject();
             r = innerObjectDefAction(verb, obj, userArgs, namespace, r);
             // maintain 1 to 1 mapping with obj list and project list,
             // even if same project 
@@ -604,7 +603,9 @@ class OpenShiftDSL implements Serializable {
                     HashMap obj2Map = new HashMap((Map)obj2);
                     HashMap obj2MapMetadata = obj2Map.get("metadata");
                     if (obj2MapMetadata != null) {
-                        Object ns = obj2MapMetadata.get("namespace");
+                        String ns = (String)obj2MapMetadata.get("namespace");
+                        if (ns == null || ns.trim().length() == 0)
+                            ns = currentContext.getProject();
                         r = innerObjectDefAction(verb, obj2, userArgs, ns, r);
                         projectNames.add(ns);
                     }
@@ -842,7 +843,9 @@ class OpenShiftDSL implements Serializable {
         Result r = new Result(operation);
         r.actions.add((OcAction.OcActionResult)script._OcAction(buildCommonArgs(verb, null, args, "-o=name")));
         r.failIf(verb + " returned an error");
-        return new OpenShiftResourceSelector(r, OpenShiftDSL.splitNames(r.out));
+        OpenShiftResourceSelector selector = new OpenShiftResourceSelector(r, OpenShiftDSL.splitNames(r.out));
+        selector.defaultProjectsForObjectList();
+        return selector;
     }
     
     public OpenShiftResourceSelector newBuild(Object... args) {
@@ -1054,6 +1057,23 @@ class OpenShiftDSL implements Serializable {
             this(r, objectList);
             this.projectList = projectList;
         }
+        
+        public void defaultProjectsForObjectList() {
+            // can't be called from a constructor, since 
+            // currentContext.getProject calls a cps method
+            // (read file) we cannot add the @NonCPS annotation to 
+            if (objectList == null)
+                return;
+            if (projectList != null && projectList.size() != 0)
+                return;
+            dieIfWithout(currentContext, ContextId.WITH_CLUSTER, getOperation());
+            this.projectList = new ArrayList<String>();
+            String project = currentContext.getProject();
+            for (int i=0; i < objectList.size(); i ++) {
+                this.projectList.add(project);
+            }
+
+        }
 
         @NonCPS
         public String toString() {
@@ -1105,6 +1125,7 @@ class OpenShiftDSL implements Serializable {
         }
 
         public Result delete(Object... ouserArgs) throws AbortException {
+            defaultProjectsForObjectList();
             String[] userArgs = toStringArray(ouserArgs);
             List selectionArgs = selectionArgs();
             if (kind != null && labels==null) {
@@ -1135,6 +1156,7 @@ class OpenShiftDSL implements Serializable {
         }
 
         private Result runSubVerb(String action, Map pairs, Object... ouserArgs) throws AbortException {
+            defaultProjectsForObjectList();
             String[] userArgs = toStringArray(ouserArgs);
             List verbArgs = selectionArgs();
             if (kind != null && labels==null) {
@@ -1164,6 +1186,7 @@ class OpenShiftDSL implements Serializable {
         }
 
         public Result describe(Object... ouserArgs) throws AbortException {
+            defaultProjectsForObjectList();
             String[] userArgs = toStringArray(ouserArgs);
 
             Result r = new Result("describe");
@@ -1184,7 +1207,8 @@ class OpenShiftDSL implements Serializable {
         }
 
         public void watch(Closure<?> body) {
-
+            defaultProjectsForObjectList();
+            
             if (_isEmptyStatic()) {
                 throw new AbortException("Selector is static and empty; watch would never terminate.");
             }
@@ -1207,6 +1231,7 @@ class OpenShiftDSL implements Serializable {
         }
 
         public void untilEach(int min=1, Closure<?> body) {
+            defaultProjectsForObjectList();
             /*
              reminder from untilEach's help:
                 Unless an exception is thrown by the closure, <code>untilEach</code> will not terminate
@@ -1312,17 +1337,12 @@ class OpenShiftDSL implements Serializable {
         }
         
         public ArrayList<String> projects() {
+            defaultProjectsForObjectList();
             return projectList;
         }
         
         public String project() throws AbortException {
             ArrayList<String> projects = projects();
-            if (projects == null) {
-                throw new AbortException("Expected single project, but found selection null");
-            }
-            if (projects.size() == 0) {
-                throw new AbortException("Expected single project, but found selection empty");
-            }
             if (projects.size() > 1) {
                 throw new AbortException("Expected single project, but found multiple in selection: " + projects.toString());
             }
@@ -1337,6 +1357,7 @@ class OpenShiftDSL implements Serializable {
         }
 
         public HashMap object(Map mode=null) throws AbortException {
+            defaultProjectsForObjectList();
             HashMap m = _asSingleMap(mode);
             if (m.kind == "List") {
                 if (m.items == null || m.items.size() == 0) {
@@ -1351,7 +1372,8 @@ class OpenShiftDSL implements Serializable {
         }
 
         private ArrayList<String> queryNames() throws AbortException {
-
+            defaultProjectsForObjectList();
+            
             if (_isEmptyStatic()) {
                 return new ArrayList<String>(0);
             }
@@ -1374,6 +1396,7 @@ class OpenShiftDSL implements Serializable {
         }
 
         public ArrayList<String> names() throws AbortException {
+            defaultProjectsForObjectList();
             if (objectList != null) {
                 return objectList;
             }
@@ -1392,6 +1415,7 @@ class OpenShiftDSL implements Serializable {
         }
 
         public Result logs(Object... ouserArgs) throws AbortException {
+            defaultProjectsForObjectList();
             String[] userArgs = toStringArray(ouserArgs);
 
             Result r = new Result("logs");
@@ -1409,6 +1433,7 @@ class OpenShiftDSL implements Serializable {
         }
 
         public OpenShiftResourceSelector startBuild(Object... ouserArgs) throws AbortException {
+            defaultProjectsForObjectList();
             String[] userArgs = toStringArray(ouserArgs);
             List argList = Arrays.asList(userArgs);
             boolean realTimeLogs = argList.contains("-F") || argList.contains("--follow=true") || argList.contains("--follow");
@@ -1439,6 +1464,7 @@ class OpenShiftDSL implements Serializable {
         }
 
         private Result onceForEach(String operation, String verb, Object[] ouserArgs) {
+            defaultProjectsForObjectList();
             String[] userArgs = toStringArray(ouserArgs);
 
             Result r = new Result(operation);
@@ -1477,6 +1503,7 @@ class OpenShiftDSL implements Serializable {
         }
 
         public Result patch(Object opatch, Object... ouserArgs) throws AbortException {
+            defaultProjectsForObjectList();
             String patch = opatch.toString();
             String[] userArgs = toStringArray(ouserArgs);
 
@@ -1490,6 +1517,7 @@ class OpenShiftDSL implements Serializable {
         }
 
         public <V> V withEach(Closure<V> body) {
+            defaultProjectsForObjectList();
             List<String> names = names();
             List<String> projects = projects();
             if (projects == null) {
@@ -1508,20 +1536,23 @@ class OpenShiftDSL implements Serializable {
         }
 
         public OpenShiftResourceSelector freeze() throws AbortException {
+            defaultProjectsForObjectList();
             OpenShiftResourceSelector selector = new OpenShiftResourceSelector("freeze", names());
             selector.projectList = projectList;
             return selector;
         }
 
         public OpenShiftRolloutManager rollout() throws AbortException {
+            defaultProjectsForObjectList();
             return new OpenShiftRolloutManager(this);
         }
 
         public OpenShiftResourceSelector narrow(Object okind) throws AbortException {
+            defaultProjectsForObjectList();
             String kind = okind.toString(); // convert gstring to string if necessary
             kind = kind.toLowerCase().trim();
             String expandedKind = null;
-
+            
             // Expand abbreviations
             abbreviations.containsKey(kind) && (expandedKind=abbreviations.get(kind));
 
@@ -1550,11 +1581,12 @@ class OpenShiftDSL implements Serializable {
             }
 
             OpenShiftResourceSelector selector = new OpenShiftResourceSelector("narrow", nameList);
-            selector.projectList = projList; 
+            selector.projectList = projList;
             return selector;
         }
 
         public OpenShiftResourceSelector union(OpenShiftResourceSelector sel) throws AbortException {
+            defaultProjectsForObjectList();
             HashSet<String> nameSet = new HashSet<String>();
             ArrayList<String> originalNames = this.names();
             ArrayList<String> originalProjects = this.projects();
@@ -1576,6 +1608,7 @@ class OpenShiftDSL implements Serializable {
 
 
         public OpenShiftResourceSelector related(Object okind) throws AbortException {
+            defaultProjectsForObjectList();
             String kind = okind.toString(); // convert gstring to string if necessary
             kind = kind.toLowerCase().trim();
 
@@ -1611,7 +1644,8 @@ class OpenShiftDSL implements Serializable {
             }
 
             OpenShiftResourceSelector selector = new OpenShiftResourceSelector("related", kind, labels);
-            selector.projectList = new ArrayList<String>(project());
+            selector.projectList = new ArrayList<String>();
+            selector.projectList.add(project());
             return selector;
         }
 
