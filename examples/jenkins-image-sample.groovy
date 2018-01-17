@@ -7,6 +7,14 @@ try {
     timeout(time: 20, unit: 'MINUTES') {
         // Select the default cluster
         openshift.withCluster() {
+            // Test openshift.patch and selector.patch
+            openshift.withProject() {
+                openshift.create("https://raw.githubusercontent.com/openshift/nodejs-ex/master/openshift/templates/nodejs.json")
+                openshift.newApp("nodejs-example")
+                openshift.patch("dc/nodejs-example", '\'{"spec":{"strategy":{"type":"Recreate"}}}\'')
+                def mySelector = openshift.selector("bc/nodejs-example")
+                mySelector.patch('\'{"spec":{"source":{"git":{"ref": "development"}}}}\'')
+            }
             // Select the default project
             openshift.withProject() {
 
@@ -183,7 +191,7 @@ try {
                 dc2Selector.rollout().latest()
                 sleep 3
                 dc2Selector.rollout().cancel()
-                
+
                 // validate some watch/selector error handling
                 try {
                     timeout(time: 10, unit: 'SECONDS') {
@@ -203,7 +211,7 @@ try {
                 } catch ( e ) {
                     // test successful
                 }
-                
+
             }
         }
     }
