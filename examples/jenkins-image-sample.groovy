@@ -21,6 +21,11 @@ try {
                 // Output the url of the currently selected cluster
                 echo "Using project ${openshift.project()} in cluster with url ${openshift.cluster()}"
 
+                // Test selector.annotate
+                //def railsTemplate = openshift.create("https://raw.githubusercontent.com/openshift/rails-ex/master/openshift/templates/rails-postgresql.json")
+                //railsTemplate.annotate([key1:"value1", key2:"value2"])
+                //railsTemplate.delete()
+
                 def saSelector1 = openshift.selector( "serviceaccount" )
                 saSelector1.describe()
 

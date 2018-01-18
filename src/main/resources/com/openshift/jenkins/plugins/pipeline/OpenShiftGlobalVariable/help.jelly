@@ -962,6 +962,30 @@
             </ul>
         </dd>
         <dt>
+            <a name="Selector_annotate"/>
+            <code>Selector.annotate(annotations:Map, [args...:String]):Result</code><br />
+        </dt>
+        <dd>
+            <p>
+                <p style="margin-left: 1em; color:#657383;">
+                    Example:<br />
+                    <code>
+                        openshift.selector("pods").annotate([ k1:'v1', k2:'v2' ], "--overwrite")<br />
+                    </code>
+                </p>
+                <br />
+                Adds the specified annotations to the objects selected by the receiver.
+                <ul>
+                    <li>
+                        <b>annotations</b> - A map of annotations to apply (e.g. [ annotation1 : 'value1', annotation2 : 'value2' ])
+                    </li>
+                    <li>
+                        <b>args...</b> - An optional list of arguments which will be appended directly to the annotate invocation.
+                    </li>
+                </ul>
+            </p>
+        </dd>
+        <dt>
             <code id="Selector_startBuild">Selector.startBuild([args...:String]):StaticSelector</code><br />
         </dt>
         <dd>
