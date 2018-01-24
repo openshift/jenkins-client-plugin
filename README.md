@@ -644,6 +644,24 @@ node('agent1') {
 Please refer to Jenkins documentation on Global Tool Configuration which allows, for example,
 Linux and Windows nodes to acquire different builds of a tool.
 
+### Understanding the implications of the KUBECONFIG environment variable or presence of `.kube/config` in the home directory of the user running Jenkins
+
+Users with prior experience with the OpenShift command line tool (oc) may be familiar with 
+the `KUBECONFIG` environment variable, and the config file location you set for `KUBECONFIG`,
+as a means of establishing default settings for the various parameters for the command.
+
+Similarly default settings can be provided by creating a `.kube/config` file in the home directory
+of whatever user is invoking the `oc` command if no `KUBECONFIG` variable is set.
+
+The settings in `.kube/config` are analogous to the arguments this plugin supplies to `oc` as a result
+of the various DSL methods you employ in your pipeline.  If you have established at `.kube/config` file
+in your Jenkins environment which will be found by the invocations of `oc` your pipeline induces, they
+may interfere with the intentions of your use of various `openshift.with...` directives in your pipeline.
+
+In the case where you run Jenkins out of an OpenShift pod though via the OpenShift Jenkins image, the 
+environment is set up such that conflicts of this nature will not occur.
+ 
+
 
 ## You call this documentation?!
 Not exactly. This is a brief overview of some of the capabilities of the plugin. The details
