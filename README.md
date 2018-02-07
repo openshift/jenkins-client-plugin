@@ -9,6 +9,7 @@
 - [Overview](#overview)
 - [Reader Prerequisites](#reader-prerequisites)
 - [Installing and developing](#installing-and-developing)
+- [Compatability with Declarative Pipeline](#compatability-with-declarative-pipeline)
 - [Examples](#examples)
   - [Hello, World](#hello-world)
   - [Centralizing Cluster Configuration](#centralizing-cluster-configuration)
