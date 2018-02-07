@@ -40,19 +40,6 @@ DSL Plugin is a Jenkins plugin which aims to provide a readable, concise, compre
 plugin leverages an OpenShift command line tool (oc) which must be available on the nodes executing the script
 (options for getting the binary on your nodes can be found [here](#setting-up-jenkins-nodes)).
 
-The DSL provided by this plugin can coexist with both the declarative and scripted syntaxes of Jenkins Pipeline.
-Keep in mind that per the requirements of declarative pipelines, the
-
-```groovy
-pipeline {
-
-...
-
-}
-```
-
-directive must be the outer most closure to fully enable all the declarative pipeline semantics and features.
-
 Starting with the 3.7 release of OpenShift, this plugin is now considered GA, is fully supported, and is included
 in the OpenShift Jenkins images. 
 
@@ -102,6 +89,50 @@ installed.
 
 If you want to test your changes against a running OpenShift server using the regression test suite located 
 in the OpenShift Origin repository, see [these instructions.](https://github.com/openshift/jenkins-client-plugin/blob/master/PR-Testing/README)
+
+## Compatability with Declarative Pipeline
+
+The means by which this plugin has been able to coexist with [declarative pipeline](https://jenkins.io/doc/book/pipeline/syntax/#declarative-pipeline)
+has taken a few twists and turns since v1.0 of that feature first arrived in [early 2017](https://jenkins.io/blog/2017/02/03/declarative-pipeline-ga/).
+
+In particular, the recommendation around leveraging this plugin's directives with the declarative `pipeline { ... }` directory have 
+had to be adjusted as the [pipeline-model-definition plugin](https://github.com/jenkinsci/pipeline-model-definition-plugin) has evolved.
+
+Currently, there are two requirements of note:
+
+1. Per the requirements of declarative pipelines, the
+
+```groovy
+pipeline {
+
+...
+
+}
+```
+
+directive must be the outer most closure to fully enable all the declarative pipeline semantics and features.
+
+2. Declarative currently does not support groovy body/closures that are not pipeline script steps.  And since 
+this plugin integrates into Jenkins as a Global Variable, it does not meet that restriction.  As such, you must 
+encapsulate all use of this plugin with the declarative
+
+```groovy
+script {
+
+...
+
+}
+```
+
+directive such that the declarative interpreter is told to treat this as scripted pipeline.
+
+As development of this plugin continues, periodic attempts will be made to monitor that these recommendations 
+are still valid, and if not, either adjust recommendations accordingly, or leverage any new integration points 
+with declarative that are synergistic with this plugin's design.  
+
+But certainly if users of this plugin notice changes before the maintainers of the plugin, please advise via opening issues at 
+https://github.com/openshift/jenkins-client-plugin.
+
 
 ## Examples
 
