@@ -41,7 +41,7 @@
 
     <groupId>com.openshift.jenkins.plugins</groupId>
     <artifactId>openshift-client</artifactId>
-    <version>1.0.6-SNAPSHOT</version>
+    <version>1.0.6</version>
     <packaging>hpi</packaging>
 
     <properties>
@@ -83,7 +83,7 @@
       <connection>scm:git:git://github.com/jenkinsci/${project.artifactId}-plugin.git</connection>
       <developerConnection>scm:git:git@github.com:jenkinsci/${project.artifactId}-plugin.git</developerConnection>
       <url>http://github.com/jenkinsci/${project.artifactId}-plugin</url>
-      <tag>HEAD</tag>
+      <tag>openshift-client-1.0.6</tag>
   </scm>
 
     <repositories>
