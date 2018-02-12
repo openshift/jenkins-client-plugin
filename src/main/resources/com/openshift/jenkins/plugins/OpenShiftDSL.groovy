@@ -1092,9 +1092,23 @@ class OpenShiftDSL implements Serializable {
         }
 
         public void untilEach(int min=1, Closure<?> body) {
+            /*
+             reminder from untilEach's help:
+                Unless an exception is thrown by the closure, <code>untilEach</code> will not terminate
+                until the number of objects selected by the receiver is greater-than or equal to the minimumCount
+                and the closure body returns true
+             */
             watch {
                 while (true) {
-                    if (it.count() < min) return false;
+                    if (it.count() < min) {
+                        try {
+                            // Pipeline timeouts are the correct way to abort this loop 
+                            // for taking too long
+                            Thread.sleep(1000);
+                        } catch (Throwable t) {
+                        }
+                        continue;
+                    }
                     boolean result = true;
                     it.withEach {
                         Object r = body.call(it);
