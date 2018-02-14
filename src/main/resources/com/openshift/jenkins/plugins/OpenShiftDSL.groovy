@@ -304,7 +304,7 @@ class OpenShiftDSL implements Serializable {
             ClusterConfig cc = null;
 
             if (name != null) {
-                config.getClusterConfig(name);
+                cc = config.getClusterConfig(name);
             } else {
                 // See if a clusterName named "default" has been defined.
                 cc = config.getClusterConfig("default");
