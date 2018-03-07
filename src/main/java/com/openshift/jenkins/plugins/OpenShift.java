@@ -41,6 +41,22 @@ public class OpenShift extends AbstractDescribableImpl<OpenShift> {
             return ocTool;
         }
 
+        public void removeClusterConfig(ClusterConfig clusterConfig) throws IllegalArgumentException {
+            if (clusterConfigs == null || clusterConfigs.size() <= 0) {
+                throw new IllegalArgumentException("ClusterConfigs is null or empty");
+            }
+
+            clusterConfigs.remove(clusterConfig);
+        }
+
+        public void addClusterConfig(ClusterConfig clusterConfig) {
+            if (clusterConfigs == null) {
+                clusterConfigs = new ArrayList<>(1);
+            }
+
+            clusterConfigs.add(clusterConfig);
+        }
+
         @Override
         public boolean configure(StaplerRequest req, JSONObject json)
                 throws FormException {

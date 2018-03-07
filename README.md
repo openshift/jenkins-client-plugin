@@ -73,7 +73,7 @@ Otherwise, if you are interested in building this plugin locally, follow these s
 3. In the root of the local repository, run maven
     ```
     cd jenkins-client-plugin
-    mvn
+    mvn clean package
     ```
 4. Maven will build target/openshift-client.hpi  (the Jenkins plugin binary)
 5. Open Jenkins in your browser, and navigate (as an administrator):
