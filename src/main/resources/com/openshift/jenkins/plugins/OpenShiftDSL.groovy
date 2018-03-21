@@ -1519,8 +1519,10 @@ class OpenShiftDSL implements Serializable {
         public <V> V withEach(Closure<V> body) {
             defaultProjectsForObjectList();
             List<String> names = names();
+            if (names == null || names.size() == 0)
+                return;
             List<String> projects = projects();
-            if (projects == null) {
+            if (projects == null || projects.size() != names.size()) {
                 throw new AbortException("projects were not set for " + toString());
             }
             for (int i=0; i < names.size(); i++) {
