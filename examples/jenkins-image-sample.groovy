@@ -197,6 +197,9 @@ try {
                 sleep 3
                 dc2Selector.rollout().cancel()
 
+                // perform a retry on a failed or cancelled deployment
+                //dc2Selector.rollout().retry()
+
                 // validate some watch/selector error handling
                 try {
                     timeout(time: 10, unit: 'SECONDS') {
