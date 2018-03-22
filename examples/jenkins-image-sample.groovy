@@ -120,7 +120,14 @@ try {
                     builds = nb.narrow("bc").related( "builds" )
 
                 }
-
+                
+                //make sure we handle empty selectors correctly
+                // uncomment out when v1.0.9 of the plugin is in the centos image
+                /*def nopods = openshift.selector("pod", [ app: "asdf" ])
+                nopods.withEach {
+                  echo "should not see this echo"
+                }*/
+         
                 // Raw watch which only terminates when the closure body returns true
                 builds.watch {
                     // 'it' is bound to the builds selector.
