@@ -1162,6 +1162,7 @@
             <code id="RolloutManager_latest">RolloutManager.latest([args...:String]):Result</code><br />
             <code id="RolloutManager_pause">RolloutManager.pause([args...:String]):Result</code><br />
             <code id="RolloutManager_resume">RolloutManager.resume([args...:String]):Result</code><br />
+            <code id="RolloutManager_retry">RolloutManager.retry([args...:String]):Result</code><br />
             <code id="RolloutManager_status">RolloutManager.status([args...:String]):Result</code><br />
             <code id="RolloutManager_undo">RolloutManager.undo([args...:String]):Result</code><br />
         </dt>
