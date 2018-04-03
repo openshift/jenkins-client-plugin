@@ -36,7 +36,46 @@ try {
                 def templateGeneratedSelector = openshift.selector(["dc/mongodb", "service/mongodb", "secret/mongodb"])
 
                 def objectsGeneratedFromTemplate = templateGeneratedSelector.exists()
-
+                
+                // create single object in array
+                // insert after v1.0.9 is available in the image
+                /*def bc = [[
+                    "kind":"BuildConfig",
+                    "apiVersion":"v1",
+                    "metadata":[
+                        "name":"test",
+                        "labels":[
+                            "name":"test"
+                        ]
+                    ],
+                    "spec":[
+                        "triggers":[],
+                        "source":[
+                            "type":"Binary"
+                        ],
+                        "strategy":[
+                            "type":"Source",
+                            "sourceStrategy":[
+                                "from":[
+                                    "kind":"DockerImage",
+                                    "name":"centos/ruby-22-centos7"
+                                ]
+                            ]
+                        ],
+                        "output":[
+                            "to":[
+                                "kind":"ImageStreamTag",
+                                "name":"test:latest"
+                            ]
+                        ]
+                    ]
+                  ]
+                ]    
+                def objs = openshift.create( bc )
+                objs.describe()
+                openshift.delete("bc", "test")*/
+                
+    
                 def template
                 if (!templateExists) {
                     template = openshift.create('https://raw.githubusercontent.com/openshift/origin/master/examples/db-templates/mongodb-ephemeral-template.json').object()
