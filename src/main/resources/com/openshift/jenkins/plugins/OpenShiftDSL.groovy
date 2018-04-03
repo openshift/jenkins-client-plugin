@@ -568,7 +568,7 @@ class OpenShiftDSL implements Serializable {
                         // consistency check
                         if (!found) {
                             found = true;
-                            namespace = ns.toString();
+                            namespace = ns != null ? ns.toString() : null;
                         } else {
                             if (namespace == null && ns == null)
                                 continue;
