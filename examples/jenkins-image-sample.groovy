@@ -38,8 +38,7 @@ try {
                 def objectsGeneratedFromTemplate = templateGeneratedSelector.exists()
                 
                 // create single object in array
-                // insert after v1.0.9 is available in the image
-                /*def bc = [[
+                def bc = [[
                     "kind":"BuildConfig",
                     "apiVersion":"v1",
                     "metadata":[
@@ -73,7 +72,7 @@ try {
                 ]    
                 def objs = openshift.create( bc )
                 objs.describe()
-                openshift.delete("bc", "test")*/
+                openshift.delete("bc", "test")
                 
     
                 def template
@@ -124,12 +123,14 @@ try {
                 echo "Database will run in deployment config: ${dcs.name()}"
                 // Find a least one pod related to the DeploymentConfig and wait it satisfies a condition
                 dcs.related('pods').untilEach(1) {
-                    // some example debug of the pod in question
-                    // commented out until v1.0.3 of the plugin is in the openshift jenkins image
-                    //shortname = it.object().metadata.name
-                    //echo openshift.rsh("${shortname}", "ps ax").out
                     // untilEach only terminates when each selected item causes the body to return true
-                    return it.object().status.phase != 'Pending'
+                    if (it.object().status.phase != 'Pending') {
+                    // some example debug of the pod in question
+                        shortname = it.object().metadata.name
+                        echo openshift.rsh("${shortname}", "ps ax").out
+                        return true;
+                    }
+                    return false;
                 }
 
                 // Print out all pods created by the DC
@@ -161,11 +162,10 @@ try {
                 }
                 
                 //make sure we handle empty selectors correctly
-                // uncomment out when v1.0.9 of the plugin is in the centos image
-                /*def nopods = openshift.selector("pod", [ app: "asdf" ])
+                def nopods = openshift.selector("pod", [ app: "asdf" ])
                 nopods.withEach {
                   echo "should not see this echo"
-                }*/
+                }
          
                 // Raw watch which only terminates when the closure body returns true
                 builds.watch {
@@ -238,7 +238,6 @@ try {
                 emptySelector.label(["x":"y"]) // Should have no impact
 
                 // sanity check for latest and cancel
-                // commented out until v1.0.3 of the plugin is available in the openshift jenkins centos image
                 dc2Selector.rollout().latest()
                 sleep 3
                 dc2Selector.rollout().cancel()
