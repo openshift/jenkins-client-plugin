@@ -808,12 +808,11 @@ class OpenShiftDSL implements Serializable {
         return r;
     }
 
-    public Result delete(Object... oargs) {
-        String[] args = toStringArray(oargs);
-        Result r = new Result("delete");
-        r.actions.add((OcAction.OcActionResult)script._OcAction(buildCommonArgs("delete", null, args)));
-        r.failIf("delete returned an error");
-        return r;
+    public Result delete(Object obj,Object... args) {
+        OpenShiftResourceSelector deleteSelector = objectDefAction("delete", obj, args);
+        //NOTE: more groovy suckage ... I could not pass a OpenShiftResourceSelector, even
+        // though it extends Result, into the Result(Result) contructor
+        return new Result(deleteSelector.highLevelOperation, deleteSelector.actions);
     }
 
     public Result set(Object... oargs) {
@@ -881,10 +880,15 @@ class OpenShiftDSL implements Serializable {
     public static class Result implements Serializable {
 
         public final ArrayList<OcAction.OcActionResult> actions = new ArrayList<OcAction.OcActionResult>();
-        private final String highLevelOperation;
+        public final String highLevelOperation;
 
         public Result(String highLevelOperation) {
             this.highLevelOperation = highLevelOperation;
+        }
+        
+        public Result(String highLevelOperation, ArrayList<OcAction.OcActionResult> actions) {
+            this.highLevelOperation = highLevelOperation;
+            this.actions = actions;
         }
         
         public Result(Result src) {
