@@ -355,7 +355,23 @@ openshift.withCluster( 'mycluster' ) {
         }
     }
 ```
+### Looking to Verify a Deployment? We Can Still Do That!
 
+If you are looking for the equivalent of `openshiftVerifyDeployment` from [the OpenShift Jenkins Plugin](https://github.com/openshift/jenkins-plugin), the below performs the same operation.
+
+```groovy
+openshift.withCluster() {
+    openshift.withProject( "${DEV_PROJECT}" ){
+        openshift.withProject( "${DEV_PROJECT}" ){
+        def latestDeploymentVersion = openshift.selector('dc',"${APP_NAME}").object().status.latestVersion
+        def rc = openshift.selector('rc', "${APP_NAME}-${latestDeploymentVersion}")
+        rc.untilEach(1){
+            def rcMap = it.object()
+            return (rcMap.status.replicas.equals(rcMap.status.readyReplicas))
+        }
+    }
+}
+```    
 
 ### Deleting objects. Easy.
 
