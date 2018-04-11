@@ -347,7 +347,7 @@
                 Processes an OpenShift template, using any specified parameter values, and returns a Groovy
                 List where each element models an object which results from processing the template.
                 The List can subsequently be passed to <code>openshift.create</code>,
-                <code>openshift.replace</code>, or <code>openshift.apply</code>.
+                <code>openshift.replace</code>, <code>openshift.apply</code>, or <code>openshift.delete</code>.
             </p>
             <ul>
                 <li>
@@ -471,7 +471,6 @@
             <code id="openshift_secrets">openshift.secrets(args...:String):Result</code><br />
             <code id="openshift_set">openshift.set(args...:String):Result</code><br />
             <code id="openshift_tag">openshift.tag(args...:String):Result</code><br />
-            <code id="openshift_delete">openshift.delete(args...:String):Result</code><br />
         </dt>
         <dd>
             <p>
@@ -487,6 +486,42 @@
                     <b>args...</b> - A list of arguments which will be sent verbatim to the OpenShift tool.
                 </li>
             </ul>
+        </dd>
+        <dt>
+            <code id="openshift_delete">openshift.delete(obj Object, args...:String):Result</code><br />
+        </dt>
+        <dd>
+            <p>
+                <i style="margin-left: 1em; color:#657383;">Example: <code>openshift.delete("configmap/foo", "configmap/bar")</code></i>
+            <ul>
+                <li>
+                    <b>args...</b> - A list of arguments which will be sent verbatim to the OpenShift tool.
+                </li>
+            </ul>
+                <i style="margin-left: 1em; color:#657383;">Example: <code>openshift.delete([ kind : "DeploymentConfig", metadata: [ ... ], ... ])</code></i>
+            <ul>
+                <li>
+                    <b>args...</b> - A Groovy Map with models enough of the object such that the OpenShift command-line-interface can delete it.
+                </li>
+            </ul>
+                <i style="margin-left: 1em; color:#657383;">Example: <code>openshift.delete("{ \"metadata\" : { ... } ... ")</code></i>
+            <ul>
+                <li>
+                    <b>args...</b> - JSON or YAML which represents enough of the object such that the OpenShift command-line-interface can delete it.
+                </li>
+            </ul>
+                <i style="margin-left: 1em; color:#657383;">Example: <code>openshift.delete([ objModel1, objModel1, ... ])</code></i>
+            <ul>
+                <li>
+                    <b>args...</b> - A List of Groovy Map objects which model enough of the object such that the OpenShift command-line-interface can delete it.
+                </li>
+            </ul>
+                <br />
+                The <code>delete</code> operation is a bit of a combination of the passthrough commands noted above, where each
+                parameter will be passed verbatim to the command line utility, returning a result.  But it can also treat the first parameter as
+		a Groovy map, List of Groovy maps, or JSON/YAML string, similar to <code>openshift.create</code>, but the difference being
+		it does not return a StaticSelector.  It just returns the Result from the delete operation performed by the OpenShift command-line-interface.<br />
+            </p>
         </dd>
         <dt>
         <code id="openshift_logLevel">openshift.logLevel(level:Integer):void</code>

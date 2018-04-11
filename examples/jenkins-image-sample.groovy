@@ -73,7 +73,13 @@ try {
                 def objs = openshift.create( bc )
                 objs.describe()
                 openshift.delete("bc", "test")
-                
+                // switch to delete below when v1.0.10 is available in the image
+                //openshift.delete(bc)
+                openshift.create("configmap", "foo")
+                openshift.create("configmap", "bar")
+                openshift.delete("configmap/foo", "configmap/bar")
+                openshift.create("configmap", "foo")
+                openshift.delete("configmap/foo")
     
                 def template
                 if (!templateExists) {
