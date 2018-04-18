@@ -355,6 +355,13 @@ openshift.withCluster( 'mycluster' ) {
         }
     }
 ```
+
+Note: We currently advise against running multiple watches in parallel.  Both with our internal testing
+as well as those from upstream users (see https://github.com/openshift/jenkins-client-plugin/issues/140), 
+we see issues where the same CpsStepContext is called on multiple watches.  There are future plans
+to upgrade some of this plugin's integration with pipelines to later levels in the hopes of resolving 
+this restriction.  
+
 ### Looking to Verify a Deployment? We Can Still Do That!
 
 If you are looking for the equivalent of `openshiftVerifyDeployment` from [the OpenShift Jenkins Plugin](https://github.com/openshift/jenkins-plugin), the below performs the same operation.
