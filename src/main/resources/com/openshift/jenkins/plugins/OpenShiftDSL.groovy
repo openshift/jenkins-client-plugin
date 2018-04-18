@@ -875,7 +875,8 @@ class OpenShiftDSL implements Serializable {
     public Result run(Object... args) { return simplePassthrough("run", args); }
     public Result secrets(Object... args) { return simplePassthrough("secrets", args); }
     public Result tag(Object... args) { return simplePassthrough("tag", args); }
-
+    public Result expose(Object... args) { return simplePassthrough("expose", args); }
+	
     public static class Result implements Serializable {
 
         public final ArrayList<OcAction.OcActionResult> actions = new ArrayList<OcAction.OcActionResult>();

@@ -471,6 +471,7 @@
             <code id="openshift_secrets">openshift.secrets(args...:String):Result</code><br />
             <code id="openshift_set">openshift.set(args...:String):Result</code><br />
             <code id="openshift_tag">openshift.tag(args...:String):Result</code><br />
+            <code id="openshift_expose">openshift.expose(args...:String):Result</code><br />
         </dt>
         <dd>
             <p>
