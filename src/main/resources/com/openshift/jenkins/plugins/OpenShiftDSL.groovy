@@ -1535,18 +1535,20 @@ class OpenShiftDSL implements Serializable {
             HashMap<String, String> projList = new HashMap<String, String>();
             List<String> names = names();
             HashMap<String, String> projects = projects();
+            // leverage startsWith in comparisons to handle the new kinds like
+            // deploymentconfig.apps.openshift.io
             for (int i=0; i < names.size(); i++) {
                 String name = names.get(i);
                 String k = name.split("/")[0]
                 if (k.equals(kind) || (k+"s").equals(kind) ||
-                        (kind+"s").equals(k)) {
+                        (kind+"s").equals(k) || k.startsWith(kind+".")) {
                     nameList.add(name);
                     if (projects != null && projects.get(name) != null)
                         projList.put(name, projects.get(name));
                 } else {
                     if (expandedKind != null) {
                         if (k.equals(expandedKind) || (k+"s").equals(expandedKind) ||
-                            (expandedKind+"s").equals(k)) {
+                            (expandedKind+"s").equals(k) || k.startsWith(expandedKind+".")) {
                            nameList.add(name);
                            if (projects != null && projects.get(name) != null)
                                projList.put(name, projects.get(name));
@@ -1611,10 +1613,12 @@ class OpenShiftDSL implements Serializable {
                     break;
                 case "deploymentconfig" :
                 case "deploymentconfigs" :
+                case "deploymentconfig.apps.openshift.io":
                     labels.put("deploymentconfig", unqualifiedName);
                     break;
                 case "buildconfig" :
                 case "buildconfigs" :
+                case "buildconfig.build.openshift.io" :
                     labels.put("openshift.io/build-config.name", unqualifiedName);
                     break;
                 case "job" :
