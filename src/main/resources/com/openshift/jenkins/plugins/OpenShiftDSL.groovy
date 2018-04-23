@@ -435,7 +435,20 @@ class OpenShiftDSL implements Serializable {
         for (int i = 0; i < names.length; i++) {
             String name = names[i].trim();
             if (! name.isEmpty()) {
-                results.add(name);
+               // to simplify life, to account for new -o=name output for openshift unique api objs
+               // with group suffixes like deploymentconfig.apps.openshift.io, and chop off the "domain"
+               //TODO need to consider this path, along with the actual value of the "metadata.kind" field
+               // (it currently is still "DeploymentConfig" in 3.10) when we start seeing resources like 
+               // "deploymentconfig.extensions.k8s.io"
+               String[] kind_name = name.split("/");
+               String kind = kind_name[0];
+               String[] kind_parts = kind.split("\\.");
+               if (kind_parts.length > 1) {
+                  String nm = kind_name[1];
+                  results.add(kind_parts[0] + "/" + nm);
+               } else {
+                  results.add(name);
+               }
             }
         }
 
@@ -599,6 +612,7 @@ class OpenShiftDSL implements Serializable {
                         if (ns == null || ns.trim().length() == 0)
                             ns = currentContext.getProject();
                         String kind = obj2Map.get("kind");
+                        abbreviations.containsKey(kind.toLowerCase().trim()) && (kind=abbreviations.get(kind.toLowerCase().trim()))
                         String name = obj2MapMetadata.get("name");
                         r = innerObjectDefAction(verb, obj2, userArgs, ns, r);
                         // add index in case same kind/name in diff projects
@@ -609,10 +623,11 @@ class OpenShiftDSL implements Serializable {
         }
         r.failIf(verb + " returned an error");
         OpenShiftResourceSelector selector = null;
+        ArrayList<String> nameList = OpenShiftDSL.splitNames(r.out);
         if (projectNames != null) {
-            selector = new OpenShiftResourceSelector(r, OpenShiftDSL.splitNames(r.out), projectNames);
+            selector = new OpenShiftResourceSelector(r, nameList, projectNames);
         } else {
-            selector = new OpenShiftResourceSelector(r, OpenShiftDSL.splitNames(r.out));
+            selector = new OpenShiftResourceSelector(r, nameList);
         }
         return selector;
     }
