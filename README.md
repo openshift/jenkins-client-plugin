@@ -444,6 +444,91 @@ openshift.withCluster( 'mycluster' ) {
 }
 ```
 
+However, be forewarned, controllers or other users can update objects while you are trying to 
+update objects, and you can get collision conflicts.  Consider:
+
+1. Pruning any object `status` or other optional fields you are not concerned with
+2. If pruning `java.util.Map` object returned from `object()` on selectors, you'll
+need to make sure the `remove` method is in the pipeline groovy method whitelist.
+3. When pruning, you have to make sure required fields have at least a minimal or empty
+setting, even if you are not overriding them
+
+As examples, first, here is a version where we get the selector for a Deployment Config
+we created from and `openshift.newApp` call, and then pruned various fields to avoid
+conflicts, and then updated an expected port's name:
+
+```groovy
+openshift.withCluster() {
+    openshift.withProject() {
+        def app = openshift.newApp('registry.access.redhat.com/jboss-fuse-6/fis-java-openshift')
+        def dc = app.narrow('dc')
+        def dcmap = dc.object()
+        dcmap.remove('status')
+        dcmap.metadata.remove('annotations')
+        dcmap.metadata.remove('labels')
+        dcmap.metadata.remove('creationTimestamp')
+        dcmap.metadata.remove('generation')
+        dcmap.metadata.remove('resourceVersion')
+        dcmap.metadata.remove('selfLink')
+        dcmap.metadata.remove('uid')
+        dcmap.spec.remove('replicas')
+        dcmap.spec.remove('revisionHistoryLimit')
+        dcmap.spec.remove('selector')
+        dcmap.spec.remove('strategy')
+        dcmap.spec.remove('test')
+        dcmap.spec.remove('triggers')
+        dcmap.spec.template.spec.containers[0].ports[0].name = "jolokia"
+        echo "${dcmap}"
+        
+        openshift.apply(dcmap)
+        
+    }
+}
+```
+
+Next, here is the analogous example where we simply called `openshift.newApp` to create 
+the Deployment Config, but then constructed from scratch a minimal portion of the API object
+such that we can update the object in the same way as above:
+
+```groovy
+openshift.withCluster() {
+    openshift.withProject() {
+        def app = openshift.newApp('registry.access.redhat.com/jboss-fuse-6/fis-java-openshift')
+        def dcpatch = [
+               "metadata":[
+                   "name":"fis-java-openshift",
+                   "namespace":"myproject"
+            ],
+               "apiVersion":"apps.openshift.io/v1",
+               "kind":"DeploymentConfig",
+               "spec":[
+                   "template":[
+                       "metadata":[:],
+                       "spec":[
+                           "containers":[
+                                 ["image":"registry.access.redhat.com/jboss-fuse-6/fis-java-openshift",
+                                  "name":"fis-java-openshift",
+                                  "resources":[:],
+                                  "ports":[
+                                       ["name":"jolokia",
+                                        "containerPort":8778,
+                                        "protocol":"TCP"
+                                        ]
+                                       ]
+                                  ]
+                           ],
+                           "securityContext":[:],
+                       ]
+                   ]
+                   ]
+               ]
+    
+        openshift.apply(dcpatch)
+        
+    }
+}
+```
+
 ### Cannot live without OpenShift templates? No problem.
 
 ```groovy
