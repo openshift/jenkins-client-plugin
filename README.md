@@ -376,7 +376,8 @@ openshift.withCluster() {
           return (rcMap.status.replicas.equals(rcMap.status.readyReplicas))
       }
 }
-```    
+```
+   
 
 ### Deleting objects. Easy.
 
