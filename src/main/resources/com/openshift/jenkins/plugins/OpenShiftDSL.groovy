@@ -443,7 +443,7 @@ class OpenShiftDSL implements Serializable {
                String[] kind_name = name.split("/");
                String kind = kind_name[0];
                String[] kind_parts = kind.split("\\.");
-               if (kind_parts.length > 1) {
+               if (kind_parts.length > 1 && kind_name.length > 1) {
                   String nm = kind_name[1];
                   results.add(kind_parts[0] + "/" + nm);
                } else {
