@@ -86,7 +86,7 @@ Otherwise, if you are interested in building this plugin locally, follow these s
 
 You should now be able to [configure an OpenShift Cluster](#configuring-an-openshift-cluster).
 Before running a job, you may also need to ensure your Jenkins nodes [have the 'oc' binary](#setting-up-jenkins-nodes)
-installed.
+installed.  And for Linux users, there can be [some additional requirements](https://docs.openshift.org/latest/cli_reference/get_started_cli.html#cli-linux) for running 'oc' based on which Linux distribution you are using.
 
 If you want to test your changes against a running OpenShift server using the regression test suite located 
 in the OpenShift Origin repository, see [these instructions.](https://github.com/openshift/jenkins-client-plugin/blob/master/PR-Testing/README)
