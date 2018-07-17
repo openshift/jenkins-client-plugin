@@ -31,6 +31,8 @@ class OpenShiftDSL implements Serializable {
 
     private HashMap<String,Capabilities> nodeCapabilities = new HashMap<String,Capabilities>();
 
+    private String lockName = "";
+
     /**
      * Prints a log message to the Jenkins log, bypassing the echo step.
      * @param s The message to log
@@ -288,6 +290,10 @@ class OpenShiftDSL implements Serializable {
             return false; 
     }
 
+    public void setLockName(String lockName) {
+        this.lockName = lockName;
+    }
+
     /**
      * @param name The name can be a literal URL for the clusterName or,
      *          preferably, a Jenkins specific
@@ -300,8 +306,7 @@ class OpenShiftDSL implements Serializable {
         String name = toSingleString(oname);
         String credentialId = toSingleString(ocredentialId);
 
-        node {
-
+        Closure<V> guts = {
             // Note that withCluster creates a new Context with null parent. This means that it does not allow
             // operations search outside of its context for more broadly scoped information (i.e.
             // in the DSL: withCredentials(y){ withCluster(...){ x } }, the operation x will not see the credential y.
@@ -345,6 +350,16 @@ class OpenShiftDSL implements Serializable {
 
             context.run {
                 body()
+            }
+        }
+
+        node {
+            if (lockName != null && lockName.size() > 0) {
+                script.lock(lockName) {
+                    guts();
+                }
+            } else {
+                guts();
             }
         }
 

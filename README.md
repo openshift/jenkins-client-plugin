@@ -9,7 +9,8 @@
 - [Overview](#overview)
 - [Reader Prerequisites](#reader-prerequisites)
 - [Installing and developing](#installing-and-developing)
-- [Compatability with Declarative Pipeline](#compatability-with-declarative-pipeline)
+- [Compatibility with Declarative Pipeline](#compatibility-with-declarative-pipeline)
+- [Compatibility with parallel step](#compatibility-with-parallel-step)
 - [Examples](#examples)
   - [Hello, World](#hello-world)
   - [Centralizing Cluster Configuration](#centralizing-cluster-configuration)
@@ -134,6 +135,84 @@ with declarative that are synergistic with this plugin's design.
 But certainly if users of this plugin notice changes before the maintainers of the plugin, please advise via opening issues at 
 https://github.com/openshift/jenkins-client-plugin.
 
+## Compatibility with parallel step
+
+As this plugin is implemented as a Jenkins Global Variable, then its step name, `openshift`, is, as a 
+Global Variable implies, a singleton within the context of a job run.  This aspect has ramifications when
+employing `openshift.withCluster(...)` within the `parallel` step's closure, as `openshift.withCluster` (and the
+`openshift.withProject` or `openshift.withCredentials` calls that can occur within a `openshift.withCluster` closure) modifies the 
+state of the `openshift` global variable for a pipeline run.  
+
+The current version of groovy in Jenkins, as well as the lack of API for Global Variables to interpret that they
+are running within the context of a given `parallel` closure, prevent this plugin from managing `withCluster`, 
+`withProject`, or `withCredentials` calls in parallel.
+
+As such, any use of the `parallel` step must be within the inner most closure of whatever combination of 
+`openshift.withCluster`, `openshift.withProject`, and `openshift.withCredentials` your pipeline employs
+
+```groovy
+openshift.withCluster() {
+   openshift.withProject() {
+      parallel {
+      ...
+      }
+   }
+}
+```
+
+NOTE: while the more recent pipeline documentation discusses `parallel` as part of the Declarative Syntax, at least 
+at the time of this writing, it was still provided as part of the workflow-cps plugin (i.e. the original Scripted Syntax).
+If that were to change, and `parallel` were only available via the Declarative Syntax, then the above restrictions regarding
+Declarative Syntax would apply.
+
+If you cannot prevent `openshift.withCluster` from being called from within a `parallel` block, the `openshift.setLockName` method 
+can be called prior `openshift.withCluster` to denote a lock resource to be processed by the pipeline `lock` step provided
+by the [Lockable Resources plugin](https://jenkins.io/doc/pipeline/steps/lockable-resources/). This plugin is included in the 
+OpenShift Jenkins image.  But if you are running Jenkins outside of the OpenShift Jenkins image, you need to have that plugin 
+installed in order to leverage this integration.
+
+An example usage would be
+
+```groovy
+pipeline {
+    agent none
+    stages {
+        stage('Test init') {
+            steps {
+                script {
+                    openshift.setLockName(${var-name-that-ideally-includes-job-name-and-run-number})
+                }
+            }
+        }
+        stage('Run tests') {
+            parallel {
+                stage('Test run 1') {
+                    steps {
+                        script {
+                            openshift.withCluster(...) {
+                            ...
+                            }
+                        }
+                    }
+                }
+      
+                stage('Test run 2') {
+                    steps {
+                        script {
+                            openshift.withCluster(...) {
+                            ...
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+```
+NOTE:  there is currently no automatic means to periodically purge any lock resources which your pipelines dynamically create.
+You'll have to manage periodically purging that inventory. 
 
 ## Examples
 
