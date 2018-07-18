@@ -319,6 +319,13 @@ class OpenShiftDSL implements Serializable {
             // as a clusterName configuration name.
             ClusterConfig cc = null;
 
+            // in case of restart during the middle of a job run using this global var, reinit this transient
+            // var
+            if (config == null) {
+                // this will initiate a load of the xml config file
+                config = new OpenShift.DescriptorImpl();
+            }
+
             if (name != null) {
                 cc = config.getClusterConfig(name);
             } else {
@@ -355,6 +362,13 @@ class OpenShiftDSL implements Serializable {
 
         node {
             if (lockName != null && lockName.size() > 0) {
+                // the lock step from the lockable resource plugin
+                // will dynamically create the lockable resource with the
+                // name "lockName" if it was not previously created.
+                // Our readme gets into the user having to maintain background
+                // perging of locks, etc.
+                // the lock is release by the lockable plugin when the closure
+                // exits
                 script.lock(lockName) {
                     guts();
                 }
