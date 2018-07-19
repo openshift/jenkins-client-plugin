@@ -203,6 +203,26 @@
             </p>
         </dd>
         <dt>
+            <code id="openshift_setLockName">openshift.setLockName(lock_name:String):void</code>
+        </dt>
+        <dd>
+            <p>
+                Protects the bodies of any `withCluster`, `withProject`, or `withCredentials` closures from
+                running in parallel, which this global variable does not currently support.
+                <br />
+                <br />
+                Call prior to the first `openshift.withCluster` invocation.
+              </p>
+                <ul>
+                    <li>
+                        <b>lock_name</b> - The name of the lock resource that the 'lock' step will attempt to obtain (and
+                        create if it is not already configured) to synchronize with any parallel threads of execution in
+                        the pipeline run.  If this method is not called, or called with an empty string, parallel 
+                        execution will occur. 
+                    </li>
+                </ul>
+        </dd>
+        <dt>
             <code id="openshift_selector">openshift.selector(…):Selector</code>
         </dt>
         <dd>

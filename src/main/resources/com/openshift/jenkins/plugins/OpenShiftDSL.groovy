@@ -31,6 +31,8 @@ class OpenShiftDSL implements Serializable {
 
     private HashMap<String,Capabilities> nodeCapabilities = new HashMap<String,Capabilities>();
 
+    private String lockName = "";
+
     /**
      * Prints a log message to the Jenkins log, bypassing the echo step.
      * @param s The message to log
@@ -288,6 +290,10 @@ class OpenShiftDSL implements Serializable {
             return false; 
     }
 
+    public void setLockName(String lockName) {
+        this.lockName = lockName;
+    }
+
     /**
      * @param name The name can be a literal URL for the clusterName or,
      *          preferably, a Jenkins specific
@@ -300,8 +306,7 @@ class OpenShiftDSL implements Serializable {
         String name = toSingleString(oname);
         String credentialId = toSingleString(ocredentialId);
 
-        node {
-
+        Closure<V> guts = {
             // Note that withCluster creates a new Context with null parent. This means that it does not allow
             // operations search outside of its context for more broadly scoped information (i.e.
             // in the DSL: withCredentials(y){ withCluster(...){ x } }, the operation x will not see the credential y.
@@ -313,6 +318,13 @@ class OpenShiftDSL implements Serializable {
             // Determine if name is a URL or a clusterName name. It is treated as a URL if it is *not* found
             // as a clusterName configuration name.
             ClusterConfig cc = null;
+
+            // in case of restart during the middle of a job run using this global var, reinit this transient
+            // var
+            if (config == null) {
+                // this will initiate a load of the xml config file
+                config = new OpenShift.DescriptorImpl();
+            }
 
             if (name != null) {
                 cc = config.getClusterConfig(name);
@@ -345,6 +357,23 @@ class OpenShiftDSL implements Serializable {
 
             context.run {
                 body()
+            }
+        }
+
+        node {
+            if (lockName != null && lockName.size() > 0) {
+                // the lock step from the lockable resource plugin
+                // will dynamically create the lockable resource with the
+                // name "lockName" if it was not previously created.
+                // Our readme gets into the user having to maintain background
+                // perging of locks, etc.
+                // the lock is release by the lockable plugin when the closure
+                // exits
+                script.lock(lockName) {
+                    guts();
+                }
+            } else {
+                guts();
             }
         }
 
