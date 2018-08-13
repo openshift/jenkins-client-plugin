@@ -115,6 +115,27 @@ public class ClusterConfig extends AbstractDescribableImpl<ClusterConfig>
         return "https://" + serviceHost + ":" + servicePort;
     }
 
+    /**
+     * Takes in defaults, with assumption that the 'env' pipeline global var
+     * is better populated as pipelines evolve
+     * 
+     * @return Returns a URL to contact the API server of the OpenShift cluster
+     *         running this node or throws an Exception if it cannot be
+     *         determined.
+     */
+    @Whitelisted
+    public static String getHostClusterApiServerUrl(String defaultHost, String defaultPort) {
+    	try {
+    		return getHostClusterApiServerUrl();
+    	} catch (IllegalStateException e) {
+    		if (defaultHost != null && defaultHost.length() > 0 &&
+    				defaultPort != null && defaultPort.length() > 0 ) {
+    			return "https://" + defaultHost + ":" + defaultPort;
+    		} else
+    			throw e;
+    	}
+    }
+
     // https://wiki.jenkins-ci.org/display/JENKINS/Credentials+Plugin
     // http://javadoc.jenkins-ci.org/credentials/com/cloudbees/plugins/credentials/common/AbstractIdCredentialsListBoxModel.html
     // https://github.com/jenkinsci/kubernetes-plugin/blob/master/src/main/java/org/csanchez/jenkins/plugins/kubernetes/KubernetesCloud.java
