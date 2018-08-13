@@ -203,7 +203,10 @@ class OpenShiftDSL implements Serializable {
             if (parent != null) {
                 return parent.getServerUrl();
             }
-            return ClusterConfig.getHostClusterApiServerUrl();
+            // fetching jenkins pipeline env from generic java without jenkins extensions
+            // proving more problematic ... leverage default patter in case System.getenv
+            // does not render desired result
+            return ClusterConfig.getHostClusterApiServerUrl(script.env.KUBERNETES_SERVICE_HOST, script.env.KUBERNETES_SERVICE_PORT_HTTPS);
         }
 
         public void setServerUrl(String serverUrl, boolean skipTLSVerify) {
@@ -318,7 +321,7 @@ class OpenShiftDSL implements Serializable {
             // Determine if name is a URL or a clusterName name. It is treated as a URL if it is *not* found
             // as a clusterName configuration name.
             ClusterConfig cc = null;
-
+            
             // in case of restart during the middle of a job run using this global var, reinit this transient
             // var
             if (config == null) {
