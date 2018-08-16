@@ -3,6 +3,10 @@ package com.openshift.jenkins.plugins.util;
 import hudson.model.TaskListener;
 
 import java.io.ByteArrayOutputStream;
+import java.io.Externalizable;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 import java.io.PrintStream;
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.InvocationHandler;
@@ -18,11 +22,15 @@ public class QuietTaskListenerFactory {
                 new QuietTaskListenerIH(listener));
     }
 
-    protected static class QuietTaskListenerIH implements InvocationHandler {
+    public static class QuietTaskListenerIH implements InvocationHandler, Externalizable {
 
-        private final TaskListener underlying;
-        private final ByteArrayOutputStream logContent = new ByteArrayOutputStream();
-        private final PrintStream out;
+        private TaskListener underlying;
+        private ByteArrayOutputStream logContent = new ByteArrayOutputStream();
+        private PrintStream out;
+        
+        public QuietTaskListenerIH() {
+        	
+        }
 
         protected QuietTaskListenerIH(TaskListener underlying) {
             this.underlying = underlying;
@@ -53,6 +61,25 @@ public class QuietTaskListenerFactory {
             // If neither signature matches, pass it on to the underlying
             // TaskListener
             return method.invoke(o, objects);
+        }
+
+        @Override
+        public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+            underlying = (TaskListener)in.readObject();
+            PrintStream tmp = null;
+            try {
+                tmp = new PrintStream(logContent, false, "UTF-8");
+            } catch (UnsupportedEncodingException e) {
+                throw new RuntimeException("UTF8 not supported", e);
+            }
+            out = tmp;
+
+        }
+
+        @Override
+        public void writeExternal(ObjectOutput out) throws IOException {
+            out.writeObject(underlying);
+			
         }
 
     }
