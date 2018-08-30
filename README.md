@@ -19,6 +19,8 @@
   - [Actions speak louder than words](#actions-speak-louder-than-words)
   - [Peer inside of OpenShift objects](#peer-inside-of-openshift-objects)
   - [Watching and waiting? Of course!](#watching-and-waiting-of-course)
+  - [Looking to Verify a Deployment or Service? We Can Still Do That!](#looking-to-verify-a-deployment-or-service-we-can-still-do-that)
+  - [ImageStream SCMs? Use Pipeline Build Strategy and Image Change Triggers instead.](#imagestream-scms-use-pipeline-build-strategy-and-image-change-triggers-instead)
   - [Deleting objects. Easy.](#deleting-objects-easy)
   - [Creating objects. Easier than you were expecting... hopefully.](#creating-objects-easier-than-you-were-expecting-hopefully)
   - [Need to update an object without replacing it?](#need-to-update-an-object-without-replacing-it)
@@ -441,7 +443,7 @@ we see issues where the same CpsStepContext is called on multiple watches.  Ther
 to upgrade some of this plugin's integration with pipelines to later levels in the hopes of resolving 
 this restriction.  
 
-### Looking to Verify a Deployment? We Can Still Do That!
+### Looking to Verify a Deployment or Service? We Can Still Do That!
 
 If you are looking for the equivalent of `openshiftVerifyDeployment` from [the OpenShift Jenkins Plugin](https://github.com/openshift/jenkins-plugin), the below performs the same operation.
 
@@ -456,6 +458,32 @@ openshift.withCluster() {
       }
 }
 ```
+
+If you are looking for the equivalent of `openshiftVerifyService` from [the OpenShift Jenkins Plugin](https://github.com/openshift/jenkins-plugin), the below performs the same operation.
+
+```groovy
+openshift.withCluster() {
+    openshift.withProject() {
+        def serviceSelector = openshift.selector("svc", "${SVC_NAME}")
+        def clusterIP = serviceSelector.object().spec.clusterIP
+        def port = serviceSelector.object().spec.ports[0].port
+        echo "cluster ip ${clusterIP} port ${port}"
+        env.SERVICE_URL = "http://" + clusterIP + ":" + port
+        // update the parameters to curl to deal with 
+        // authentication to your service, or manage retry 
+        // or timeouts, as needed
+        sh 'curl -s ${SERVICE_URL}'
+    }
+}
+```
+
+### ImageStream SCMs? Use Pipeline Build Strategy and Image Change Triggers instead.
+
+No equivalent of the ImageStream SCM (SCM steps are a special extension point in Jenkins pipelines) provided by `openshiftImageStream` from [the OpenShift Jenkins Plugin](https://github.com/openshift/jenkins-plugin) is provided.
+
+That step was introduced prior to the introduction of the OpenShift Pipeline Build Strategy.
+
+With the advent of OpenShift Pipeline Build Strategy, incorporating your pipeline into such a BuildConfig along with the use of an Image Change Trigger is the better choice for triggering pipeline jobs from changes to ImageStreams in OpenShift.
    
 
 ### Deleting objects. Easy.
