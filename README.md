@@ -33,6 +33,7 @@
 - [Configuring an OpenShift Cluster](#configuring-an-openshift-cluster)
 - [Setting up Credentials](#setting-up-credentials)
 - [Setting up Jenkins Nodes](#setting-up-jenkins-nodes)
+- [Moving Images Cluster to Cluster](#moving-images-cluster-to-cluster)
 - [You call this documentation?!](#you-call-this-documentation)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
@@ -907,7 +908,28 @@ may interfere with the intentions of your use of various `openshift.with...` dir
 In the case where you run Jenkins out of an OpenShift pod though via the OpenShift Jenkins image, the 
 environment is set up such that conflicts of this nature will not occur.
  
+### Moving Images Cluster to Cluster
 
+Multiple OpenShift clusters is a common practice. A non-production and production cluster is very common. In a continuous integration pipeline, we want to achieve promotion to all environments and clusters. We need a way to promote images from 
+cluster to cluster. The `oc` command line tool has a built-in command, `image mirror`, that will promote images from
+cluster to cluster.
+
+```
+stage('Move Image') {
+	steps {
+    	withDockerRegistry([credentialsId: "source-credentials", url: "source-registry-url"]) {
+
+        	withDockerRegistry([credentialsId: "destination-credentials", url: "destination-registry-url"]) {
+
+            	sh """
+                	oc image mirror mysourceregistry.com/myimage:latest mydestinationegistry.com/myimage:latest
+              	"""
+
+            }
+         }
+     }
+}
+```
 
 ## You call this documentation?!
 Not exactly. This is a brief overview of some of the capabilities of the plugin. The details
