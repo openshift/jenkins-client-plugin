@@ -1246,8 +1246,10 @@ class OpenShiftDSL implements Serializable {
             if ( objectList != null && objectList.size() != 1 ) {
                 throw new AbortException("oc client watch does not support watching multiple named resources (watch a kind or a set of labeled objects instead).");
             }
-
-            script._OcWatch(buildCommonArgs("get", selectionArgs(), null, "-w", "--watch-only", "-o=name")) {
+            /*
+            `--watch-only` is not used to ensure the watch closure is called at least once
+             */
+            script._OcWatch(buildCommonArgs("get", selectionArgs(), null, "-w", "-o=name")) {
                 body.call(this);
             }
         }
