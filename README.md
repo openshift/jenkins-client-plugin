@@ -305,6 +305,18 @@ openshift.withCluster( 'mycluster' ) {
 
     // Or a static list of names
     openshift.selector( [ 'dc/jenkins', 'build/ruby1' ] ).describe()
+    
+    // Also, you can easily test to see if the selector found what 
+    // were looking for and vary your pipeline's logic as needed.
+    def templateSelector = openshift.selector( "template", "mongodb-ephemeral")
+    def templateExists = templateSelector.exists()
+    def template
+    if (!templateExists) {
+        template = openshift.create('https://raw.githubusercontent.com/openshift/origin/master/examples/db-templates/mongodb-ephemeral-template.json').object()
+    } else {
+        template = templateSelector.object()
+    }
+    
 }
 ```
 
