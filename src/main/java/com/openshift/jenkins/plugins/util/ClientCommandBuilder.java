@@ -5,8 +5,11 @@ import com.openshift.jenkins.plugins.OpenShift;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Logger;
 
 public class ClientCommandBuilder implements Serializable {
+    
+    private static Logger LOGGER = Logger.getLogger(ClientCommandBuilder.class.getName()); 
 
     public final String server;
     public final String project;
@@ -39,13 +42,58 @@ public class ClientCommandBuilder implements Serializable {
         this.logLevel = logLevel;
     }
 
-    private static List<String> toStringArray(List l) {
+    private List<String> toStringArray(List l) {
         ArrayList<String> n = new ArrayList<String>();
         if (l == null) {
             return n;
         }
         for (Object o : l) {
-            n.add(o.toString());
+            String s = o.toString();
+            if (wrapperInQuotes() && s.contains(" ")) {
+                // the Jenkins QuotedStringTokenizer is not quite 
+                // copacetic with template parameters defined in 
+                // groovy variables (specifically strings where you have spaces but don't have 
+                // to encapsulate with " or ').
+                // 
+                // for example:
+                /*
+                def asdf = 'all users'
+                def param = ["-p", "POSTGRESQL_USER=${asdf}"]
+                def sel = openshift.selector("templates/postgresql-ephemeral")
+                def temp = sel.object()
+                def objs = openshift.process(temp, param)                 
+                 */
+                // we do *NOT* want ot force them to say 
+                // def param = ["-p", "POSTGRESQL_USER='${asdf}'"]
+                
+                // that said, for now at least, we'll try to use the Jenkins
+                // QuotedStringTokenizer for the other " and ' scenarios, especially around exec/rsh
+                // where the entire command might be listed as 'ps ax' vs. 'ps','ax'
+                // but still adjust
+                // the input with the logic here so that it 
+                // properly handles the groovy string vars with spaces scenario 
+                // correctly.
+                
+                // So, if the arg that comes in either 
+                // a) has neither ' or "", or
+                // b) has ", but doesn not start with it, and does not start with '
+                // then wrapper with '
+                if ((!s.contains("'") && !s.contains("\"")) ||
+                   (!s.startsWith("\"") && !s.startsWith("'") && s.contains("\""))) {
+                    s = "'" + s + "'";
+                // if the arg that comes in either 
+                // c) has ', but does not start with it, and does not start with "
+                // then wrapper with "
+                } else if (!s.startsWith("\"") && !s.startsWith("'") && s.contains(("'"))) {
+                    s = "\"" + s + "\"";
+                }
+                
+                // also, I have  confirmed throught testing that the jenkins groovy
+                // parser does not allow settings like '...'...'; it has to be '..."...'
+                // or "....'..."
+                
+            }
+            n.add(s);
         }
         return n;
     }
@@ -140,6 +188,17 @@ public class ClientCommandBuilder implements Serializable {
             sb.append(" ");
         }
         return sb.toString();
+    }
+    
+    public String[] asStringArray(boolean redacted) {
+        List<String> list = buildCommand(redacted);
+        return list.toArray(new String[0]);
+    }
+    
+    public boolean wrapperInQuotes() {
+        if (verb.trim().equals("process"))
+            return true;
+        return false;
     }
 
 }
