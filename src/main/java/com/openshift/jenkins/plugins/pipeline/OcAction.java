@@ -168,7 +168,7 @@ public class OcAction extends AbstractStepImpl {
             final StringBuffer stdout = new StringBuffer();
             final StringBuffer stderr = new StringBuffer();
 
-            ClientCommandRunner runner = new ClientCommandRunner(ocCommand, filePath,
+            ClientCommandRunner runner = new ClientCommandRunner(ocCommand, filePath, envVars,
                     // stdout
                     new ClientCommandRunner.OutputObserver() {
                         @Override

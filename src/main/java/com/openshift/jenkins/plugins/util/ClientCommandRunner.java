@@ -1,7 +1,9 @@
 package com.openshift.jenkins.plugins.util;
 
+import hudson.EnvVars;
 import hudson.FilePath;
 import hudson.Proc;
+import hudson.Util;
 import hudson.remoting.FastPipedInputStream;
 import hudson.remoting.FastPipedOutputStream;
 import hudson.remoting.RemoteOutputStream;
@@ -36,6 +38,7 @@ public class ClientCommandRunner {
 
     private String[] command;
     private FilePath filePath;
+    private EnvVars envVars;
     private OutputObserver stdoutOutputObserver;
     private OutputObserver stderrOutputObserver;
 
@@ -46,9 +49,10 @@ public class ClientCommandRunner {
      * @param stdoutOutputObserver a {@link OutputObserver} that will be notified whenever {@link ClientCommandRunner} reads a line from stdout of `oc` process
      * @param stderrOutputObserver a {@link OutputObserver} that will be notified whenever {@link ClientCommandRunner} reads a line from stderr of `oc` process
      */
-    public ClientCommandRunner(String[] command, FilePath filePath, OutputObserver stdoutOutputObserver, OutputObserver stderrOutputObserver) {
+    public ClientCommandRunner(String[] command, FilePath filePath, EnvVars envVars, OutputObserver stdoutOutputObserver, OutputObserver stderrOutputObserver) {
         this.command = command;
         this.filePath = filePath;
+        this.envVars = envVars;
         this.stdoutOutputObserver = stdoutOutputObserver;
         this.stderrOutputObserver = stderrOutputObserver;
     }
@@ -79,11 +83,13 @@ public class ClientCommandRunner {
 
     private static class OcCallable implements FilePath.FileCallable<Integer> {
         private String[] command;
+        private EnvVars envVars;
         private OutputStream out;
         private OutputStream err;
 
-        public OcCallable(String[] command, FilePath filePath, RemoteOutputStream out, RemoteOutputStream err) {
+        public OcCallable(String[] command, EnvVars envVars, RemoteOutputStream out, RemoteOutputStream err) {
             this.command = command;
+            this.envVars = envVars;
             this.out = out;
             this.err = err;
         }
@@ -96,7 +102,34 @@ public class ClientCommandRunner {
         public Integer invoke(File currentDir, VirtualChannel channel) throws IOException, InterruptedException {
             Proc.LocalProc proc = null;
             try (OutputStream out = this.out; OutputStream err = this.err) {
-                proc = new Proc.LocalProc(command, null, null, out, err, currentDir);
+                // per explanations like https://stackoverflow.com/questions/10035383/setting-the-environment-for-processbuilder
+                // even with propagating updates to the PATH env down to the creations of Proc.LocalProc and ProcessBuilder, 
+                // they don't even effect the environment in which the ProcessBuilder is running. So to find the `oc` when the 
+                // PATH is updated via the 'tool' step, we need to either 
+                // 1) prepend the right dir from the path for 'oc'
+                // 2) invoke a shell that then launches the actual 'oc' command, where we update the PATH prior
+                // Our use of the jenkins durable task and bourne/windows scripts did 2), but because of 
+                // https://bugzilla.redhat.com/show_bug.cgi?id=1625518 we analyze the PATH env var and do 1)
+                String path = envVars.get("PATH");
+                // default if running the openshift jenkins images
+                String dirToUse = "/bin/";
+                if (path == null || path.length() == 0) {
+                    LOGGER.warning("PATH not properly set prior to invocation of 'oc'");
+                } else {
+                    String[] dirs = path.split(File.pathSeparator);
+                    for (String dir : dirs) {
+                        if (new File(dir, "oc").canExecute() || new File(dir, "oc.exe").canExecute()) {
+                            dirToUse = dir.trim();
+                            break;
+                        }
+                    }
+                }
+                // sanity check, make sure oc is our first command, though it always should be
+                if (command[0].trim().equals("oc") || command[0].trim().equals("oc.exe")) {
+                    command[0] = dirToUse + File.separator + command[0].trim();
+                }
+                
+                proc = new Proc.LocalProc(command, Util.mapToEnv(envVars), null, out, err, currentDir);
                 return proc.join();
             } finally {
                 if (proc != null && proc.isAlive())
@@ -121,7 +154,7 @@ public class ClientCommandRunner {
             // running `oc` remotely
             // NOTE: Launcher is not used to start a remote process because of Jenkins bugs described on https://issues.jenkins-ci.org/browse/JENKINS-53586
             //   and https://issues.jenkins-ci.org/browse/JENKINS-53422.
-            remoteOCProcessFuture = filePath.actAsync(new OcCallable(command, filePath, new RemoteOutputStream(stdout), new RemoteOutputStream(stderr)));
+            remoteOCProcessFuture = filePath.actAsync(new OcCallable(command, envVars, new RemoteOutputStream(stdout), new RemoteOutputStream(stderr)));
 
             // reading the output (stdout and stderr) from the remote `oc` process
             // creating a thread pool for output consumers

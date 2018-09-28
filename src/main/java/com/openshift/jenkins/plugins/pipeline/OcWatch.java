@@ -104,7 +104,7 @@ public class OcWatch extends AbstractStepImpl {
             final boolean[] watchSuccess = {false};
             final StringBuffer stderr = new StringBuffer();
 
-            ClientCommandRunner runner = new ClientCommandRunner(ocCommand, filePath,
+            ClientCommandRunner runner = new ClientCommandRunner(ocCommand, filePath, envVars,
                     // stdout
                     new ClientCommandRunner.OutputObserver() {
                         @Override
