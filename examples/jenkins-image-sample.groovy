@@ -55,9 +55,9 @@ void actualTest() {*/
                     echo "Using project ${openshift.project()} in cluster with url ${openshift.cluster()}"
     
                     // Test selector.annotate
-                    //def railsTemplate = openshift.create("https://raw.githubusercontent.com/openshift/rails-ex/master/openshift/templates/rails-postgresql.json")
-                    //railsTemplate.annotate([key1:"value1", key2:"value2"])
-                    //railsTemplate.delete()
+                    def railsTemplate = openshift.create("https://raw.githubusercontent.com/openshift/rails-ex/master/openshift/templates/rails-postgresql.json")
+                    railsTemplate.annotate([key1:"value1", key2:"value2"])
+                    railsTemplate.delete()
     
                     def saSelector1 = openshift.selector( "serviceaccount" )
                     saSelector1.describe()
@@ -130,6 +130,19 @@ void actualTest() {*/
                     // verify we can handle unquoted param values with spaces
                     //def muser = "All Users"
                     //openshift.process( template, '-p', "MONGODB_USER=${muser}")
+                    //def exist2 = openshift.selector("template", "grape-spring-boot").exists()
+                    //if (!exist2) {
+                    //openshift.create("https://raw.githubusercontent.com/openshift/jenkins-client-plugin/master/examples/issue184-template.yml")
+                    //}
+                    //def exist3 = openshift.selector("template", "postgresql-ephemeral").exists()
+                    //if (!exist3) {
+                    //    openshift.create('https://raw.githubusercontent.com/openshift/origin/master/examples/db-templates/postgresql-ephemeral-template.json')
+                    //}
+                    //openshift.process("postgresql-ephemeral", "-p=MEMORY_LIMIT=120 -p=NAMESPACE=80 -p=DATABASE_SERVICE_NAME=\"-Xmx768m -Dmy.sys.param=aete\" -p=POSTGRESQL_USER=verify -p=POSTGRESQL_PASSWORD=aete -p=POSTGRESQL_DATABASE=400 -p=POSTGRESQL_VERSION=grape-regtest-tools-aete")
+                    //openshift.process("grape-spring-boot", "-p=LIVENESS_INITIAL_DELAY_SECONDS=120 -p=READYNESS_INITIAL_DELAY_SECONDS=80 -p=JVMARGS=\"-Xmx768m -Dmy.sys.param=aete\"-p=APPNAME=verify -p=DEPLOYMENTTAG=aete -p=ROLLING_TIMEOUT_SECONDS=400 -p=NAMESPACE=grape-regtest-tools-aete")
+                    //openshift.process("grape-spring-boot", "-p LIVENESS_INITIAL_DELAY_SECONDS=120 -p READYNESS_INITIAL_DELAY_SECONDS=80 -p JVMARGS=\"-Xmx768m -Dmy.sys.param=aete\"-p APPNAME=verify -p DEPLOYMENTTAG=aete -p ROLLING_TIMEOUT_SECONDS=400 -p NAMESPACE=grape-regtest-tools-aete")
+                    //openshift.process("grape-spring-boot", "-p=LIVENESS_INITIAL_DELAY_SECONDS=120", "-p=READYNESS_INITIAL_DELAY_SECONDS=80", "-p=JVMARGS=\"-Xmx768m -Dmy.sys.param=aete\"", "-p=APPNAME=verify", "-p=DEPLOYMENTTAG=aete", "-p=ROLLING_TIMEOUT_SECONDS=400", "-p=NAMESPACE=grape-regtest-tools-aete")
+            
     
                     // Process the modeled template. We could also pass JSON/YAML, a template name, or a url instead.
                     // note: -p option for oc process not in the oc version that we currently ship with openshift jenkins images
