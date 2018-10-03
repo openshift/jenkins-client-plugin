@@ -113,7 +113,7 @@ void actualTest() {*/
                     openshift.delete("configmap/foo", "configmap/bar")
                     openshift.create("configmap", "foo")
                     openshift.delete("configmap/foo")
-        
+
                     def template
                     if (!templateExists) {
                         template = openshift.create('https://raw.githubusercontent.com/openshift/origin/master/examples/db-templates/mongodb-ephemeral-template.json').object()
@@ -126,6 +126,10 @@ void actualTest() {*/
     
                     // For fun, modify the template easily while modeled in Groovy
                     template.labels["mylabel"] = "myvalue"
+
+                    // verify we can handle unquoted param values with spaces
+                    def muser = "All Users"
+                    openshift.process( template, '-p', "MONGODB_USER=${muser}")
     
                     // Process the modeled template. We could also pass JSON/YAML, a template name, or a url instead.
                     // note: -p option for oc process not in the oc version that we currently ship with openshift jenkins images
