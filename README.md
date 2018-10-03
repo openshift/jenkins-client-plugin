@@ -472,6 +472,18 @@ openshift.withCluster() {
 }
 ```
 
+Also, if you are using an `oc` binary that has the `oc rollout status` functionality, waiting to verify a deployment is baked in.
+
+```groovy
+openshift.withCluster() {
+ openshift.withProject() {
+    def dc = openshift.selector('dc', "${appName}")
+    // this will wait until the desired replicas are available
+    dc.rollout().status()
+ }
+}
+```
+
 If you are looking for the equivalent of `openshiftVerifyService` from [the OpenShift Jenkins Plugin](https://github.com/openshift/jenkins-plugin), the below performs the same operation.
 
 ```groovy
