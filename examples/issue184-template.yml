@@ -1,0 +1,317 @@
+apiVersion: v1
+kind: Template
+labels:
+  template: grape-spring-boot
+  xpaas: 0.1.0
+metadata:
+  annotations:
+    description: Eine vorkompilierte Jar-Anwendung deployen, und Ã¼ber eine http-Route zugÃ¤nglich machen
+    tags: java,generali,grape,springboot
+    iconClass: icon-openjdk
+    version: "0.1.0"
+  creationTimestamp: null
+  name: grape-spring-boot
+objects:
+- apiVersion: v1
+  kind: ImageStream
+  metadata:
+    annotations:
+      openshift.io/generated-by: grape-spring-boot-template
+    labels:
+      build: ${APPNAME}
+      app: ${APPNAME}
+    name: ${APPNAME}
+  status:
+    dockerImageRepository: ""
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    annotations:
+      openshift.io/generated-by: grape-spring-boot-template
+    creationTimestamp: null
+    labels:
+      build: ${APPNAME}
+      app: ${APPNAME}
+    name: ${APPNAME}
+  spec:
+    nodeSelector: null
+    output:
+      to:
+        kind: ImageStreamTag
+        name: ${APPNAME}:latest
+    postCommit: {}
+    resources:
+      limits:
+        cpu: 1
+        memory: 1Gi
+      requests:
+        cpu: 100m
+        memory: 256Mi
+    runPolicy: Serial
+    source:
+      dockerfile: |
+        FROM grape-spring-boot-dynatrace-image
+
+        LABEL com.generali.artifactVersion=${ARTIFACT_VERSION}
+
+        USER root
+
+        RUN echo "Integrating binary..." && \
+          mkdir /opt/deployment && \
+          APP_BINARY_URL=$(echo -n $APP_BINARY_URL | sed "s/\\\u0026/\&/g") && \
+          echo "APP_BINARY_URL: $APP_BINARY_URL" && \
+          origDir=$(pwd) && \
+          cd /opt/deployment && \
+          curl -sSLfOJ --noproxy '*' "$APP_BINARY_URL" 2>&1 && \
+          cd $origDir
+        USER 185
+        CMD [ "/usr/local/bin/run-standalone" ]
+      type: Dockerfile
+    strategy:
+      dockerStrategy:
+        env:
+        - name: APP_BINARY_URL
+          value: 'no_binary_url_set'
+        - name: ARTIFACT_VERSION
+          value: 'no_artifact_version_set'
+        - name: APPNAME
+          value: ${APPNAME}
+        from:
+          kind: ImageStreamTag
+          name: "grape-spring-boot-dynatrace-image:${BUILD_IMAGE_STREAM_TAG}"
+          namespace: ${BUILD_IMAGE_STREAM_NAMESPACE}
+      type: Docker
+    triggers:
+    - imageChange: {}
+      type: ImageChange
+  status:
+    lastVersion: 0
+- apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    name: ${APPNAME}
+    labels:
+      app: ${APPNAME}
+  data:
+    key: empty
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    annotations:
+      openshift.io/generated-by: grape-spring-boot-template
+    creationTimestamp: null
+    labels:
+      app: ${APPNAME}
+    name: ${APPNAME}
+  spec:
+    replicas: "${{REPLICA_COUNT}}"
+    selector:
+      app: ${APPNAME}
+      deploymentconfig: ${APPNAME}
+    strategy:
+      resources:
+        limits:
+          cpu: 200m
+          memory: 256Mi
+        requests:
+          cpu: 100m
+          memory: 256Mi
+      rollingParams:
+        intervalSeconds: 1
+        maxSurge: 1
+        maxUnavailable: 50%
+        timeoutSeconds: ${ROLLING_TIMEOUT_SECONDS}
+        updatePeriodSeconds: 1
+      type: Rolling
+    template:
+      metadata:
+        annotations:
+          openshift.io/generated-by: grape-spring-boot-template
+        creationTimestamp: null
+        labels:
+          app: ${APPNAME}
+          deploymentconfig: ${APPNAME}
+      spec:
+        containers:
+        - env:
+          - name: NAMESPACE
+            valueFrom:
+              fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.namespace
+          - name: CONTAINER_MEMORY_LIMIT
+            valueFrom:
+              resourceFieldRef:
+                resource: limits.memory
+                divisor: '0'
+          - name: CONTAINER_CPU_LIMIT
+            valueFrom:
+              resourceFieldRef:
+                resource: limits.cpu
+                divisor: '0'
+          - name: APPNAME
+            value: ${APPNAME}
+          - name: APP_EXPOSED_PORT
+            value: "8080"
+          - name: JVM_ARGS
+            value: ${JVMARGS}
+          - name: TZ
+            value: ${TIMEZONE}
+          - name: APP_PARAMETERS
+            value: ${PARAMETERS}
+          - name: APM_AGENTNAME
+            value: "${APM_AGENTGROUP}_${APPNAME}"
+          image: ${APPNAME}
+          imagePullPolicy: Always
+          name: ${APPNAME}
+          ports:
+          - containerPort: 8080
+            protocol: TCP
+          readinessProbe:
+            failureThreshold: 6
+            initialDelaySeconds: ${READYNESS_INITIAL_DELAY_SECONDS}
+            periodSeconds: 10
+            successThreshold: 1
+            tcpSocket:
+              port: 8080
+            timeoutSeconds: 3
+          livenessProbe:
+            failureThreshold: 6
+            initialDelaySeconds: ${LIVENESS_INITIAL_DELAY_SECONDS}
+            periodSeconds: 10
+            successThreshold: 1
+            tcpSocket:
+              port: 8080
+            timeoutSeconds: 5            
+          resources:
+            limits:
+              cpu: ${RESOURCE_LIMIT_CPU}
+              memory: ${RESOURCE_LIMIT_MEMORY}
+            requests:
+              cpu: ${RESOURCE_REQUEST_CPU}
+              memory: ${RESOURCE_REQUEST_MEMORY}
+          volumeMounts:
+          - name: metadata-volume
+            mountPath: /metadata
+          - name: config-volume
+            mountPath: /config/autoloaded/${APPNAME}
+          - name: log-volume
+            mountPath: /log
+          terminationMessagePath: /dev/termination-log
+        volumes:
+        - name: metadata-volume
+          configMap:
+            name: project-metadata
+        - name: config-volume
+          configMap:
+            name: ${APPNAME}
+        - name: log-volume
+          hostPath:
+            path: /var/log/applications
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+    triggers:
+    - imageChangeParams:
+        automatic: true
+        containerNames:
+        - ${APPNAME}
+        from:
+          kind: ImageStreamTag
+          name: ${APPNAME}:${DEPLOYMENTTAG}
+      type: ImageChange
+  status: {}
+- apiVersion: v1
+  kind: Service
+  metadata:
+    annotations:
+      openshift.io/generated-by: grape-spring-boot-template
+    creationTimestamp: null
+    labels:
+      app: ${APPNAME}
+    name: ${APPNAME}
+  spec:
+    ports:
+    - name: 8080-tcp
+      port: 8080
+      protocol: TCP
+      targetPort: 8080
+    selector:
+      app: ${APPNAME}
+      deploymentconfig: ${APPNAME}
+    sessionAffinity: None
+    type: ClusterIP
+  status:
+    loadBalancer: {}
+- apiVersion: v1
+  kind: Route
+  metadata:
+    creationTimestamp: null
+    labels:
+      app: ${APPNAME}
+    name: ${APPNAME}-${ROUTE_SUFFIX}
+  spec:
+    host: ${APPNAME}-${NAMESPACE}.${ROUTE_SUFFIX}
+    port:
+      targetPort: 8080
+    to:
+      kind: Service
+      name: ${APPNAME}
+  status: {}
+parameters:
+- name: APPNAME
+  description: technical application name in OpenShift
+  required: true
+- name: ROLLING_TIMEOUT_SECONDS
+  description: Timeout (Seconds) for rollout
+  value: "120"
+- name: READYNESS_INITIAL_DELAY_SECONDS
+  description: Timeout (Seconds) for readyness probe
+  value: "20"
+- name: LIVENESS_INITIAL_DELAY_SECONDS
+  description: Timeout (Seconds) for liveness probe
+  value: "40"
+- name: JVMARGS
+  description: additional parameters for the JVM (JVM-Args)
+  value: '-Xmx768m'
+- name: TIMEZONE
+  description: timezone environment variable of the pods
+  value: 'Europe/Berlin'
+- name: DEPLOYMENTTAG
+  description: Tag for the deployment to the aete-stage
+  required: true
+- name: PARAMETERS
+  description: additional parameters for the application
+- name: RESOURCE_LIMIT_CPU
+  description: CPU limit of the pods
+  value: '1000m'
+- name: RESOURCE_LIMIT_MEMORY
+  description: memory limit of the pods
+  value: '1Gi'
+- name: RESOURCE_REQUEST_CPU
+  description: reserved CPU for the pods
+  value: '50m'
+- name: RESOURCE_REQUEST_MEMORY
+  description: reserved memory for the pods
+  value: '384Mi'
+- name: REPLICA_COUNT
+  description: count of replicas
+  value: "1"
+- name: BUILD_IMAGE_STREAM_NAMESPACE
+  description: namespace of the BuilderImages
+  required: true
+  value: openshift
+- name: BUILD_IMAGE_STREAM_TAG
+  description: version of the BuilderImages
+  required: true
+  value: '1.0'
+- name: APM_AGENTGROUP
+  value: 'OpenShift'
+  description: Identification of the APM Agent Group. Defaults are (SpringBootTest, GRAPELight, OpenShift). Application specific groups should be discussed with the APM team
+- name: ROUTE_SUFFIX
+  value: 'ocpt.generali-gruppe.de'
+  description: suffix for the default router
+- name: NAMESPACE
+  value: 'na'
+  description: Openshift namespace

@@ -41,6 +41,27 @@ public class ClientCommandBuilder implements Serializable {
         this.token = token;
         this.logLevel = logLevel;
     }
+    
+    private String dealWithQuotes(String s) {
+        // So, if the arg that comes in either 
+        // a) has neither ' or "", or
+        // b) has ", but doesn not start with it, and does not start with '
+        // then wrapper with '
+        if ((!s.contains("'") && !s.contains("\"")) ||
+           (!s.startsWith("\"") && !s.startsWith("'") && s.contains("\""))) {
+            s = "'" + s + "'";
+        // if the arg that comes in either 
+        // c) has ', but does not start with it, and does not start with "
+        // then wrapper with "
+        } else if (!s.startsWith("\"") && !s.startsWith("'") && s.contains(("'"))) {
+            s = "\"" + s + "\"";
+        }
+        
+        // also, I have  confirmed throught testing that the jenkins groovy
+        // parser does not allow settings like '...'...'; it has to be '..."...'
+        // or "....'..."
+        return s;
+    }
 
     private List<String> toStringArray(List l) {
         ArrayList<String> n = new ArrayList<String>();
@@ -74,26 +95,38 @@ public class ClientCommandBuilder implements Serializable {
                 // properly handles the groovy string vars with spaces scenario 
                 // correctly.
                 
-                // So, if the arg that comes in either 
-                // a) has neither ' or "", or
-                // b) has ", but doesn not start with it, and does not start with '
-                // then wrapper with '
-                if ((!s.contains("'") && !s.contains("\"")) ||
-                   (!s.startsWith("\"") && !s.startsWith("'") && s.contains("\""))) {
-                    s = "'" + s + "'";
-                // if the arg that comes in either 
-                // c) has ', but does not start with it, and does not start with "
-                // then wrapper with "
-                } else if (!s.startsWith("\"") && !s.startsWith("'") && s.contains(("'"))) {
-                    s = "\"" + s + "\"";
-                }
+                // however, we also have to worry about the user specifying multiple -p=<name>=<value>
+                // settings in one string ... template parsing will get confused in this case and 
+                // miss any -p settings after the first one ... if those params are not required,
+                // it will just ignore the param setting (yikes)
+                // if those params are required, then the template processing notes a required param
+                // is missing (sheeesh)
+                String[] params1 = s.trim().split("-p=");
+                String[] params2 = s.trim().split("-p ");
+                if (params1.length > 1) {
+                    for (String p : params1) {
+                        if (p.trim().length() > 0) {
+                            if (p.trim().contains(" "))
+                                p = dealWithQuotes(p);
+                            n.add("-p=" + p.trim());
+                        }
+                    }
+                } else if (params2.length > 1) {
+                    for (String p : params2) {
+                        if (p.trim().length() > 0) {
+                            if (p.trim().contains(" "))
+                                p = dealWithQuotes(p);
+                            n.add("-p " + p.trim());
+                        }
+                    }
+                } else {
+                    s = dealWithQuotes(s);
+                    n.add(s);
+                }                
                 
-                // also, I have  confirmed throught testing that the jenkins groovy
-                // parser does not allow settings like '...'...'; it has to be '..."...'
-                // or "....'..."
-                
+            } else {
+                n.add(s);
             }
-            n.add(s);
         }
         return n;
     }
