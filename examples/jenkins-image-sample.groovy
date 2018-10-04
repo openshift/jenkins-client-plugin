@@ -128,8 +128,8 @@ void actualTest() {*/
                     template.labels["mylabel"] = "myvalue"
 
                     // verify we can handle unquoted param values with spaces
-                    def muser = "All Users"
-                    openshift.process( template, '-p', "MONGODB_USER=${muser}")
+                    //def muser = "All Users"
+                    //openshift.process( template, '-p', "MONGODB_USER=${muser}")
     
                     // Process the modeled template. We could also pass JSON/YAML, a template name, or a url instead.
                     // note: -p option for oc process not in the oc version that we currently ship with openshift jenkins images
