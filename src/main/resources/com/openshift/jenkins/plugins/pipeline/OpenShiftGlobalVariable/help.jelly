@@ -203,6 +203,21 @@
             </p>
         </dd>
         <dt>
+            <code id="openshift_verifyService">openshift.verifyService(svc_name:String):boolean</code>
+        </dt>
+        <dd>
+            <p  style="margin-left: 1em; color:#657383;">
+                <code>
+                    def connected = openshift.verifyService(${svcName});<br/>
+                    if (connected)<br/>
+                        echo "Able to connect to service $${svcName}"<br/>
+                </code>
+              </p>
+            <p>
+                Returns true or false based on the ability to connect to the IP and port associated with the service specified.
+            </p>
+        </dd>
+        <dt>
             <code id="openshift_setLockName">openshift.setLockName(lock_name:String):void</code>
         </dt>
         <dd>

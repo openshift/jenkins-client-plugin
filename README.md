@@ -484,20 +484,17 @@ openshift.withCluster() {
 }
 ```
 
-If you are looking for the equivalent of `openshiftVerifyService` from [the OpenShift Jenkins Plugin](https://github.com/openshift/jenkins-plugin), the below performs the same operation.
+If you are looking for the equivalent of `openshiftVerifyService` from [the OpenShift Jenkins Plugin](https://github.com/openshift/jenkins-plugin), we added a similar operation.
 
 ```groovy
 openshift.withCluster() {
     openshift.withProject() {
-        def serviceSelector = openshift.selector("svc", "${SVC_NAME}")
-        def clusterIP = serviceSelector.object().spec.clusterIP
-        def port = serviceSelector.object().spec.ports[0].port
-        echo "cluster ip ${clusterIP} port ${port}"
-        env.SERVICE_URL = "http://" + clusterIP + ":" + port
-        // update the parameters to curl to deal with 
-        // authentication to your service, or manage retry 
-        // or timeouts, as needed
-        sh 'curl -s ${SERVICE_URL}'
+        def connected = openshift.verifyService(${svc_name})
+        if (connected) {
+            echo "Able to connect to ${svc_name}"
+        } else {
+            echo "Unable to connect to ${svc_name}"
+        }
     }
 }
 ```
