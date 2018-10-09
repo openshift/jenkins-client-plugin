@@ -434,6 +434,22 @@ class OpenShiftDSL implements Serializable {
         String verb = toSingleString(overb);
         String[] userArgsArray = toStringArray(ouserArgsArray);
         String[] overrideArgs = toStringArray(ooverrideArgs);
+        String streamStdOutToConsolePrefix = null;
+        for (String arg : userArgsArray) {
+            String a = arg.trim();
+            if (a.equals("-f") || a.equals("--follow")) {
+                streamStdOutToConsolePrefix = verb;
+                break;
+            }
+        }
+        if (streamStdOutToConsolePrefix == null)
+            for (String arg : overrideArgs) {
+                String a = arg.trim();
+                if (a.equals("-f") || a.equals("--follow")) {
+                    streamStdOutToConsolePrefix = verb;
+                    break;
+                }
+            }
 
         List optionsBase = [];
 
@@ -445,8 +461,10 @@ class OpenShiftDSL implements Serializable {
 
         ArrayList<String> userArgsList = (userArgsArray==null)?new ArrayList<String>():Arrays.asList(userArgsArray);
 
-        // These arguments will be mapped, by name, to the constructor parameters of OcAction
-        Map args = [
+        Map args;
+        if (streamStdOutToConsolePrefix != null)
+            // These arguments will be mapped, by name, to the constructor parameters of OcAction
+            args = [
                 server:currentContext.getServerUrl(),
                 project:(getProject ? currentContext.getProject() : null),
                 skipTLSVerify: currentContext.isSkipTLSVerify(),
@@ -456,8 +474,22 @@ class OpenShiftDSL implements Serializable {
                 userArgs:userArgsList,
                 options:optionsBase,
                 token:currentContext.getToken(),
-                logLevel:logLevel
-        ]
+                logLevel:logLevel,
+                streamStdOutToConsolePrefix:streamStdOutToConsolePrefix
+            ]
+        else
+            args = [
+                    server:currentContext.getServerUrl(),
+                    project:(getProject ? currentContext.getProject() : null),
+                    skipTLSVerify: currentContext.isSkipTLSVerify(),
+                    caPath: currentContext.getServerCertificateAuthorityPath(),
+                    verb:verb,
+                    verbArgs:verbArgs,
+                    userArgs:userArgsList,
+                    options:optionsBase,
+                    token:currentContext.getToken(),
+                    logLevel:logLevel
+            ]
         return args;
     }
 
