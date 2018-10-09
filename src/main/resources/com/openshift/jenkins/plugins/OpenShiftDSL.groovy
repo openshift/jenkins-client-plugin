@@ -15,6 +15,10 @@ import java.io.IOException
 import java.util.logging.Level
 import java.util.logging.Logger
 
+import java.net.InetSocketAddress;
+import java.net.Socket;
+
+
 import org.jenkinsci.plugins.workflow.cps.CpsFlowExecution;
 import org.jenkinsci.plugins.workflow.cps.CpsThread;
 
@@ -903,6 +907,38 @@ class OpenShiftDSL implements Serializable {
 
     public OpenShiftResourceSelector startBuild(Object... args) {
         return newObjectsAction("startBuild", "start-build", args);
+    }
+
+    public boolean verifyService(String svcName) {
+        OpenShiftResourceSelector svcSel = this.selector("svc", svcName);
+        String ip = (String)svcSel.object().get("spec").get("clusterIP");
+        String port = (String)svcSel.object().get("spec").get("ports").get(0).get("port");
+        int i = 0;
+        while (i < 5) {
+            i++;
+            InetSocketAddress address = new InetSocketAddress(ip, Integer.parseInt(port));
+            Socket socket = null;
+            try {
+                socket = new Socket();
+                socket.connect(address, 2500);
+                logToTaskListener("Connected to service " + svcName + " via IP " + ip + " and port " + port);
+                return true;
+            } catch (IOException e) {
+                logToTaskListener("IOException " + e.getMessage() + " connecting to service " + svcName);
+                LOGGER.log(Level.FINE, "verifyService", e);
+                try {
+                    Thread.sleep(2500);
+                } catch (InterruptedException e1) {
+                }
+            } finally {
+                try {
+                    if (socket != null)
+                        socket.close();
+                } catch (IOException e) {
+                }
+            }
+        }
+        return false;
     }
 
     private Result simplePassthrough(String verb, Object[] oargs) {

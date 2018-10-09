@@ -199,6 +199,8 @@ void actualTest() {*/
                     dcs.describe()
                     echo "DeploymentConfig history"
                     dcs.rollout().history()
+
+                    //openshift.verifyService('mongodb')
     
                     def rubySelector = openshift.selector("bc", "ruby")
                     def builds
