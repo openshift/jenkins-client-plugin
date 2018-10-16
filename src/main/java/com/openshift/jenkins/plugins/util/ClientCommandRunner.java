@@ -16,6 +16,7 @@ import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.*;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /***
@@ -23,6 +24,19 @@ import java.util.logging.Logger;
  */
 public class ClientCommandRunner {
     private static final Logger LOGGER = Logger.getLogger(ClientCommandRunner.class.getName());
+    // creating a thread pool for output consumers
+    private static Executor pool;
+    static {
+        String poolSize = System.getenv("OPENSHIFT_CLIENT_PLUGIN_EXECUTOR_POOL_SIZE");
+        int ps = 25;
+        try {
+            if (poolSize != null && poolSize.trim().length() > 0)
+                ps = Integer.parseInt(poolSize);
+        } catch (Throwable t ) {
+            LOGGER.log(Level.WARNING, "ClientCommandRunner", t);
+        }
+        pool = Executors.newFixedThreadPool(ps);
+    }
 
     /***
      * a {@link OutputObserver} will be notified when {@link ClientCommandRunner} reads a newline from stdout or stderr of the running oc process
@@ -157,8 +171,6 @@ public class ClientCommandRunner {
             remoteOCProcessFuture = filePath.actAsync(new OcCallable(command, envVars, new RemoteOutputStream(stdout), new RemoteOutputStream(stderr)));
 
             // reading the output (stdout and stderr) from the remote `oc` process
-            // creating a thread pool for output consumers
-            Executor pool = Executors.newFixedThreadPool(2);
             CompletionService<Boolean> completionService = new ExecutorCompletionService<>(pool);
 
             // handling stderr
