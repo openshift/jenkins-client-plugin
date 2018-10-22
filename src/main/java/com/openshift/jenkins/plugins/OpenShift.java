@@ -90,6 +90,10 @@ public class OpenShift extends AbstractDescribableImpl<OpenShift> {
             return Collections.unmodifiableList(clusterConfigs);
         }
 
+        public void setClusterConfigs(List<ClusterConfig> configs) {
+            clusterConfigs = configs;
+        }
+
         /**
          * Determines if a cluster has been configured with a given name. If a
          * cluster has been configured with the name, its definition is
