@@ -952,6 +952,8 @@ stage('Move Image') {
 }
 ```
 
+Note the [docker related requirements](https://docs.okd.io/latest/dev_guide/managing_images.html#managing-images-mirror-registry-images) when using `oc image mirror`.
+
 ## You call this documentation?!
 Not exactly. This is a brief overview of some of the capabilities of the plugin. The details
 of the API are embedded within the plugin's online documentation within a running Jenkins instance.
