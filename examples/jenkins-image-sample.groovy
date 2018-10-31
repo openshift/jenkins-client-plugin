@@ -55,7 +55,7 @@ void actualTest() {*/
                     echo "Using project ${openshift.project()} in cluster with url ${openshift.cluster()}"
     
                     // Test selector.annotate
-                    def railsTemplate = openshift.create("https://raw.githubusercontent.com/openshift/rails-ex/master/openshift/templates/rails-postgresql.json")
+                    def railsTemplate = openshift.create("https://raw.githubusercontent.com/openshift/origin/release-3.10/examples/quickstarts/rails-postgresql.json")
                     railsTemplate.annotate([key1:"value1", key2:"value2"])
                     railsTemplate.delete()
     
@@ -116,7 +116,7 @@ void actualTest() {*/
 
                     def template
                     if (!templateExists) {
-                        template = openshift.create('https://raw.githubusercontent.com/openshift/origin/master/examples/db-templates/mongodb-ephemeral-template.json').object()
+                        template = openshift.create('https://raw.githubusercontent.com/openshift/origin/release-3.10/examples/db-templates/mongodb-ephemeral-template.json').object()
                     } else {
                         template = templateSelector.object()
                     }
