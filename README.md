@@ -865,6 +865,16 @@ openshift.withCluster( 'mycluster' ) {
 }
 ```
 
+The cluster configuration can be exported and imported with the [Jenkins Configuration as Code Plugin](https://github.com/jenkinsci/configuration-as-code-plugin).
+
+```yaml
+unclassified:
+  openshift:
+    clusterConfigs:
+    - name: "mycluster"
+      serverUrl: "example.com"
+```
+
 ## Setting up Credentials
 To define a new credential for the DSL in the Jenkins credential store, navigate to
 Credentials -> System -> Global credentials -> Add Credentials (you can the domain based
