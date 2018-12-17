@@ -1,7 +1,9 @@
 package com.openshift.jenkins.plugins.util;
 
 import com.openshift.jenkins.plugins.OpenShift;
+import hudson.EnvVars;
 
+import java.io.File;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
@@ -22,6 +24,36 @@ public class ClientCommandBuilder implements Serializable {
     protected final List options;
     protected final String token;
     public final int logLevel;
+
+    public static String[] fixPathInCommandArray(String[] command, EnvVars envVars) {
+        // per explanations like https://stackoverflow.com/questions/10035383/setting-the-environment-for-processbuilder
+        // even with propagating updates to the PATH env down to the creations of Proc.LocalProc and ProcessBuilder,
+        // they don't even effect the environment in which the ProcessBuilder is running. So to find the `oc` when the
+        // PATH is updated via the 'tool' step, we need to either
+        // 1) prepend the right dir from the path for 'oc'
+        // 2) invoke a shell that then launches the actual 'oc' command, where we update the PATH prior
+        // Our use of the jenkins durable task and bourne/windows scripts did 2), but because of
+        // https://bugzilla.redhat.com/show_bug.cgi?id=1625518 we analyze the PATH env var and do 1)
+        String path = envVars.get("PATH");
+        // default if running the openshift jenkins images
+        String dirToUse = "/bin";
+        if (path == null || path.length() == 0) {
+            LOGGER.warning("PATH not properly set prior to invocation of 'oc'");
+        } else {
+            String[] dirs = path.split(File.pathSeparator);
+            for (String dir : dirs) {
+                if (new File(dir, "oc").canExecute() || new File(dir, "oc.exe").canExecute()) {
+                    dirToUse = dir.trim();
+                    break;
+                }
+            }
+        }
+        // sanity check, make sure oc is our first command, though it always should be
+        if (command[0].trim().equals("oc") || command[0].trim().equals("oc.exe")) {
+            command[0] = dirToUse + File.separator + command[0].trim();
+        }
+        return command;
+    }
 
     public ClientCommandBuilder(String server, String project, boolean skipTLSVerify, String caPath,
             String verb, List advArgs, List verbArgs, List userArgs, List options,
@@ -220,6 +252,7 @@ public class ClientCommandBuilder implements Serializable {
             sb.append(arg);
             sb.append(" ");
         }
+
         return sb.toString();
     }
     

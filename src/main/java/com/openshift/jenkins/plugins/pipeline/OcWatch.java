@@ -1,9 +1,9 @@
 package com.openshift.jenkins.plugins.pipeline;
 
 import com.openshift.jenkins.plugins.util.ClientCommandBuilder;
-import com.openshift.jenkins.plugins.util.ClientCommandRunner;
 import hudson.*;
 import hudson.model.TaskListener;
+import hudson.remoting.RemoteOutputStream;
 import hudson.util.QuotedStringTokenizer;
 import org.jenkinsci.plugins.workflow.steps.AbstractStepDescriptorImpl;
 import org.jenkinsci.plugins.workflow.steps.AbstractStepImpl;
@@ -12,7 +12,11 @@ import org.jenkinsci.plugins.workflow.steps.StepContextParameter;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 import javax.inject.Inject;
-import java.io.IOException;
+import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.logging.Logger;
@@ -95,64 +99,112 @@ public class OcWatch extends AbstractStepImpl {
         private transient TaskListener listener;
 
         public Void run() throws IOException, InterruptedException, ExecutionException {
-            if (filePath != null)
+            if (filePath != null && !filePath.exists()) {
                 filePath.mkdirs();
+            }
+            getContext().saveState();
+            listener.getLogger().println("Entering watch");
 
-            String[] ocCommand = QuotedStringTokenizer.tokenize(step.cmdBuilder.asString(false));
+            int exitStatus = -1;
+            try {
 
-            // if watchSuccess[0] == true, oc is terminated by watch closure returning true
-            final boolean[] watchSuccess = {false};
-            final StringBuffer stderr = new StringBuffer();
+                // pipe stdout to stderr to avoid any buffering
+                FilePath stderrTmp = filePath.createTextTempFile("watchstderr", ".txt", "", false);
+                FileOutputStream fos = new FileOutputStream(stderrTmp.getRemote());
+                RemoteOutputStream ros = new RemoteOutputStream(fos);
+                Path path = Paths.get(stderrTmp.getRemote());
 
-            ClientCommandRunner runner = new ClientCommandRunner(ocCommand, filePath, envVars,
-                    // stdout
-                    new ClientCommandRunner.OutputObserver() {
-                        @Override
-                        public boolean onReadLine(String line) throws InterruptedException, IOException {
-                            if (step.watchLoglevel > 0) {
-                                listener.getLogger().println("Received verbose watch output>>>");
-                                listener.getLogger().println(line);
-                                listener.getLogger().println("<<<");
-                            }
-                            listener.getLogger().println("Running watch closure body");
-                            try {
-                                // Run body and get result
-                                Object o = getContext().newBodyInvoker().start().get();
-                                // If the watch body returns a Boolean and it is true, time to exit
-                                if (o instanceof Boolean && (Boolean) o) {
-                                    listener.getLogger().println("\nwatch closure returned true; terminating watch");
-                                    watchSuccess[0] = true;
-                                    return true; // stop the watch
+                String commandString = step.cmdBuilder.asString(false);
+                String[] command = QuotedStringTokenizer.tokenize(commandString);
+                command = ClientCommandBuilder.fixPathInCommandArray(command, envVars);
+                Proc proc = null;
+
+                try {
+
+                    int outputSize = 0;
+                    master:
+                    while (true) {
+                        Launcher.ProcStarter ps = launcher.launch().cmds(Arrays.asList(command)).envs(envVars).pwd(filePath).quiet(true).stdout(ros).stderr(ros);
+                        proc = ps.start();
+
+                        long reCheckSleep = 250;
+                        boolean firstPass = true;
+
+                        do {
+                            // FYI ... the old form of stdoutTmp.readFromOffset no longer worked for agent/container pods
+                            // once we moved to Launcher.ProcStater
+                            byte[] newOutput = Files.readAllBytes(path);
+
+                            if ((newOutput.length > 0 && newOutput.length > outputSize) || firstPass) {
+                                firstPass = false;
+                                reCheckSleep = Math.max(250, reCheckSleep / 2);
+
+                                if ( step.watchLoglevel > 0 ) {
+                                    listener.getLogger().println("Received verbose watch output>>>");
+                                    listener.getLogger().println(new String(Arrays.copyOfRange(newOutput, outputSize, newOutput.length), "utf-8"));
+                                    listener.getLogger().println("<<<");
                                 }
-                            } catch (ExecutionException t) {
-                                String exceptionMsgs = t.getMessage();
-                                if (t.getCause() != null) {
-                                    exceptionMsgs = exceptionMsgs + "; " + t.getCause().getMessage();
+
+                                listener.getLogger().println("Running watch closure body");
+                                outputSize += newOutput.length;
+                                try {
+                                    // Run body and get result
+                                    Object o = getContext().newBodyInvoker().start().get();
+
+                                    // If the watch body returns a Boolean and it is true, time to exit
+                                    if (o instanceof Boolean && (Boolean)o) {
+                                        listener.getLogger().println("\nwatch closure returned true; terminating watch");
+                                        proc.kill();
+                                        break master;
+                                    }
+
+                                    continue;
+                                } catch ( InterruptedException tie ) { // timeout{} block interrupted us
+                                    listener.getLogger().println("\nwatch closure interrupted (timeout?)");
+                                    getContext().onFailure(tie);
+                                    return null;
+                                } catch (Exception t) {
+                                    String exceptionMsgs = t.getMessage();
+                                    if (t.getCause() != null) {
+                                        exceptionMsgs = exceptionMsgs + "; " + t.getCause().getMessage();
+                                    }
+                                    listener.getLogger().println(String.format("\nwatch closure threw an exception: \"%s\".\n", exceptionMsgs));
+                                    getContext().onFailure(t);
+                                    return null;
                                 }
-                                listener.getLogger().println(String.format("\nwatch closure threw an exception: \"%s\".\n", exceptionMsgs));
-                                throw new IOException(t);
                             }
-                            return false;
-                        }
-                    },
-                    // stderr
-                    new ClientCommandRunner.OutputObserver() {
-                        @Override
-                        public boolean onReadLine(String line) {
-                            stderr.append(line + '\n');
-                            listener.getLogger().println(line);
-                            return false;
+
+                            // Gradually check less frequently if watch is not generating output
+                            reCheckSleep = Math.min(10000, (int) (reCheckSleep * 1.2f));
+                            listener.getLogger().println("Checking watch output again in " + reCheckSleep + "ms");
+                            Thread.sleep(reCheckSleep);
+
+                        } while (proc.isAlive());
+                        exitStatus = ps.join();
+
+                        // Reaching this point means that the watch terminated -
+                        // exitStatus will not be null
+                        if (exitStatus != 0) {
+                            // Looks like the watch command encountered an error
+                            throw new AbortException("watch invocation terminated with an error: "+ exitStatus);
                         }
                     }
-            );
-            int exitStatus = runner.run();
-            if (!watchSuccess[0] && exitStatus != 0) {
-                String msg = "OpenShift Client exited with status code " + Integer.toString(exitStatus)
-                        + ", command: " + step.cmdBuilder.buildCommand(true)
-                        + ", stderr: " + stderr.toString().trim();
-                throw new AbortException(msg);
+
+                } finally {
+                    if (proc != null && proc.isAlive()) {
+                        proc.kill();
+                    }
+                    stderrTmp.delete();
+                }
+
+            } catch (RuntimeException re) {
+                throw re;
+            } catch (Exception e) {
+                getContext().onFailure(e);
             }
+
             return null;
+
         }
     }
 }
