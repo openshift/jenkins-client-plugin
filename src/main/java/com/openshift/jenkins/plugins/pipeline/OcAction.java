@@ -1,17 +1,13 @@
 package com.openshift.jenkins.plugins.pipeline;
 
 import com.openshift.jenkins.plugins.util.ClientCommandBuilder;
-import com.openshift.jenkins.plugins.util.ClientCommandRunner;
 import hudson.*;
 import hudson.model.Computer;
 import hudson.model.Executor;
 import hudson.model.Run;
 import hudson.model.TaskListener;
-import hudson.remoting.FastPipedInputStream;
-import hudson.remoting.FastPipedOutputStream;
 import hudson.remoting.RemoteOutputStream;
 import hudson.util.QuotedStringTokenizer;
-import org.apache.commons.io.IOUtils;
 import org.jenkinsci.plugins.scriptsecurity.sandbox.whitelists.Whitelisted;
 import org.jenkinsci.plugins.workflow.steps.AbstractStepDescriptorImpl;
 import org.jenkinsci.plugins.workflow.steps.AbstractStepImpl;
