@@ -878,7 +878,7 @@ unclassified:
 ## Setting up Credentials
 You can define a new credential using the OpenShift Sync plugin or directly in the Jenkins credential store.
 
-If you're using the OpenShift sync plugin, you can add a Opaque/generic secret where the data has a "openshift-client-token" key.
+To define a new credential using the OpenShift sync plugin, you can add a Opaque/generic secret where the data has a "openshift-client-token" key.
 ```bash
 # Create the secret
 oc create secret generic openshift-client-token --from-file=openshift-client-token=mysecretToken.txt
