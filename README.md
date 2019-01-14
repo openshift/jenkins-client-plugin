@@ -886,7 +886,7 @@ oc create secret generic my-prilvileged-token-id --from-file=openshift-client-to
 oc label secret my-prilvileged-token-id credential.sync.jenkins.openshift.io=true
 ```
 
-This token will be accessible with the ID of "${OPENSHIFT_NAMESPACE}-my-prilvileged-token-id"
+This token will be accessible with the credential ID of "${OPENSHIFT_NAMESPACE}-my-prilvileged-token-id"
 
 To define a new credential for the DSL in the Jenkins credential store, navigate to
 Credentials -> System -> Global credentials -> Add Credentials (you can the domain based
