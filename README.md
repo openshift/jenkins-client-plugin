@@ -876,15 +876,17 @@ unclassified:
 ```
 
 ## Setting up Credentials
-You can define a new credential using the OpenShift Sync plugin or directly in the Jenkins credential store.
+You can define a new credential using the [OpenShift Sync plugin](https://github.com/openshift/jenkins-sync-plugin) or directly in the Jenkins credential store.
 
 To define a new credential using the OpenShift sync plugin, you can add a Opaque/generic secret where the data has a "openshift-client-token" key.
 ```bash
 # Create the secret
-oc create secret generic openshift-client-token --from-file=openshift-client-token=mysecretToken.txt
+oc create secret generic my-prilvileged-token-id --from-file=openshift-client-token=mysecretToken.txt
 # Add label to mark that it should be synced.
-oc label secret openshift-client-token credential.sync.jenkins.openshift.io=true
+oc label secret my-prilvileged-token-id credential.sync.jenkins.openshift.io=true
 ```
+
+This token will be accessible with the ID of "${OPENSHIFT_NAMESPACE}-my-prilvileged-token-id"
 
 To define a new credential for the DSL in the Jenkins credential store, navigate to
 Credentials -> System -> Global credentials -> Add Credentials (you can the domain based
