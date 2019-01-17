@@ -6,8 +6,8 @@ import hudson.model.Computer;
 import hudson.model.Executor;
 import hudson.model.Run;
 import hudson.model.TaskListener;
-import hudson.remoting.RemoteOutputStream;
 import hudson.util.QuotedStringTokenizer;
+
 import org.jenkinsci.plugins.scriptsecurity.sandbox.whitelists.Whitelisted;
 import org.jenkinsci.plugins.workflow.steps.AbstractStepDescriptorImpl;
 import org.jenkinsci.plugins.workflow.steps.AbstractStepImpl;
@@ -18,9 +18,6 @@ import org.kohsuke.stapler.DataBoundConstructor;
 import javax.inject.Inject;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -159,16 +156,7 @@ public class OcAction extends AbstractStepImpl {
             if (filePath != null && !filePath.exists()) {
                 filePath.mkdirs();
             }
-
-            FilePath stdoutTmp = filePath.createTextTempFile("ocstdout",
-                    ".txt", "", false);
-            FilePath stderrTmp = filePath.createTextTempFile("ocstderr",
-                    ".txt", "", false);
-            FileOutputStream outFos = new FileOutputStream(stdoutTmp.getRemote());
-            FileOutputStream errFos = new FileOutputStream(stderrTmp.getRemote());
-            RemoteOutputStream outRos = new RemoteOutputStream(outFos);
-            RemoteOutputStream errRos = new RemoteOutputStream(errFos);
-
+            
             if (step.streamStdOutToConsolePrefix != null
                     && step.streamStdOutToConsolePrefix
                         .startsWith("start-build")) {
@@ -181,39 +169,37 @@ public class OcAction extends AbstractStepImpl {
             }
 
             ByteArrayOutputStream stdErr = new ByteArrayOutputStream();
+            BufferedOutputStream errBuf = new BufferedOutputStream(stdErr);
             ByteArrayOutputStream stdOut = new ByteArrayOutputStream();
+            BufferedOutputStream outBuf = new BufferedOutputStream(stdOut);
 
             String commandString = step.cmdBuilder.asString(false);
             String[] command = QuotedStringTokenizer.tokenize(commandString);
-            command = ClientCommandBuilder.fixPathInCommandArray(command, envVars);
 
             Proc proc = null;
-            Path outFilePath = Paths.get(stdoutTmp.getRemote());
-            Path errFilePath = Paths.get(stderrTmp.getRemote());
-            int numBytesProcesssed = 0;
             try {
-                Launcher.ProcStarter ps = launcher.launch().cmds(Arrays.asList(command)).envs(envVars).pwd(filePath).quiet(true).stdout(outRos).stderr(errFos);
+                Launcher.ProcStarter ps = launcher.launch().cmds(Arrays.asList(command)).envs(envVars).pwd(filePath).quiet(true).stdout(outBuf).stderr(errBuf);
                 proc = ps.start();
                 long reCheckSleep = 250;
+                int outputSize = 0;
                 while (proc.isAlive()) {
                     Thread.sleep(reCheckSleep);
-                    // FYI ... the old form of stdoutTmp.readFromOffset no longer worked for agent/container pods
-                    // once we moved to Launcher.ProcStater
-                    byte[] newOutput = Files.readAllBytes(outFilePath);
-                    if (newOutput.length > 0 && newOutput.length > numBytesProcesssed) {
-                        int prevNumBytesProcessed = numBytesProcesssed;
-                        stdOut.write(newOutput, numBytesProcesssed, newOutput.length - numBytesProcesssed);
-                        numBytesProcesssed = newOutput.length;
-                        if (step.streamStdOutToConsolePrefix != null && step.streamStdOutToConsolePrefix.trim().length() > 0) {
-                            printToConsole(new String(Arrays.copyOfRange(newOutput, prevNumBytesProcessed, numBytesProcesssed),
-                                    StandardCharsets.UTF_8));
+
+                    if (step.streamStdOutToConsolePrefix != null &&
+                        step.streamStdOutToConsolePrefix.trim().length() > 0) {
+                        byte[] newOutput = stdOut.toByteArray();
+                        if (newOutput.length > 0) {
+                            if (newOutput.length > outputSize) { 
+                                printToConsole(new String(Arrays.copyOfRange(newOutput, outputSize, newOutput.length), StandardCharsets.UTF_8));
+                            }
+                            outputSize = newOutput.length;
                             // If we are streaming to console and getting output,
                             // keep sleep duration small.
                             reCheckSleep = 1000;
                             continue;
                         }
                     }
-
+                    
                     if (reCheckSleep < 10000) { // Gradually check less
                         // frequently for slow execution
                         // tasks
@@ -221,17 +207,18 @@ public class OcAction extends AbstractStepImpl {
                     }
                 }
                 int rc = proc.join();
+                outBuf.flush();
+                errBuf.flush();
 
-                // FYI ... the old form of stdoutTmp.readFromOffset no longer worked for agent/container pods
-                // once we moved to Launcher.ProcStater
-                byte[] newOutput = Files.readAllBytes(outFilePath);
-                stdOut.write(newOutput, numBytesProcesssed, newOutput.length - numBytesProcesssed);
-                if (step.streamStdOutToConsolePrefix != null && step.streamStdOutToConsolePrefix.trim().length() > 0 && newOutput.length > numBytesProcesssed) {
-                    printToConsole(new String(Arrays.copyOfRange(newOutput, numBytesProcesssed, newOutput.length - numBytesProcesssed), StandardCharsets.UTF_8));
+                if (step.streamStdOutToConsolePrefix != null
+                        && step.streamStdOutToConsolePrefix.trim().length() > 0) {
+                    byte[] newOutput = stdOut.toByteArray();
+                    if (newOutput.length > outputSize) {
+                        printToConsole(new String(Arrays.copyOfRange(newOutput, outputSize, newOutput.length), StandardCharsets.UTF_8));
+                    }
+                    listener.getLogger().println(); // final newline if output does not contain it.
                 }
-                listener.getLogger().println(); // final newline if output does not contain it.
-
-                stdErr.write(Files.readAllBytes(errFilePath));
+        
 
                 OcActionResult result = new OcActionResult();
                 result.verb = step.cmdBuilder.verb;
@@ -255,8 +242,10 @@ public class OcAction extends AbstractStepImpl {
                 if (proc != null && proc.isAlive()) {
                     proc.kill();
                 }
-                stderrTmp.delete();
-                stdoutTmp.delete();
+                stdOut.close();
+                outBuf.close();
+                stdErr.close();
+                errBuf.close();
             }
         }
 
