@@ -3,8 +3,8 @@ package com.openshift.jenkins.plugins.pipeline;
 import com.openshift.jenkins.plugins.util.ClientCommandBuilder;
 import hudson.*;
 import hudson.model.TaskListener;
-import hudson.remoting.RemoteOutputStream;
 import hudson.util.QuotedStringTokenizer;
+
 import org.jenkinsci.plugins.workflow.steps.AbstractStepDescriptorImpl;
 import org.jenkinsci.plugins.workflow.steps.AbstractStepImpl;
 import org.jenkinsci.plugins.workflow.steps.AbstractSynchronousNonBlockingStepExecution;
@@ -13,9 +13,6 @@ import org.kohsuke.stapler.DataBoundConstructor;
 
 import javax.inject.Inject;
 import java.io.*;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
@@ -108,62 +105,75 @@ public class OcWatch extends AbstractStepImpl {
             int exitStatus = -1;
             try {
 
-                // pipe stdout to stderr to avoid any buffering
-                FilePath stderrTmp = filePath.createTextTempFile("watchstderr", ".txt", "", false);
-                FileOutputStream fos = new FileOutputStream(stderrTmp.getRemote());
-                RemoteOutputStream ros = new RemoteOutputStream(fos);
-                Path path = Paths.get(stderrTmp.getRemote());
+                ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                BufferedOutputStream bos = new BufferedOutputStream(baos);
 
                 String commandString = step.cmdBuilder.asString(false);
                 String[] command = QuotedStringTokenizer.tokenize(commandString);
-                command = ClientCommandBuilder.fixPathInCommandArray(command, envVars);
                 Proc proc = null;
 
                 try {
 
-                    int outputSize = 0;
                     master:
                     while (true) {
-                        Launcher.ProcStarter ps = launcher.launch().cmds(Arrays.asList(command)).envs(envVars).pwd(filePath).quiet(true).stdout(ros).stderr(ros);
+                        Launcher.ProcStarter ps = launcher.launch().cmds(Arrays.asList(command)).envs(envVars).pwd(filePath).quiet(true).stdout(bos).stderr(bos);
                         proc = ps.start();
 
                         long reCheckSleep = 250;
-                        boolean firstPass = true;
-
+                        int outputSize = 0;
+                        int jsonRetries = 0;
                         do {
-                            // FYI ... the old form of stdoutTmp.readFromOffset no longer worked for agent/container pods
-                            // once we moved to Launcher.ProcStater
-                            byte[] newOutput = Files.readAllBytes(path);
+                            byte[] newOutput = baos.toByteArray();
 
-                            if ((newOutput.length > 0 && newOutput.length > outputSize) || firstPass) {
-                                firstPass = false;
-                                reCheckSleep = Math.max(250, reCheckSleep / 2);
-
-                                if ( step.watchLoglevel > 0 ) {
+                            if ( step.watchLoglevel > 0 ) {
+                                if (newOutput.length > outputSize) {
                                     listener.getLogger().println("Received verbose watch output>>>");
                                     listener.getLogger().println(new String(Arrays.copyOfRange(newOutput, outputSize, newOutput.length), "utf-8"));
                                     listener.getLogger().println("<<<");
                                 }
+                                // If we are streaming to console and getting output,
+                                // keep sleep duration small.
+                                reCheckSleep = 1000;
+                            }
+                            outputSize = newOutput.length;
 
-                                listener.getLogger().println("Running watch closure body");
-                                outputSize += newOutput.length;
-                                try {
-                                    // Run body and get result
-                                    Object o = getContext().newBodyInvoker().start().get();
+                            listener.getLogger().println("Running watch closure body");
+                            try {
+                                bos.flush();
+                                // Run body and get result
+                                Object o = getContext().newBodyInvoker().start().get();
+                                
+                                // If the watch body returns a Boolean and it is true, time to exit
+                                if (o instanceof Boolean && (Boolean)o) {
+                                    listener.getLogger().println("\nwatch closure returned true; terminating watch");
+                                    proc.kill();
+                                    break master;
+                                }
+                                listener.getLogger().println("watch closure returned " + o);
+                                jsonRetries = 0;
 
-                                    // If the watch body returns a Boolean and it is true, time to exit
-                                    if (o instanceof Boolean && (Boolean)o) {
-                                        listener.getLogger().println("\nwatch closure returned true; terminating watch");
-                                        proc.kill();
-                                        break master;
+                            } catch ( InterruptedException tie ) { // timeout{} block interrupted us
+                                listener.getLogger().println("\nwatch closure interrupted (timeout?)");
+                                getContext().onFailure(tie);
+                                return null;
+                            } catch (Throwable t) {
+                                if (t instanceof groovy.json.JsonException) {
+                                    // we've seen instances where if the watch closer susequently calls oc and it processes output 
+                                    // before oc has finished updating it we can get json formatting 
+                                    // exceptions processing the output ... we can retry here
+                                    if (jsonRetries < 5) {
+                                        listener.getLogger().println("watch closer got json formatting exception, trying again");
+                                        jsonRetries++;
+                                    } else {
+                                        String exceptionMsgs = t.getMessage();
+                                        if (t.getCause() != null) {
+                                            exceptionMsgs = exceptionMsgs + "; " + t.getCause().getMessage();
+                                        }
+                                        listener.getLogger().println(String.format("\nwatch closure threw an exception: \"%s\".\n", exceptionMsgs));
+                                        getContext().onFailure(t);
+                                        return null;
                                     }
-
-                                    continue;
-                                } catch ( InterruptedException tie ) { // timeout{} block interrupted us
-                                    listener.getLogger().println("\nwatch closure interrupted (timeout?)");
-                                    getContext().onFailure(tie);
-                                    return null;
-                                } catch (Exception t) {
+                                } else {
                                     String exceptionMsgs = t.getMessage();
                                     if (t.getCause() != null) {
                                         exceptionMsgs = exceptionMsgs + "; " + t.getCause().getMessage();
@@ -174,13 +184,17 @@ public class OcWatch extends AbstractStepImpl {
                                 }
                             }
 
-                            // Gradually check less frequently if watch is not generating output
-                            reCheckSleep = Math.min(10000, (int) (reCheckSleep * 1.2f));
-                            listener.getLogger().println("Checking watch output again in " + reCheckSleep + "ms");
+                            if (reCheckSleep < 10000) { // Gradually check less
+                                // frequently for slow watch closures
+                                // wrt returning true
+                                reCheckSleep *= 1.2f;
+                            }
+                            listener.getLogger().println("Checking watch output and running watch closure again in " + reCheckSleep + "ms having processed " + outputSize + " bytes of watch output so far");
                             Thread.sleep(reCheckSleep);
 
                         } while (proc.isAlive());
                         exitStatus = ps.join();
+                        bos.flush();
 
                         // Reaching this point means that the watch terminated -
                         // exitStatus will not be null
@@ -194,7 +208,8 @@ public class OcWatch extends AbstractStepImpl {
                     if (proc != null && proc.isAlive()) {
                         proc.kill();
                     }
-                    stderrTmp.delete();
+                    bos.close();
+                    baos.close();
                 }
 
             } catch (RuntimeException re) {
