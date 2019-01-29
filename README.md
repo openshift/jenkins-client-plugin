@@ -131,6 +131,8 @@ script {
 
 directive such that the declarative interpreter is told to treat this as scripted pipeline.
 
+In fact, per https://issues.jenkins-ci.org/browse/JENKINS-42360 this situation has been discussed upstream and it is stated that this restrictions between declarative and global variables will not be lifted. 
+
 As development of this plugin continues, periodic attempts will be made to monitor that these recommendations 
 are still valid, and if not, either adjust recommendations accordingly, or leverage any new integration points 
 with declarative that are synergistic with this plugin's design.  
