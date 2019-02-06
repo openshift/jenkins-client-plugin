@@ -923,8 +923,7 @@ will automatically be installed once on nodes that use the Pipeline 'tool' step.
 
 ```groovy
 node('agent1') {
-    def ocDir = tool "oc1.3.2"
-    withEnv(["PATH+OC=${ocDir}"]) {
+    withEnv(["PATH+OC=${tool 'oc1.3.2'}"]) {
         openshift.withCluster( 'mycluster' ) {
             echo "${openshift.raw( "version" ).out}"
             echo "In project: ${openshift.project()}"

@@ -110,6 +110,7 @@ public class OcWatch extends AbstractStepImpl {
 
                 String commandString = step.cmdBuilder.asString(false);
                 String[] command = QuotedStringTokenizer.tokenize(commandString);
+                command = ClientCommandBuilder.fixPathInCommandArray(command, envVars, listener, filePath, launcher, step.watchLoglevel > 0);
                 Proc proc = null;
 
                 try {
