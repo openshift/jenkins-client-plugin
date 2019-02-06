@@ -14,7 +14,7 @@ spec:
   serviceAccount: jenkins
   containers:
   - name: maven
-    image: docker.io/openshift/jenkins-agent-maven-35-centos7:v4.0
+    image: docker.io/openshift/jenkins-agent-maven-35-centos7:v3.11
     command:
     - cat
     tty: true
