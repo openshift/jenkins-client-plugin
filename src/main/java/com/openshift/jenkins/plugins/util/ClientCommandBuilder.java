@@ -11,14 +11,8 @@ import hudson.Launcher.RemoteLauncher;
 import hudson.model.TaskListener;
 import jenkins.security.MasterToSlaveCallable;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
-import java.nio.file.FileSystems;
-import java.nio.file.FileVisitResult;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
@@ -59,58 +53,22 @@ public class ClientCommandBuilder implements Serializable {
           }        
     }
     // end borrowed from BourneShellScript
-    static final class findOC extends MasterToSlaveCallable<ArrayList<String>,Throwable> {
-        @Override public ArrayList<String> call() throws Throwable {
-            String ocFileName = "oc";
-            if (Platform.current() == Platform.WINDOWS) {
-                ocFileName = "oc.exe";
-            }
-            final String oc = ocFileName;
-            final ArrayList<String> ocPath = new ArrayList<String>();
-            Iterable<Path> roots = FileSystems.getDefault().getRootDirectories();
-            for (Path path : roots) {
-                Files.walkFileTree(path, new java.nio.file.FileVisitor<Path>() {
-
-                    @Override
-                    public FileVisitResult postVisitDirectory(Path arg0, IOException arg1) throws IOException {
-                        return FileVisitResult.CONTINUE;
-                    }
-
-                    @Override
-                    public FileVisitResult preVisitDirectory(Path arg0, BasicFileAttributes arg1) throws IOException {
-                        return FileVisitResult.CONTINUE;
-                    }
-
-                    @Override
-                    public FileVisitResult visitFile(Path path, BasicFileAttributes attr) throws IOException {
-                        if (!attr.isRegularFile())
-                            return FileVisitResult.CONTINUE;
-                        File f = path.toFile();
-                        if (!f.canRead() && !f.canExecute())
-                            return FileVisitResult.CONTINUE;
-                        if (path.getFileName().toString().equals(oc))
-                            ocPath.add(path.toString());
-                        return FileVisitResult.CONTINUE;
-                    }
-
-                    @Override
-                    public FileVisitResult visitFileFailed(Path arg0, IOException arg1) throws IOException {
-                        return FileVisitResult.CONTINUE;
-                    }
-                    
-                });
-                
-            }
-            return ocPath;
-            
-        }
-        private static final long serialVersionUID = 1L;
-    }
     public static String[] fixPathInCommandArray(String[] command, EnvVars envVars, TaskListener listener, FilePath filePath, Launcher launcher, boolean verbose) throws IOException, InterruptedException, RuntimeException {
-        ArrayList<String> foundOcs = new ArrayList<String>();
+        // per explanations like https://stackoverflow.com/questions/10035383/setting-the-environment-for-processbuilder
+        // even with propagating updates to the PATH env down to the creations of Proc.LocalProc and ProcessBuilder,
+        // they don't even effect the environment in which the ProcessBuilder is running. So to find the `oc` when the
+        // PATH is updated via the 'tool' step, we need to either
+        // 1) prepend the right dir from the path for 'oc'
+        // 2) invoke a shell that then launches the actual 'oc' command, where we update the PATH prior
+        // Our use of the jenkins durable task and bourne/windows scripts did 2), but because of
+        // https://bugzilla.redhat.com/show_bug.cgi?id=1625518 we analyze the PATH env var and do 1)
         OsType targetType = filePath.act(new getOsType());
+        String path = envVars.get("PATH");
+        ArrayList<String> foundOcs = new ArrayList<String>();
+        FindOC finder = new FindOC();
+        finder.setPath(path);
         try {
-            foundOcs = filePath.act(new findOC());
+            foundOcs = filePath.act(finder);
         } catch (Throwable t) {
             t.printStackTrace(listener.getLogger());
             return command;
@@ -127,56 +85,7 @@ public class ClientCommandBuilder implements Serializable {
         if (foundOcs.size() == 0) {
             return command;
         }
-        // per explanations like https://stackoverflow.com/questions/10035383/setting-the-environment-for-processbuilder
-        // even with propagating updates to the PATH env down to the creations of Proc.LocalProc and ProcessBuilder,
-        // they don't even effect the environment in which the ProcessBuilder is running. So to find the `oc` when the
-        // PATH is updated via the 'tool' step, we need to either
-        // 1) prepend the right dir from the path for 'oc'
-        // 2) invoke a shell that then launches the actual 'oc' command, where we update the PATH prior
-        // Our use of the jenkins durable task and bourne/windows scripts did 2), but because of
-        // https://bugzilla.redhat.com/show_bug.cgi?id=1625518 we analyze the PATH env var and do 1)
-        String ocFileName = "oc";
-        String fileSepChar = "/";
-        String pathSepChar = ":";
-        if (targetType == OsType.WINDOWS) {
-            ocFileName = "oc.exe";
-            fileSepChar = "\\";
-            pathSepChar = ";";
-        }
-        String path = envVars.get("PATH");
-        String dirToUse = "";
-        if (path == null || path.length() == 0) {
-            listener.getLogger().println("PATH not properly set prior to invocation of 'oc'");
-        } else {
-            String[] dirs = path.split(pathSepChar);
-            for (String dir : dirs) {
-                String search = null;
-                if (!dir.endsWith(fileSepChar)) {
-                    search = dir + fileSepChar + ocFileName;
-                } else {
-                    search = dir + ocFileName;
-                }
-                if (foundOcs.contains(search)) {
-                    dirToUse = dir.trim();
-                    if (verbose)
-                        listener.getLogger().println("The dir of an oc that was found is in the path: " + dirToUse);
-                    break;
-                }
-            }
-        }
-        if (dirToUse.length() == 0) {
-            return command;
-        }
-        // sanity check, make sure oc is our first command, though it always should be
-        if (command[0].trim().equals(ocFileName)) {
-            String finalLoc = null;
-            if (!dirToUse.endsWith(fileSepChar)) {
-                finalLoc = dirToUse + fileSepChar + command[0].trim();
-            } else {
-                finalLoc = dirToUse + command[0].trim();
-            }
-            command[0] = finalLoc;
-        }
+        command[0] = foundOcs.get(0);
         return command;
     }
 
