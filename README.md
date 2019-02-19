@@ -728,7 +728,7 @@ openshift.withCluster( 'devcluster' ) {
 
         // Note that the selector is relative to its closure body and
         // operates on the qecluster now.
-        maps.delete( '--ignore-not-present' )
+        maps.delete( '--ignore-not-found' )
 
         openshift.create( objs )
 
