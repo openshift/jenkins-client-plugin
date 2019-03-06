@@ -1,10 +1,10 @@
 package com.openshift.jenkins.plugins.pipeline;
 
 import com.openshift.jenkins.plugins.util.ClientCommandBuilder;
+import com.openshift.jenkins.plugins.util.ClientCommandRunner;
 import hudson.*;
 import hudson.model.TaskListener;
 import hudson.util.QuotedStringTokenizer;
-
 import org.jenkinsci.plugins.workflow.steps.AbstractStepDescriptorImpl;
 import org.jenkinsci.plugins.workflow.steps.AbstractStepImpl;
 import org.jenkinsci.plugins.workflow.steps.AbstractSynchronousNonBlockingStepExecution;
@@ -12,10 +12,8 @@ import org.jenkinsci.plugins.workflow.steps.StepContextParameter;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 import javax.inject.Inject;
-import java.io.*;
-import java.util.Arrays;
+import java.io.IOException;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
 import java.util.logging.Logger;
 
 
@@ -95,132 +93,92 @@ public class OcWatch extends AbstractStepImpl {
         @StepContextParameter
         private transient TaskListener listener;
 
-        public Void run() throws IOException, InterruptedException, ExecutionException {
+        public Void run() throws IOException, InterruptedException {
             if (filePath != null && !filePath.exists()) {
                 filePath.mkdirs();
             }
             getContext().saveState();
             listener.getLogger().println("Entering watch");
 
-            int exitStatus = -1;
-            try {
+            final StringBuffer stderr = new StringBuffer();
+            final boolean[] watchSuccess = {false};
 
-                ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                BufferedOutputStream bos = new BufferedOutputStream(baos);
-
-                String commandString = step.cmdBuilder.asString(false);
-                String[] command = QuotedStringTokenizer.tokenize(commandString);
-                command = ClientCommandBuilder.fixPathInCommandArray(command, envVars, listener, filePath, launcher, step.watchLoglevel > 0);
-                Proc proc = null;
-
-                try {
-
-                    master:
-                    while (true) {
-                        Launcher.ProcStarter ps = launcher.launch().cmds(Arrays.asList(command)).envs(envVars).pwd(filePath).quiet(true).stdout(bos).stderr(bos);
-                        proc = ps.start();
-
-                        long reCheckSleep = 250;
-                        int outputSize = 0;
-                        int jsonRetries = 0;
-                        do {
-                            byte[] newOutput = baos.toByteArray();
-
-                            if ( step.watchLoglevel > 0 ) {
-                                if (newOutput.length > outputSize) {
-                                    listener.getLogger().println("Received verbose watch output>>>");
-                                    listener.getLogger().println(new String(Arrays.copyOfRange(newOutput, outputSize, newOutput.length), "utf-8"));
-                                    listener.getLogger().println("<<<");
-                                }
-                                // If we are streaming to console and getting output,
-                                // keep sleep duration small.
-                                reCheckSleep = 1000;
-                            }
-                            outputSize = newOutput.length;
-
+            String commandString = step.cmdBuilder.asString(false);
+            String[] command = QuotedStringTokenizer.tokenize(commandString);
+            command = ClientCommandBuilder.fixPathInCommandArray(command, envVars, listener, filePath, launcher, step.watchLoglevel > 0);
+            final TaskListener listener = this.listener;
+            final int[] jsonRetries = {0};
+            ClientCommandRunner runner = new ClientCommandRunner(command, filePath, envVars,
+                    line -> { // got a line from stdout
+                        if (step.watchLoglevel > 0) {
+                            listener.getLogger().println("Received verbose watch output>>>");
+                            listener.getLogger().println(line);
+                            listener.getLogger().println("<<<");
+                        }
+                        for (; ; ) {
                             listener.getLogger().println("Running watch closure body");
                             try {
-                                bos.flush();
                                 // Run body and get result
                                 Object o = getContext().newBodyInvoker().start().get();
-                                
+
                                 // If the watch body returns a Boolean and it is true, time to exit
-                                if (o instanceof Boolean && (Boolean)o) {
+                                if (o instanceof Boolean && (Boolean) o) {
+                                    watchSuccess[0] = true;
                                     listener.getLogger().println("\nwatch closure returned true; terminating watch");
-                                    proc.kill();
-                                    break master;
+                                    return true; // interrupt `oc`
                                 }
                                 listener.getLogger().println("watch closure returned " + o);
-                                jsonRetries = 0;
-
-                            } catch ( InterruptedException tie ) { // timeout{} block interrupted us
-                                listener.getLogger().println("\nwatch closure interrupted (timeout?)");
-                                getContext().onFailure(tie);
-                                return null;
-                            } catch (Throwable t) {
-                                if (t instanceof groovy.json.JsonException) {
-                                    // we've seen instances where if the watch closer susequently calls oc and it processes output 
-                                    // before oc has finished updating it we can get json formatting 
-                                    // exceptions processing the output ... we can retry here
-                                    if (jsonRetries < 5) {
-                                        listener.getLogger().println("watch closer got json formatting exception, trying again");
-                                        jsonRetries++;
-                                    } else {
-                                        String exceptionMsgs = t.getMessage();
-                                        if (t.getCause() != null) {
-                                            exceptionMsgs = exceptionMsgs + "; " + t.getCause().getMessage();
-                                        }
-                                        listener.getLogger().println(String.format("\nwatch closure threw an exception: \"%s\".\n", exceptionMsgs));
-                                        getContext().onFailure(t);
-                                        return null;
-                                    }
-                                } else {
-                                    String exceptionMsgs = t.getMessage();
-                                    if (t.getCause() != null) {
-                                        exceptionMsgs = exceptionMsgs + "; " + t.getCause().getMessage();
-                                    }
-                                    listener.getLogger().println(String.format("\nwatch closure threw an exception: \"%s\".\n", exceptionMsgs));
-                                    getContext().onFailure(t);
-                                    return null;
+                                return false; // don't interrupt `oc`
+                            } catch (groovy.json.JsonException ex) {
+                                // FIXME: We've seen instances where if the watch closer subsequently calls oc and it processes output
+                                // before oc has finished updating it we can get json formatting
+                                // exceptions processing the output ... we can retry here
+                                if (jsonRetries[0]++ >= 5) {
+                                    throw ex; // give up retrying
                                 }
+                                listener.getLogger().println("watch closer got json formatting exception, trying again");
+                            } catch (InterruptedException tie) { // timeout{} block interrupted us
+                                listener.getLogger().println("\nwatch closure interrupted (timeout?)");
+                                throw tie;
+                            } catch (Throwable t) {
+                                String exceptionMsgs = t.getMessage();
+                                if (t.getCause() != null) {
+                                    exceptionMsgs = exceptionMsgs + "; " + t.getCause().getMessage();
+                                }
+                                listener.getLogger().println(String.format("\nwatch closure threw an exception: \"%s\".\n", exceptionMsgs));
+                                throw new IOException(t);
                             }
-
-                            if (reCheckSleep < 10000) { // Gradually check less
-                                // frequently for slow watch closures
-                                // wrt returning true
-                                reCheckSleep *= 1.2f;
-                            }
-                            listener.getLogger().println("Checking watch output and running watch closure again in " + reCheckSleep + "ms having processed " + outputSize + " bytes of watch output so far");
-                            Thread.sleep(reCheckSleep);
-
-                        } while (proc.isAlive());
-                        exitStatus = ps.join();
-                        bos.flush();
-
-                        // Reaching this point means that the watch terminated -
-                        // exitStatus will not be null
-                        if (exitStatus != 0) {
-                            // Looks like the watch command encountered an error
-                            throw new AbortException("watch invocation terminated with an error: "+ exitStatus);
                         }
+                    },
+                    line -> { // got a line from stderr
+                        stderr.append(line).append('\n');
+                        listener.getLogger().println("Received error output>>>");
+                        listener.getLogger().println(line);
+                        listener.getLogger().println("<<<");
+                        return false; // don't interrupt `oc`
+                    });
+            long reWatchSleep = 250;
+            try {
+                for (; ; ) {
+                    int exitStatus = runner.run(launcher);
+                    if (watchSuccess[0])
+                        break;
+                    if (exitStatus != 0) {
+                        String msg = "OpenShift Client exited with status code " + Integer.toString(exitStatus)
+                                + ", command: " + step.cmdBuilder.buildCommand(true)
+                                + ", stderr: " + stderr.toString().trim();
+                        throw new AbortException(msg);
                     }
-
-                } finally {
-                    if (proc != null && proc.isAlive()) {
-                        proc.kill();
+                    listener.getLogger().println("Checking watch output and running watch closure again in " + reWatchSleep + "ms");
+                    Thread.sleep(reWatchSleep);
+                    if (reWatchSleep < 10000) { // Gradually re-watch less frequently
+                        reWatchSleep *= 1.2f;
                     }
-                    bos.close();
-                    baos.close();
                 }
-
-            } catch (RuntimeException re) {
-                throw re;
-            } catch (Exception e) {
+            } catch (Throwable e) {
                 getContext().onFailure(e);
             }
-
             return null;
-
         }
     }
 }
