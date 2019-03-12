@@ -64,9 +64,8 @@ public class ClientCommandBuilder implements Serializable {
         // https://bugzilla.redhat.com/show_bug.cgi?id=1625518 we analyze the PATH env var and do 1)
         OsType targetType = filePath.act(new getOsType());
         String path = envVars.get("PATH");
-        ArrayList<String> foundOcs = new ArrayList<String>();
-        FindOC finder = new FindOC();
-        finder.setPath(path);
+        List<String> foundOcs = new ArrayList<String>();
+        FindOC finder = new FindOC(path);
         try {
             foundOcs = filePath.act(finder);
         } catch (Throwable t) {
