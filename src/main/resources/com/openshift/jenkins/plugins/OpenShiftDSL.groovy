@@ -194,7 +194,7 @@ class OpenShiftDSL implements Serializable {
                  * system. It would be nice if we could set the name in an environment variable
                  * instead.
                  */
-                FilePath ca = exec.getWorkspaceFilePath().createTextTempFile("serverca", ".crt", serverCertificateAuthorityContent, false);
+                FilePath ca = exec.getWorkspaceFilePath().createTextTempFile("serverca", ".crt", serverCertificateAuthorityContent, true);
                 destroyOnReturn.add(ca);
                 this.@serverCertificateAuthorityPath = ca.getRemote();
             }
@@ -718,7 +718,7 @@ class OpenShiftDSL implements Serializable {
             }
             r.actions.add((OcAction.OcActionResult)script._OcAction(stepArgs));
         } else if (markup) {
-            FilePath f = currentContext.exec.getWorkspaceFilePath().createTextTempFile(verb, ".markup", s, false);
+            FilePath f = currentContext.exec.getWorkspaceFilePath().createTextTempFile(verb, ".markup", s, true);
             try {
                 Map stepArgs = buildCommonArgs(verb, [ "-f", f.getRemote() ], userArgs, "-o=name");
                 stepArgs["reference"] = [ "${f.getRemote()}": s ];  // Store the markup content for reference in the result
@@ -776,7 +776,7 @@ class OpenShiftDSL implements Serializable {
             r.actions.add((OcAction.OcActionResult)script._OcAction(buildCommonArgs("process", ["-f", s ], args, "-o=json")));
             r.failIf("process returned an error");
         } else if (markup) { // does this look like json or yaml?
-            FilePath f = currentContext.exec.getWorkspaceFilePath().createTextTempFile("process", ".markup", s, false);
+            FilePath f = currentContext.exec.getWorkspaceFilePath().createTextTempFile("process", ".markup", s, true);
             try {
                 r.actions.add((OcAction.OcActionResult)script._OcAction(buildCommonArgs("process", ["-f", f.getRemote() ], args, "-o=json")));
                 r.failIf("process returned an error");
@@ -809,7 +809,7 @@ class OpenShiftDSL implements Serializable {
             r.actions.add((OcAction.OcActionResult)script._OcAction(buildCommonArgs("patch", ["-f", s, "-p", patch ], args)));
             r.failIf("patch returned an error");
         } else if (markup) { // does this look like json or yaml?
-            FilePath f = currentContext.exec.getWorkspaceFilePath().createTextTempFile("patch", ".markup", s, false);
+            FilePath f = currentContext.exec.getWorkspaceFilePath().createTextTempFile("patch", ".markup", s, true);
             try {
                 r.actions.add((OcAction.OcActionResult)script._OcAction(buildCommonArgs("patch", ["-f", f.getRemote(), "-p", patch ], args)));
                 r.failIf("patch returned an error");
