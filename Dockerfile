@@ -8,6 +8,8 @@ USER 0
 RUN export PATH=/opt/rh/rh-maven35/root/usr/bin:$PATH && mvn clean package
 
 FROM quay.io/openshift/origin-jenkins:v4.0
-RUN rm /opt/openshift/plugins/openshift-client.jpi
+#RUN rm /opt/openshift/plugins/openshift-client.jpi
+RUN ls -la /opt/openshift/plugins
+RUN ls -la /usr/lib/jenkins
 COPY --from=builder /java/src/github.com/openshift/jenkins-client-plugin/target/openshift-client.hpi /opt/openshift/plugins
-RUN mv /opt/openshift/plugins/openshift-client.hpi /opt/openshift/plugins/openshift-client.jpi
+#RUN mv /opt/openshift/plugins/openshift-client.hpi /opt/openshift/plugins/openshift-client.jpi
