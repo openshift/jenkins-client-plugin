@@ -310,7 +310,7 @@ class OpenShiftDSL implements Serializable {
      *          defined in the Jenkins credentials store.
      */
     public <V> V withCluster(Object oname=null, Object ocredentialId=null, Closure<V> body) {
-        String name = toSingleString(oname);
+        /*String name = toSingleString(oname);
         String credentialId = toSingleString(ocredentialId);
 
         Closure<V> guts = {
@@ -382,7 +382,7 @@ class OpenShiftDSL implements Serializable {
             } else {
                 guts();
             }
-        }
+        }*/
 
     }
 
