@@ -11,6 +11,7 @@
 - [Installing and developing](#installing-and-developing)
 - [Compatibility with Declarative Pipeline](#compatibility-with-declarative-pipeline)
 - [Compatibility with parallel step](#compatibility-with-parallel-step)
+- [Compatibility with load step](#compatibility-with-load-step)
 - [Examples](#examples)
   - [Hello, World](#hello-world)
   - [Centralizing Cluster Configuration](#centralizing-cluster-configuration)
@@ -217,7 +218,178 @@ pipeline {
 
 ```
 NOTE:  there is currently no automatic means to periodically purge any lock resources which your pipelines dynamically create.
-You'll have to manage periodically purging that inventory. 
+You'll have to manage periodically purging that inventory.
+
+## Compatibility with load step
+
+Another integration concern, albeit dependent on the timing of Jenkins restarts, resulting from the Global Variable integration
+point has been uncovered with respect to the `load` step.
+
+Also note, these timing windows can be widened when the `input` step is used, as that can pause a pipeline run while it waits for
+user confirmation.
+
+Under the covers, the `load` step creates a new version of the internal objects the Global Variable is bounded to.  If the `openshift.withCluster`
+and `openshift.withProject` calls are in separate scripts, and Jenkins is restarted, we've seen state stored by the `openshift.withCluster` call
+lost as the pipeline run is read back into the system after the restart completes.  The state is not lost if a restart does not occur.
+
+We'll illustrate with a user provided example.  First, here is some of this plugin's DSL stored in a Groovy method within a `deploy.groovy` file:
+
+```groovy
+def execute(String env) {
+                openshift.withProject(env) {
+                    openshift.selector("dc", "simple-python").rollout().latest()
+                    def latestDeploymentVersion = openshift.selector('dc',"simple-python").object().status.latestVersion
+                    def rc = openshift.selector('rc', "simple-python-${latestDeploymentVersion}")
+                    timeout (time: 10, unit: 'MINUTES') {
+                        rc.untilEach(1){
+                            def rcMap = it.object()
+                            return (rcMap.status.replicas.equals(rcMap.status.readyReplicas))
+                        }
+                    }
+                }
+}
+
+return this
+```
+
+Next, some examples uses of `load`.  First, our user saw the problem during a Jenkins restart while the pipeline was paused on the 
+second `input` call (an NPE trying to get the server URL that is stored when `openshift.withCluster` is called occurred when the pipeline resumed
+after the restart):
+
+```groovy
+node('master') {
+    checkout scm
+    stage('approval') {
+        timeout(time: 30, unit: 'DAYS') {
+                input message: "Start first rollout ?"
+            }
+    }
+    stage('first rollout') {
+        openshift.withCluster() {
+             def steps = load 'deploy.groovy'
+             steps.execute("de-sandpit-prod")
+             echo "completed first rollout"
+        }
+    }
+    stage('approval') {
+        timeout(time: 30, unit: 'DAYS') {
+                input message: "Start second rollout ?"
+            }
+    }
+    stage('second rollout') {
+        openshift.withCluster() {
+             def steps = load 'deploy.groovy'
+             steps.execute("de-sandpit-prod")
+             echo "completed second rollout"
+        }
+    }
+}
+```
+
+The problem can be avoided in one of three ways.
+
+* avoid the use of `load` and in-line the groovy in question
+
+```groovy
+node('master') {
+    checkout scm
+    stage('approval') {
+        timeout(time: 30, unit: 'DAYS') {
+                input message: "Start first rollout ?"
+            }
+    }
+    stage('first rollout') {
+           openshift.withCluster() {
+                openshift.withProject("de-sandpit-prod") {
+                    openshift.selector("dc", "simple-python").rollout().latest()
+                    def latestDeploymentVersion = openshift.selector('dc',"simple-python").object().status.latestVersion
+                    def rc = openshift.selector('rc', "simple-python-${latestDeploymentVersion}")
+                    timeout (time: 10, unit: 'MINUTES') {
+                        rc.untilEach(1){
+                            def rcMap = it.object()
+                            return (rcMap.status.replicas.equals(rcMap.status.readyReplicas))
+                        }
+                    }
+                }
+             echo "completed first rollout"
+         }
+    }
+    stage('approval') {
+        timeout(time: 30, unit: 'DAYS') {
+                input message: "Start second rollout ?"
+            }
+    }
+    stage('second rollout') {
+          openshift.withCluster() {
+                openshift.withProject("de-sandpit-prod") {
+                    openshift.selector("dc", "simple-python").rollout().latest()
+                    def latestDeploymentVersion = openshift.selector('dc',"simple-python").object().status.latestVersion
+                    def rc = openshift.selector('rc', "simple-python-${latestDeploymentVersion}")
+                    timeout (time: 10, unit: 'MINUTES') {
+                        rc.untilEach(1){
+                            def rcMap = it.object()
+                            return (rcMap.status.replicas.equals(rcMap.status.readyReplicas))
+                        }
+                    }
+                }
+             echo "completed second rollout"
+         }
+    }
+}
+```
+
+* make the `openshift.withCluster` the outer most closure/context (only fully viable with scripted plugins ... see declaritive notes above) and still use the `load` step
+
+```groovy
+node('master') {
+    checkout scm
+    stage('approval') {
+        timeout(time: 30, unit: 'DAYS') {
+                input message: "Start first rollout ?"
+            }
+    }
+    stage('first rollout') {
+        openshift.withCluster() {
+             def steps = load 'deploy.groovy'
+             steps.execute("de-sandpit-prod")
+             echo "completed first rollout"
+        }
+    }
+    stage('approval') {
+        timeout(time: 30, unit: 'DAYS') {
+                input message: "Start second rollout ?"
+            }
+    }
+    stage('second rollout') {
+        openshift.withCluster() {
+             def steps = load 'deploy.groovy'
+             steps.execute("de-sandpit-prod")
+             echo "completed second rollout"
+        }
+    }
+}
+```
+
+* add both `openshift.withCluster` and `openshift.withProject` to the groovy file you bring in via the `load` step
+
+```groovy
+def execute(String env) {
+            openshift.withCluster() {
+                openshift.withProject(env) {
+                    openshift.selector("dc", "simple-python").rollout().latest()
+                    def latestDeploymentVersion = openshift.selector('dc',"simple-python").object().status.latestVersion
+                    def rc = openshift.selector('rc', "simple-python-${latestDeploymentVersion}")
+                    timeout (time: 10, unit: 'MINUTES') {
+                        rc.untilEach(1){
+                            def rcMap = it.object()
+                            return (rcMap.status.replicas.equals(rcMap.status.readyReplicas))
+                        }
+                    }
+                }
+            }
+}
+
+```
 
 ## Examples
 
