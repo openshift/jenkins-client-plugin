@@ -40,7 +40,7 @@ public class OcAction extends AbstractStepImpl {
                     String streamStdOutToConsolePrefix,
                     HashMap<String, String> reference, int logLevel) {
         this.cmdBuilder = new ClientCommandBuilder(server, project, skipTLSVerify, caPath,
-                verb, advArgs, verbArgs, userArgs, options, token, logLevel);
+                verb, advArgs, verbArgs, userArgs, options, token, logLevel, (streamStdOutToConsolePrefix != null && !streamStdOutToConsolePrefix.trim().isEmpty()));
         this.verbose = (logLevel > 0);
         this.streamStdOutToConsolePrefix = streamStdOutToConsolePrefix;
         // Reference is used to output information about, for example, file

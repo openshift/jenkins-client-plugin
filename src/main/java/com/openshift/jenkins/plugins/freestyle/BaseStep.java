@@ -228,7 +228,7 @@ public abstract class BaseStep extends Builder {
                         final ClientCommandBuilder cmdBuilder = new ClientCommandBuilder(
                                 server, project, finalShouldSkipTLSVerify, filename, verb, finalAdvArgs, verbArgs,
                                 userArgs, options, token, Integer
-                                        .parseInt(getLogLevel(overrides)));
+                                        .parseInt(getLogLevel(overrides)), false);
                         ProcessBuilder pb = new ProcessBuilder();
                         pb.command(cmdBuilder.buildCommand(false));
                         listener.getLogger().println(

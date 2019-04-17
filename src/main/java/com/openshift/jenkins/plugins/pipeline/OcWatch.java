@@ -33,7 +33,7 @@ public class OcWatch extends AbstractStepImpl {
                    int logLevel) {
         this.watchLoglevel = logLevel;
         this.cmdBuilder = new ClientCommandBuilder(server, project, skipTLSVerify, caPath, verb,
-                advArgs, verbArgs, userArgs, options, token, logLevel);
+                advArgs, verbArgs, userArgs, options, token, logLevel, false);
     }
 
     @Extension
