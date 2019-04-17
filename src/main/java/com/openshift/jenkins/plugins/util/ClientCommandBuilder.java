@@ -32,6 +32,7 @@ public class ClientCommandBuilder implements Serializable {
     protected final List options;
     protected final String token;
     public final int logLevel;
+    public final boolean streamStdOutToConsolePrefix;
 
     // start borrowed from BourneShellScript
     public static enum OsType {DARWIN, UNIX, WINDOWS, ZOS}
@@ -90,7 +91,7 @@ public class ClientCommandBuilder implements Serializable {
 
     public ClientCommandBuilder(String server, String project, boolean skipTLSVerify, String caPath,
             String verb, List advArgs, List verbArgs, List userArgs, List options,
-            String token, int logLevel) {
+            String token, int logLevel, boolean streamStdOutToConsolePrefix) {
         if (token != null && (token.contains("\r") || token.contains("\n")))
             throw new IllegalArgumentException(
                     "tokens cannot contain carriage returns or new lines");
@@ -105,6 +106,7 @@ public class ClientCommandBuilder implements Serializable {
         this.options = options;
         this.token = token;
         this.logLevel = logLevel;
+        this.streamStdOutToConsolePrefix = streamStdOutToConsolePrefix;
     }
     
     private String dealWithQuotes(String s) {
@@ -133,64 +135,82 @@ public class ClientCommandBuilder implements Serializable {
         if (l == null) {
             return n;
         }
-        for (Object o : l) {
-            String s = o.toString();
-            if (wrapperInQuotes() && s.contains(" ")) {
-                // the Jenkins QuotedStringTokenizer is not quite 
-                // copacetic with template parameters defined in 
-                // groovy variables (specifically strings where you have spaces but don't have 
-                // to encapsulate with " or ').
-                // 
-                // for example:
-                /*
-                def asdf = 'all users'
-                def param = ["-p", "POSTGRESQL_USER=${asdf}"]
-                def sel = openshift.selector("templates/postgresql-ephemeral")
-                def temp = sel.object()
-                def objs = openshift.process(temp, param)                 
-                 */
-                // we do *NOT* want ot force them to say 
-                // def param = ["-p", "POSTGRESQL_USER='${asdf}'"]
-                
-                // that said, for now at least, we'll try to use the Jenkins
-                // QuotedStringTokenizer for the other " and ' scenarios, especially around exec/rsh
-                // where the entire command might be listed as 'ps ax' vs. 'ps','ax'
-                // but still adjust
-                // the input with the logic here so that it 
-                // properly handles the groovy string vars with spaces scenario 
-                // correctly.
-                
-                // however, we also have to worry about the user specifying multiple -p=<name>=<value>
-                // settings in one string ... template parsing will get confused in this case and 
-                // miss any -p settings after the first one ... if those params are not required,
-                // it will just ignore the param setting (yikes)
-                // if those params are required, then the template processing notes a required param
-                // is missing (sheeesh)
-                String[] params1 = s.trim().split("-p=");
-                String[] params2 = s.trim().split("-p ");
-                if (params1.length > 1) {
-                    for (String p : params1) {
-                        if (p.trim().length() > 0) {
-                            if (p.trim().contains(" "))
-                                p = dealWithQuotes(p);
-                            n.add("-p=" + p.trim());
-                        }
-                    }
-                } else if (params2.length > 1) {
-                    for (String p : params2) {
-                        if (p.trim().length() > 0) {
-                            if (p.trim().contains(" "))
-                                p = dealWithQuotes(p);
-                            n.add("-p " + p.trim());
-                        }
-                    }
-                } else {
-                    s = dealWithQuotes(s);
-                    n.add(s);
-                }                
-                
-            } else {
+        ArrayList<String> ll = new ArrayList<String>(l);
+        for (int i = 0; i < ll.size(); i++ ) {
+            String s = ll.get(i);
+            if (s != null && s.trim().length() == 0) {
+                // skip entry presumably blanked by our -f processing below
+                continue;
+            }
+            int nextIdx = i+1;
+            if (s.trim().equals("-f") && nextIdx < ll.size() && !this.streamStdOutToConsolePrefix) {
                 n.add(s);
+                // this means we have a -f <tmp file name>, where the tmp file name
+                // now includes the job name, which can have spaces
+                String f = ll.get(nextIdx);
+                if (f.trim().length() > 0 && f.trim().contains(" ")) {
+                    n.add("\"" + f + "\"");
+                    // blank out entry with space so we can skip it next time
+                    ll.set(nextIdx, "");
+                }
+            } else {
+                if (wrapperInQuotes() && s.contains(" ")) {
+                    // the Jenkins QuotedStringTokenizer is not quite 
+                    // copacetic with template parameters defined in 
+                    // groovy variables (specifically strings where you have spaces but don't have 
+                    // to encapsulate with " or ').
+                    // 
+                    // for example:
+                    /*
+                    def asdf = 'all users'
+                    def param = ["-p", "POSTGRESQL_USER=${asdf}"]
+                    def sel = openshift.selector("templates/postgresql-ephemeral")
+                    def temp = sel.object()
+                    def objs = openshift.process(temp, param)                 
+                     */
+                    // we do *NOT* want ot force them to say 
+                    // def param = ["-p", "POSTGRESQL_USER='${asdf}'"]
+                    
+                    // that said, for now at least, we'll try to use the Jenkins
+                    // QuotedStringTokenizer for the other " and ' scenarios, especially around exec/rsh
+                    // where the entire command might be listed as 'ps ax' vs. 'ps','ax'
+                    // but still adjust
+                    // the input with the logic here so that it 
+                    // properly handles the groovy string vars with spaces scenario 
+                    // correctly.
+                    
+                    // however, we also have to worry about the user specifying multiple -p=<name>=<value>
+                    // settings in one string ... template parsing will get confused in this case and 
+                    // miss any -p settings after the first one ... if those params are not required,
+                    // it will just ignore the param setting (yikes)
+                    // if those params are required, then the template processing notes a required param
+                    // is missing (sheeesh)
+                    String[] params1 = s.trim().split("-p=");
+                    String[] params2 = s.trim().split("-p ");
+                    if (params1.length > 1) {
+                        for (String p : params1) {
+                            if (p.trim().length() > 0) {
+                                if (p.trim().contains(" "))
+                                    p = dealWithQuotes(p);
+                                n.add("-p=" + p.trim());
+                            }
+                        }
+                    } else if (params2.length > 1) {
+                        for (String p : params2) {
+                            if (p.trim().length() > 0) {
+                                if (p.trim().contains(" "))
+                                    p = dealWithQuotes(p);
+                                n.add("-p " + p.trim());
+                            }
+                        }
+                    } else {
+                        s = dealWithQuotes(s);
+                        n.add(s);
+                    }                
+                    
+                } else {
+                    n.add(s);
+                }
             }
         }
         return n;
