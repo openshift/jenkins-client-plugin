@@ -145,15 +145,15 @@ void actualTest() {*/
     
                     // Process the modeled template. We could also pass JSON/YAML, a template name, or a url instead.
                     // note: -p option for oc process not in the oc version that we currently ship with openshift jenkins images
-                    //def objectModels = openshift.process( template )//, "-p", "MEMORY_LIMIT=600Mi")
+                    def objectModels = openshift.process( template )//, "-p", "MEMORY_LIMIT=600Mi")
     
                     // objectModels is a list of objects the template defined, modeled as Groovy objects
-                    //echo "The template references ${objectModels.size()} objects"
+                    echo "The template references ${objectModels.size()} objects"
     
                     // For fun, modify the objects that have been defined by processing the template
-                    //for ( o in objectModels ) {
-                    //    o.metadata.labels[ "anotherlabel" ] = "anothervalue"
-                    //}
+                    for ( o in objectModels ) {
+                        o.metadata.labels[ "anotherlabel" ] = "anothervalue"
+                    }
     
                     def objects
                     def verb
