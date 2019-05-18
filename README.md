@@ -1085,7 +1085,9 @@ Here you can define a version of the client tools, where to find them, and if th
 should be automatically instead when a node requires them.
 
 In the following example, a logical name "oc1.3.2" is associated with a particular
-build of the [client tools available on github](https://github.com/openshift/origin/releases).
+build of the [client tools available on github](https://github.com/openshift/origin/releases), 
+which contains a folder inside with the 'oc' binary so you must specify this folder as 
+"Subdirectory of extracted archive" while configuring the tool.
 
 ![tool-config-by-url](src/readme/images/tool-config-by-url.png)
 
