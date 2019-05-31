@@ -177,7 +177,13 @@ public class OcAction extends AbstractStepImpl {
             final StringBuffer stderr = new StringBuffer();
             ClientCommandRunner runner = new ClientCommandRunner(command, filePath, envVars,
                     line -> { // got a line from stdout
-                        stdout.append(line).append('\n');
+                        // some of the k8s klog's like the cached_discovery.go V(3) logging ends up in StdOut
+                        // vs. StdErr; so we employ a simple filter to discern and send these to stderr instead
+                        if (line != null && line.contains(".go:")) {
+                            stderr.append(line).append('\n');
+                        } else {
+                            stdout.append(line).append('\n');
+                        }
                         printToConsole(line);
                         return false; // don't interrupt `oc`
                     },
