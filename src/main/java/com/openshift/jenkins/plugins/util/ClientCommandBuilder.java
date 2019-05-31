@@ -74,9 +74,11 @@ public class ClientCommandBuilder implements Serializable {
             return command;
         }
         if (foundOcs == null || foundOcs.size() == 0) {
-            listener.getLogger().println("could not find oc binary on the target computer of OS type " + targetType);
+            if (verbose)
+                listener.getLogger().println("could not find oc binary on the target computer of OS type " + targetType);
             if (!(launcher instanceof RemoteLauncher) || !(launcher instanceof LocalLauncher)) {
-                listener.getLogger().println("but your launcher is of a type that might have hindered out scan");
+                if (verbose)
+                    listener.getLogger().println("but your launcher is of a type that might have hindered out scan");
             }
         } else {
             if (verbose)
