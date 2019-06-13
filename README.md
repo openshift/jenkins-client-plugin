@@ -693,7 +693,7 @@ openshift.withCluster( 'mycluster' ) {
 }
 ```
 
-### Creating objects. Easier than you were expecting... hopefully.
+### Creating objects. Easier than you were expecting... hopefully....
 
 ```groovy
 openshift.withCluster( 'mycluster' ) {
@@ -737,6 +737,25 @@ openshift.withCluster( 'mycluster' ) {
 
 }
 ```
+
+#### ....aside from some lessons learned by our users 
+
+One of the core design points of this plugin when translating its pipeline syntax to `oc` invocations 
+is that the output type is hard coded to `name` for many operations.  In other words, we pass the `-o=name`
+argument.
+
+This assumption has prevented users from combining the `--dry-run` and `-o yaml` with `openshift.create` 
+to get the defaul yaml for a API object type, and then pipe that yaml as a parameter into a subsequent `openshift.create` 
+or `openshift.apply` call.
+
+At this time, the use of `openshift.raw` is required to achieve the expected results of combining `--dry-run` and `-o yaml`.
+
+For example:
+
+```groovy
+apply = openshift.apply(openshift.raw("create configmap frontend-config --dry-run --from-file=config.js --output=yaml").actions[0].out)
+```
+
 
 ### Need to update an object without replacing it?
 
