@@ -66,7 +66,7 @@ class OpenShiftDSL implements Serializable {
             caps = new Capabilities()
             ArrayList<String> g = new ArrayList<String>();
             g.add("get");
-            OcAction.OcActionResult versionCheck = (OcAction.OcActionResult)script._OcAction(buildCommonArgs("help", g, null, null));
+            OcAction.OcActionResult versionCheck = (OcAction.OcActionResult)script._OcAction(buildCommonArgs("help", g, null, false, null));
             LOGGER.log(Level.FINE, "getCapabilities return from oc help get " + versionCheck.out);
             caps.ignoreNotFound = versionCheck.out.contains("--ignore-not-found")
             nodeCapabilities.put(key, caps)
@@ -425,19 +425,25 @@ class OpenShiftDSL implements Serializable {
         logLevel(v?8:0)
     }
 
-    private Map buildCommonArgs(Object overb, List verbArgs, Object[] ouserArgsArray, Object... ooverrideArgs) {
-        return buildCommonArgs(true, overb, verbArgs, ouserArgsArray, ooverrideArgs)
+    private Map buildCommonArgs(Object overb, List verbArgs, Object[] ouserArgsArray, boolean bwatch, Object... ooverrideArgs) {
+        return buildCommonArgs(true, overb, verbArgs, ouserArgsArray, bwatch, ooverrideArgs)
     }
 
-    private Map buildCommonArgs(boolean getProject, Object overb, List verbArgs, Object[] ouserArgsArray, Object... ooverrideArgs) {
-        dieIfWithout(currentContext, ContextId.WITH_CLUSTER, overb);
+    private Map buildCommonArgs(boolean getProject, Object overb, List verbArgs, Object[] ouserArgsArray, boolean bwatch, Object... ooverrideArgs) {
+		System.out.println("getProject " + getProject);
+		System.out.println("overb " + overb);
+		System.out.println("ouserArgsArray" + ouserArgsArray);
+		System.out.println("WATCH" + bwatch);
+		System.out.println("ooverrideArgs" + ooverrideArgs);
+		
+		dieIfWithout(currentContext, ContextId.WITH_CLUSTER, overb);
         String verb = toSingleString(overb);
         String[] userArgsArray = toStringArray(ouserArgsArray);
         String[] overrideArgs = toStringArray(ooverrideArgs);
         String streamStdOutToConsolePrefix = null;
         for (String arg : userArgsArray) {
             String a = arg.trim();
-            if (a.equals("-f") || a.equals("--follow")) {
+            if (a.equals("-f") || a.equals("--follow") || bwatch) {
                 streamStdOutToConsolePrefix = verb;
                 break;
             }
@@ -445,7 +451,7 @@ class OpenShiftDSL implements Serializable {
         if (streamStdOutToConsolePrefix == null)
             for (String arg : overrideArgs) {
                 String a = arg.trim();
-                if (a.equals("-f") || a.equals("--follow")) {
+                if (a.equals("-f") || a.equals("--follow") || bwatch ) {
                     streamStdOutToConsolePrefix = verb;
                     break;
                 }
@@ -700,7 +706,7 @@ class OpenShiftDSL implements Serializable {
         return selector;
     }
     
-    private Result innerObjectDefAction(String verb, Object obj, Object[] userArgs, String project, Result r) {
+    private Result innerObjectDefAction(String verb, Object obj, Object[] userArgs, String project, boolean watch, Result r) {
         obj = toSingleObject(obj); // Combine a list of objects into a single OpenShift List model, if necessary.
         
         if (obj instanceof Map) {
@@ -720,7 +726,7 @@ class OpenShiftDSL implements Serializable {
         } else if (markup) {
             FilePath f = currentContext.exec.getWorkspaceFilePath().createTextTempFile(verb, ".markup", s, true);
             try {
-                Map stepArgs = buildCommonArgs(verb, [ "-f", f.getRemote() ], userArgs, "-o=name");
+                Map stepArgs = buildCommonArgs(verb, [ "-f", f.getRemote() ], userArgs, watch, "-o=name");
                 stepArgs["reference"] = [ "${f.getRemote()}": s ];  // Store the markup content for reference in the result
                 if (project != null) {
                     stepArgs["project"] = project;
@@ -731,7 +737,7 @@ class OpenShiftDSL implements Serializable {
             }
         } else {
             // looks like a subVerb was passed in (e.g. openshift.create("serviceaccount", "jenkins"))
-            Map stepArgs = buildCommonArgs(verb, [s], userArgs, "-o=name");
+            Map stepArgs = buildCommonArgs(verb, [s], userArgs, watch, "-o=name");
             if (project != null) {
                 stepArgs["project"] = project;
             }
@@ -773,19 +779,19 @@ class OpenShiftDSL implements Serializable {
         Result r = new Result("process")
 
         if (httpref) {
-            r.actions.add((OcAction.OcActionResult)script._OcAction(buildCommonArgs("process", ["-f", s ], args, "-o=json")));
+            r.actions.add((OcAction.OcActionResult)script._OcAction(buildCommonArgs("process", ["-f", s ], args, false, "-o=json")));
             r.failIf("process returned an error");
         } else if (markup) { // does this look like json or yaml?
             FilePath f = currentContext.exec.getWorkspaceFilePath().createTextTempFile("process", ".markup", s, true);
             try {
-                r.actions.add((OcAction.OcActionResult)script._OcAction(buildCommonArgs("process", ["-f", f.getRemote() ], args, "-o=json")));
+                r.actions.add((OcAction.OcActionResult)script._OcAction(buildCommonArgs("process", ["-f", f.getRemote() ], args, false, "-o=json")));
                 r.failIf("process returned an error");
             } finally {
                 f.delete();
             }
         } else {
             // Otherwise, the obj parameter is assumed to be a template name
-            r.actions.add((OcAction.OcActionResult)script._OcAction(buildCommonArgs("process", [s], args, "-o=json")));
+            r.actions.add((OcAction.OcActionResult)script._OcAction(buildCommonArgs("process", [s], args, false, "-o=json")));
             r.failIf("process returned an error");
         }
         // Output should be JSON; unmarshall into a map and transform into a list of objects.
@@ -806,19 +812,19 @@ class OpenShiftDSL implements Serializable {
         Result r = new Result("patch")
 
         if (httpref) {
-            r.actions.add((OcAction.OcActionResult)script._OcAction(buildCommonArgs("patch", ["-f", s, "-p", patch ], args)));
+            r.actions.add((OcAction.OcActionResult)script._OcAction(buildCommonArgs("patch", ["-f", s, "-p", patch ], args, false)));
             r.failIf("patch returned an error");
         } else if (markup) { // does this look like json or yaml?
             FilePath f = currentContext.exec.getWorkspaceFilePath().createTextTempFile("patch", ".markup", s, true);
             try {
-                r.actions.add((OcAction.OcActionResult)script._OcAction(buildCommonArgs("patch", ["-f", f.getRemote(), "-p", patch ], args)));
+                r.actions.add((OcAction.OcActionResult)script._OcAction(buildCommonArgs("patch", ["-f", f.getRemote(), "-p", patch ], args, false)));
                 r.failIf("patch returned an error");
             } finally {
                 f.delete();
             }
         } else {
             // Otherwise, the obj parameter is assumed to be a template name
-            r.actions.add((OcAction.OcActionResult)script._OcAction(buildCommonArgs("patch", [s, "-p", patch], args)));
+            r.actions.add((OcAction.OcActionResult)script._OcAction(buildCommonArgs("patch", [s, "-p", patch], args, false)));
             r.failIf("patch returned an error");
         }
         return r;
@@ -828,7 +834,7 @@ class OpenShiftDSL implements Serializable {
         String name = toSingleString(oname);
         String[] args = toStringArray(oargs);
         Result r = new Result("newProject");
-        r.actions.add((OcAction.OcActionResult)script._OcAction(buildCommonArgs(false, "new-project", [name], args, "--skip-config-write")));
+        r.actions.add((OcAction.OcActionResult)script._OcAction(buildCommonArgs(false, "new-project", [name], args, false, "--skip-config-write")));
         r.failIf("new-project returned an error");
         return r;
     }
@@ -886,7 +892,7 @@ class OpenShiftDSL implements Serializable {
     public Result raw(Object... oargs) {
         String[] args = toStringArray(oargs);
         Result r = new Result("raw");
-        r.actions.add((OcAction.OcActionResult)script._OcAction(buildCommonArgs("", null, args)));
+        r.actions.add((OcAction.OcActionResult)script._OcAction(buildCommonArgs("", null, args, false)));
         r.failIf("raw command " + args + " returned an error");
         return r;
     }
@@ -901,7 +907,7 @@ class OpenShiftDSL implements Serializable {
     public Result set(Object... oargs) {
         String[] args = toStringArray(oargs);
         Result r = new Result("set");
-        r.actions.add((OcAction.OcActionResult)script._OcAction(buildCommonArgs("set", null, args)));
+        r.actions.add((OcAction.OcActionResult)script._OcAction(buildCommonArgs("set", null, args, false)));
         r.failIf("set returned an error");
         return r;
     }
@@ -913,7 +919,7 @@ class OpenShiftDSL implements Serializable {
         // 
         // so we re-run with create on the returned json to effect the actual creation
         Result r = new Result("newApp");
-        r.actions.add((OcAction.OcActionResult)script._OcAction(buildCommonArgs("new-app", null, args, "-o=json")));
+        r.actions.add((OcAction.OcActionResult)script._OcAction(buildCommonArgs("new-app", null, args, false, "-o=json")));
         r.failIf("new-app" + " returned an error");
         ArrayList<HashMap> result = unwrapOpenShiftList(serializableMap(r.out));
         return objectDefAction("create", result, new Object[0]);
@@ -923,7 +929,7 @@ class OpenShiftDSL implements Serializable {
     private OpenShiftResourceSelector newObjectsAction(String operation, String verb, Object[] oargs) {
         String[] args = toStringArray(oargs);
         Result r = new Result(operation);
-        r.actions.add((OcAction.OcActionResult)script._OcAction(buildCommonArgs(verb, null, args, "-o=name")));
+        r.actions.add((OcAction.OcActionResult)script._OcAction(buildCommonArgs(verb, null, args, false, "-o=name")));
         r.failIf(verb + " returned an error");
         OpenShiftResourceSelector selector = new OpenShiftResourceSelector(r, OpenShiftDSL.splitNames(r.out));
         return selector;
@@ -973,24 +979,40 @@ class OpenShiftDSL implements Serializable {
         return false;
     }
 
-    private Result simplePassthrough(String verb, Object[] oargs) {
-        String[] args = toStringArray(oargs);
-        Result r = new Result(verb);
-        r.actions.add((OcAction.OcActionResult)script._OcAction(buildCommonArgs(verb, null, args, null)));
+    private Result simplePassthrough(String verb, boolean watch, Object... oargs) {
+		System.out.println("VERB " + verb);
+		System.out.println("WATCH " + watch);
+		System.out.println("OARGS" + oargs);
+		String[] args = toStringArray(oargs);
+		System.out.println("ARGS" + oargs);
+		Result r = new Result(verb);
+        r.actions.add((OcAction.OcActionResult)script._OcAction(buildCommonArgs(verb, null, args, watch, null)));
         r.failIf(verb + " returned an error");
         return r;
     }
 
-    public Result exec(Object... args) { return simplePassthrough("exec", args); }
-    public Result rsh(Object... args) { return simplePassthrough("rsh", args); }
-    public Result rsync(Object... args) { return simplePassthrough("rsync", args); }
-    public Result idle(Object... args) { return simplePassthrough("idle", args); }
-    public Result _import(Object... args) { return simplePassthrough("import", args); }
-    public Result policy(Object... args) { return simplePassthrough("policy", args); }
-    public Result run(Object... args) { return simplePassthrough("run", args); }
-    public Result secrets(Object... args) { return simplePassthrough("secrets", args); }
-    public Result tag(Object... args) { return simplePassthrough("tag", args); }
-    public Result expose(Object... args) { return simplePassthrough("expose", args); }
+
+	public Result exec(Object... args) { return exec(false, args); }
+	public Result rsh(Object... args) { return rsh(false, args); }
+	public Result rsync(Object... args) { return sync( false, args); }
+	public Result idle(Object... args) { return idle(false, args); }
+	public Result _import(Object... args) { return _import(false, args); }
+	public Result policy(Object... args) { return policy(false, args); }
+	public Result run(Object... args) { return run(false, args); }
+	public Result secrets(Object... args) { return secrets(false, args); }
+	public Result tag(Object... args) { return tag(false, args); }
+	public Result expose(Object... args) { return expose(false, args); }
+	
+	public Result exec(boolean watch, Object... args) { return simplePassthrough("exec", watch, args); }
+    public Result rsh(boolean watch, Object... args) { return simplePassthrough("rsh", watch, args); }
+    public Result rsync(boolean watch, Object... args) { return simplePassthrough("rsync", watch, args); }
+    public Result idle(boolean watch, Object... args) { return simplePassthrough("idle", watch, args); }
+    public Result _import(boolean watch, Object... args) { return simplePassthrough("import", watch, args); }
+    public Result policy(boolean watch, Object... args) { return simplePassthrough("policy", watch, args); }
+    public Result run(boolean watch, Object... args) { return simplePassthrough("run", false, args); }
+    public Result secrets(boolean watch, Object... args) { return simplePassthrough("secrets", watch, args); }
+    public Result tag(boolean watch, Object... args) { return simplePassthrough("tag", watch, args); }
+    public Result expose(boolean watch, Object... args) { return simplePassthrough("expose", watch, args); }
 	
     public static class Result implements Serializable {
 
@@ -1240,7 +1262,7 @@ class OpenShiftDSL implements Serializable {
             }
 
             r.actions.add(
-                    (OcAction.OcActionResult)script._OcAction(buildCommonArgs("delete", selectionArgs, userArgs))
+                    (OcAction.OcActionResult)script._OcAction(buildCommonArgs("delete", selectionArgs, userArgs, false))
             );
             r.failIf("Error during delete");
             return r;
@@ -1270,7 +1292,7 @@ class OpenShiftDSL implements Serializable {
             }
 
             r.actions.add(
-                    (OcAction.OcActionResult)script._OcAction(buildCommonArgs(action, verbArgs, userArgs))
+                    (OcAction.OcActionResult)script._OcAction(buildCommonArgs(action, verbArgs, userArgs, false))
             );
             r.failIf("Error during " + action);
             return r;
@@ -1296,7 +1318,7 @@ class OpenShiftDSL implements Serializable {
              * they are trying to describe it.
              */
 
-            Map args = buildCommonArgs("describe", selectionArgs(), userArgs);
+            Map args = buildCommonArgs("describe", selectionArgs(), userArgs, false);
             args.put("streamStdOutToConsolePrefix", "describe");
             r.actions.add(
                     (OcAction.OcActionResult)script._OcAction(args)
@@ -1317,7 +1339,7 @@ class OpenShiftDSL implements Serializable {
             /*
             `--watch-only` is not used to ensure the watch closure is called at least once
              */
-            script._OcWatch(buildCommonArgs("get", selectionArgs(), null, "-w", "-o=name")) {
+            script._OcWatch(buildCommonArgs("get", selectionArgs(), null, false, "-w", "-o=name")) {
                 body.call(this);
             }
         }
@@ -1381,12 +1403,12 @@ class OpenShiftDSL implements Serializable {
             
             String verb = exportable?"export":"get"
             if (projectList == null || projectList.size() == 0) {
-                OcAction.OcActionResult r = (OcAction.OcActionResult)script._OcAction(buildCommonArgs(verb, selectionArgs(), null, "-o="+markupType ));
+                OcAction.OcActionResult r = (OcAction.OcActionResult)script._OcAction(buildCommonArgs(verb, selectionArgs(), null, false, "-o="+markupType ));
                 r.failIf("Unable to retrieve object markup with " + verb);
                 return r.out;
             }
             if (objectList == null) {
-                Map stepArgs = buildCommonArgs(verb, selectionArgs(), null, "-o="+markupType );
+                Map stepArgs = buildCommonArgs(verb, selectionArgs(), null, false, "-o="+markupType );
                 stepArgs["project"] = currentContext.getProject();
                 OcAction.OcActionResult r = (OcAction.OcActionResult)script._OcAction(stepArgs);
                 r.failIf("Unable to retrieve object markup with " + verb);
@@ -1399,7 +1421,7 @@ class OpenShiftDSL implements Serializable {
             for (int i=0; i < objectList.size(); i++) {
                 ArrayList<String> verbArgs = new ArrayList<String>(1);
                 verbArgs.add(objectList.get(i));
-                Map stepArgs = buildCommonArgs(verb, verbArgs, null, "-o="+markupType );
+                Map stepArgs = buildCommonArgs(verb, verbArgs, null, false, "-o="+markupType );
                 String project = null;
                 if (projectList != null) {
                     // add index in case same kind/name in diff projects
@@ -1474,10 +1496,10 @@ class OpenShiftDSL implements Serializable {
             // Otherwise, we need to ask the API server what presently matches
             OcAction.OcActionResult r = null;
             if (script.openshift.getCapabilities().hasIgnoredNotFound()) {
-                r = (OcAction.OcActionResult)script._OcAction(buildCommonArgs("get", selectionArgs(), null, "-o=name", "--ignore-not-found"));
+                r = (OcAction.OcActionResult)script._OcAction(buildCommonArgs("get", selectionArgs(), null, false, "-o=name", "--ignore-not-found"));
                 r.failIf("Unable to retrieve object names: " + this.toString());
             } else {
-                r = (OcAction.OcActionResult)script._OcAction(buildCommonArgs("get", selectionArgs(), null, "-o=name"));
+                r = (OcAction.OcActionResult)script._OcAction(buildCommonArgs("get", selectionArgs(), null, false, "-o=name"));
                 if (r.status != 0 && r.err.contains("(NotFound)")) {
                     return new ArrayList<String>();
                 } else {
@@ -1513,7 +1535,7 @@ class OpenShiftDSL implements Serializable {
             List<String> names = names();
             // oc logs only supports a single object at a time, so get individual names
             for (String name : names) {
-                Map args = buildCommonArgs("logs", [ name ], userArgs);
+                Map args = buildCommonArgs("logs", [ name ], userArgs, false);
                 args.put("streamStdOutToConsolePrefix", "logs:"+name);
                 r.actions.add(
                         (OcAction.OcActionResult)script._OcAction(args)
@@ -1532,7 +1554,7 @@ class OpenShiftDSL implements Serializable {
             List<String> names = names();
             // only supports a single object at a time, so get individual names
             for (String name : names) {
-                Map args = buildCommonArgs("start-build", [name.toString() ], userArgs, "-o=name")
+                Map args = buildCommonArgs("start-build", [name.toString() ], userArgs, false, "-o=name")
                 if (realTimeLogs) {
                     args.put("streamStdOutToConsolePrefix", "start-build:"+name);
                 }
@@ -1560,7 +1582,7 @@ class OpenShiftDSL implements Serializable {
             List<String> names = names();
             for (String name : names) {
                 r.actions.add(
-                        (OcAction.OcActionResult)script._OcAction(buildCommonArgs(verb, [name.toString()], userArgs))
+                        (OcAction.OcActionResult)script._OcAction(buildCommonArgs(verb, [name.toString()], userArgs, false))
                 );
             }
             r.failIf("Error running " + verb + " on at least one item: " + names.toString());
@@ -1598,7 +1620,7 @@ class OpenShiftDSL implements Serializable {
             Result r = new Result("patch")
             List<String> names = names();
             for (String name : names) {
-                r.actions.add((OcAction.OcActionResult)script._OcAction(buildCommonArgs("patch", [name, "-p", patch], userArgs)));
+                r.actions.add((OcAction.OcActionResult)script._OcAction(buildCommonArgs("patch", [name, "-p", patch], userArgs, false)));
             }
             r.failIf("Error running patch on at least one item: " + names.toString());
             return r;
@@ -1766,7 +1788,7 @@ class OpenShiftDSL implements Serializable {
             selector.withEach {
                 String dcName = it.name();
                 List verbArgs = [ subVerb, dcName ];
-                Map stepArgs = buildCommonArgs("rollout", verbArgs, args, null);
+                Map stepArgs = buildCommonArgs("rollout", verbArgs, args, false, null);
                 stepArgs.streamStdOutToConsolePrefix = "rollout:" + subVerb + ":" + dcName;
                 r.actions.add((OcAction.OcActionResult)script._OcAction(stepArgs));
             }
