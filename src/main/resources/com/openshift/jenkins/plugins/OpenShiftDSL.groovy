@@ -430,12 +430,6 @@ class OpenShiftDSL implements Serializable {
     }
 
     private Map buildCommonArgs(boolean getProject, Object overb, List verbArgs, Object[] ouserArgsArray, boolean bwatch, Object... ooverrideArgs) {
-		System.out.println("getProject " + getProject);
-		System.out.println("overb " + overb);
-		System.out.println("ouserArgsArray" + ouserArgsArray);
-		System.out.println("WATCH" + bwatch);
-		System.out.println("ooverrideArgs" + ooverrideArgs);
-		
 		dieIfWithout(currentContext, ContextId.WITH_CLUSTER, overb);
         String verb = toSingleString(overb);
         String[] userArgsArray = toStringArray(ouserArgsArray);
@@ -980,11 +974,7 @@ class OpenShiftDSL implements Serializable {
     }
 
     private Result simplePassthrough(String verb, boolean watch, Object... oargs) {
-		System.out.println("VERB " + verb);
-		System.out.println("WATCH " + watch);
-		System.out.println("OARGS" + oargs);
 		String[] args = toStringArray(oargs);
-		System.out.println("ARGS" + oargs);
 		Result r = new Result(verb);
         r.actions.add((OcAction.OcActionResult)script._OcAction(buildCommonArgs(verb, null, args, watch, null)));
         r.failIf(verb + " returned an error");
@@ -992,27 +982,27 @@ class OpenShiftDSL implements Serializable {
     }
 
 
-	public Result exec(Object... args) { return exec(false, args); }
-	public Result rsh(Object... args) { return rsh(false, args); }
-	public Result rsync(Object... args) { return sync( false, args); }
-	public Result idle(Object... args) { return idle(false, args); }
-	public Result _import(Object... args) { return _import(false, args); }
-	public Result policy(Object... args) { return policy(false, args); }
-	public Result run(Object... args) { return run(false, args); }
-	public Result secrets(Object... args) { return secrets(false, args); }
-	public Result tag(Object... args) { return tag(false, args); }
-	public Result expose(Object... args) { return expose(false, args); }
+	public Result exec(Object... args) { return execWatch(false, args); }
+	public Result rsh(Object... args) { return rshWatch(false, args); }
+	public Result rsync(Object... args) { return syncWatch( false, args); }
+	public Result idle(Object... args) { return idleWatch(false, args); }
+	public Result _import(Object... args) { return _importWatch(false, args); }
+	public Result policy(Object... args) { return policyWatch(false, args); }
+	public Result run(Object... args) { return runWatch(false, args); }
+	public Result secrets(Object... args) { return secretsWatch(false, args); }
+	public Result tag(Object... args) { return tagWatch(false, args); }
+	public Result expose(Object... args) { return exposeWatch(false, args); }
 	
-	public Result exec(boolean watch, Object... args) { return simplePassthrough("exec", watch, args); }
-    public Result rsh(boolean watch, Object... args) { return simplePassthrough("rsh", watch, args); }
-    public Result rsync(boolean watch, Object... args) { return simplePassthrough("rsync", watch, args); }
-    public Result idle(boolean watch, Object... args) { return simplePassthrough("idle", watch, args); }
-    public Result _import(boolean watch, Object... args) { return simplePassthrough("import", watch, args); }
-    public Result policy(boolean watch, Object... args) { return simplePassthrough("policy", watch, args); }
-    public Result run(boolean watch, Object... args) { return simplePassthrough("run", false, args); }
-    public Result secrets(boolean watch, Object... args) { return simplePassthrough("secrets", watch, args); }
-    public Result tag(boolean watch, Object... args) { return simplePassthrough("tag", watch, args); }
-    public Result expose(boolean watch, Object... args) { return simplePassthrough("expose", watch, args); }
+	public Result execWatch(boolean watch, Object... args) { return simplePassthrough("exec", watch, args); }
+    public Result rshWatch(boolean watch, Object... args) { return simplePassthrough("rsh", watch, args); }
+    public Result rsyncWatch(boolean watch, Object... args) { return simplePassthrough("rsync", watch, args); }
+    public Result idleWatch(boolean watch, Object... args) { return simplePassthrough("idle", watch, args); }
+    public Result _importWatch(boolean watch, Object... args) { return simplePassthrough("import", watch, args); }
+    public Result policyWatch(boolean watch, Object... args) { return simplePassthrough("policy", watch, args); }
+    public Result runWatch(boolean watch, Object... args) { return simplePassthrough("run", false, args); }
+    public Result secretsWatch(boolean watch, Object... args) { return simplePassthrough("secrets", watch, args); }
+    public Result tagWatch(boolean watch, Object... args) { return simplePassthrough("tag", watch, args); }
+    public Result exposeWatch(boolean watch, Object... args) { return simplePassthrough("expose", watch, args); }
 	
     public static class Result implements Serializable {
 
