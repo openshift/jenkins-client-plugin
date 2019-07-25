@@ -659,7 +659,7 @@ openshift.withCluster() {
 ```
 
 If you are looking for the equivalent of `openshiftVerifyService` from [the OpenShift Jenkins Plugin](https://github.com/openshift/jenkins-plugin), we added a similar operation.
-
+This works with Services with ClusterIP as well as [headless Services (with selectors)](https://kubernetes.io/docs/concepts/services-networking/service/#with-selectors) in the namespace specified by the openshift.withProject().
 ```groovy
 openshift.withCluster() {
     openshift.withProject() {
