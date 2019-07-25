@@ -206,13 +206,17 @@
             <code id="openshift_verifyService">openshift.verifyService(svc_name:String):boolean</code>
         </dt>
         <dd>
+            <p>
+                Allows you to check if your Openshift service is reachable or not. This works with headless Services (with Selectors)
+                as well as normal Services with ClusterIP which are in the namespace specified by the openshift.withProject().
+            </p>
             <p  style="margin-left: 1em; color:#657383;">
                 <code>
                     def connected = openshift.verifyService(${svcName});<br/>
-                    if (connected)<br/>
-                        echo "Able to connect to service $${svcName}"<br/>
+                        if (connected)<br/>
+                             echo "Able to connect to service $${svcName}"<br/>
                 </code>
-              </p>
+            </p>
             <p>
                 Returns true or false based on the ability to connect to the IP and port associated with the service specified.
             </p>
