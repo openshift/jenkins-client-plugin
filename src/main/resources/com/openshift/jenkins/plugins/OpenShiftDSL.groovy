@@ -12,12 +12,16 @@ import hudson.FilePath
 import hudson.Util
 
 import java.io.IOException
+import java.lang.management.BufferPoolMXBean
 import java.util.logging.Level
 import java.util.logging.Logger
 
 import java.net.InetSocketAddress;
 import java.net.Socket;
-
+import java.net.InetAddress;
+import java.net.UnknownHostException
+import java.util.regex.Matcher;
+import java.util.regex.Pattern
 
 import org.jenkinsci.plugins.workflow.cps.CpsFlowExecution;
 import org.jenkinsci.plugins.workflow.cps.CpsThread;
@@ -942,31 +946,51 @@ class OpenShiftDSL implements Serializable {
     }
 
     public boolean verifyService(String svcName) {
+
         OpenShiftResourceSelector svcSel = this.selector("svc", svcName);
         String ip = (String)svcSel.object().get("spec").get("clusterIP");
         String port = (String)svcSel.object().get("spec").get("ports").get(0).get("port");
+        InetAddress inetAddress = null;
+        String hostAddress = null;
         int i = 0;
         while (i < 5) {
             i++;
-            InetSocketAddress address = new InetSocketAddress(ip, Integer.parseInt(port));
-            Socket socket = null;
-            try {
-                socket = new Socket();
-                socket.connect(address, 2500);
-                logToTaskListener("Connected to service " + svcName + " via IP " + ip + " and port " + port);
-                return true;
-            } catch (IOException e) {
-                logToTaskListener("IOException " + e.getMessage() + " connecting to service " + svcName);
-                LOGGER.log(Level.FINE, "verifyService", e);
-                try {
-                    Thread.sleep(2500);
-                } catch (InterruptedException e1) {
+            // ClusterIp is not present in headless services with selectors.
+            if (ip.trim() == "None"){
+                try{
+                    inetAddress = InetAddress.getByName(svcName+"."+svcSel.project());
+                    logToTaskListener("Connected to headless service " + svcName + " via port " + port + " with pod IP " +  inetAddress.getHostAddress());
+                    return true;
                 }
-            } finally {
+                catch (UnknownHostException e){
+                    logToTaskListener("UnknownHostException " + e.getMessage() + " connecting to service " + svcName);
+                    LOGGER.log(Level.FINE, "verifyService", e);
+                    try {
+                        Thread.sleep(2500);
+                    } catch (InterruptedException e1) {
+                    }
+                }
+            } else {
+                InetSocketAddress address = new InetSocketAddress(ip, Integer.parseInt(port));
+                Socket socket = null;
                 try {
-                    if (socket != null)
-                        socket.close();
+                    socket = new Socket();
+                    socket.connect(address, 2500);
+                    logToTaskListener("Connected to service " + svcName + " via IP " + ip + " and port " + port);
+                    return true;
                 } catch (IOException e) {
+                    logToTaskListener("IOException " + e.getMessage() + " connecting to service " + svcName);
+                    LOGGER.log(Level.FINE, "verifyService", e);
+                    try {
+                        Thread.sleep(2500);
+                    } catch (InterruptedException e1) {
+                    }
+                } finally {
+                    try {
+                        if (socket != null)
+                            socket.close();
+                    } catch (IOException e) {
+                    }
                 }
             }
         }
