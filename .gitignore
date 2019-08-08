@@ -5,3 +5,4 @@ openshift-client.iml
 .classpath
 .project
 .settings
+.DS_Store

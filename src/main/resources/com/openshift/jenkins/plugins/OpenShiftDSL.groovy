@@ -96,6 +96,7 @@ class OpenShiftDSL implements Serializable {
         ContextId(String name) {
             this.@name = name;
         }
+        @NonCPS
         public String toString() {
             return name;
         }
@@ -137,6 +138,7 @@ class OpenShiftDSL implements Serializable {
             }
         }
 
+        @NonCPS
         public ContextId getContextId() {
             return this.@id;
         }
@@ -236,6 +238,7 @@ class OpenShiftDSL implements Serializable {
     /**
      * Returns true if the test context identifier is found within the context
      */
+    @NonCPS
     private boolean contextContains(Context context, ContextId test) {
         while (context != null) {
             if (context.getContextId() == test) {
@@ -267,7 +270,7 @@ class OpenShiftDSL implements Serializable {
 
     @NonCPS
     private void dieIfNotWithin(ContextId me, Context context, ContextId required) throws AbortException {
-        if (contextContains(context, required)) {
+        if (!contextContains(context, required)) {
             throw new AbortException(me.toString() + " can only be used within a " + required.toString() + " closure body");
         }
     }
