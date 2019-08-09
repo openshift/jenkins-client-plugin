@@ -56,7 +56,7 @@
              ~ hpi-plugin.version: The HPI Maven Plugin version used by the plugin..
              ~ stapler-plugin.version: The Stapler Maven plugin version required by the plugin.
         -->
-        <findbugs-maven-plugin.version>3.0.1</findbugs-maven-plugin.version>
+        <findbugs-maven-plugin.version>3.0.5</findbugs-maven-plugin.version>
         <findbugs.failOnError>false</findbugs.failOnError>
     </properties>
 
