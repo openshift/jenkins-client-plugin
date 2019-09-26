@@ -22,6 +22,7 @@
   - [Watching and waiting? Of course!](#watching-and-waiting-of-course)
   - [Looking to Verify a Deployment or Service? We Can Still Do That!](#looking-to-verify-a-deployment-or-service-we-can-still-do-that)
   - [ImageStream SCMs? Use Pipeline Build Strategy and Image Change Triggers instead.](#imagestream-scms-use-pipeline-build-strategy-and-image-change-triggers-instead)
+  - [Tagging images across namespaces](#tagging-images-across-namespaces)
   - [Deleting objects. Easy.](#deleting-objects-easy)
   - [Creating objects. Easier than you were expecting... hopefully.](#creating-objects-easier-than-you-were-expecting-hopefully)
   - [Need to update an object without replacing it?](#need-to-update-an-object-without-replacing-it)
@@ -680,8 +681,19 @@ No equivalent of the ImageStream SCM (SCM steps are a special extension point in
 That step was introduced prior to the introduction of the OpenShift Pipeline Build Strategy.
 
 With the advent of OpenShift Pipeline Build Strategy, incorporating your pipeline into such a BuildConfig along with the use of an Image Change Trigger is the better choice for triggering pipeline jobs from changes to ImageStreams in OpenShift.
-   
 
+### Tagging images across namespaces
+```groovy
+openshift.withCluster( 'mycluster' ) {
+
+    // 'myuser' should have permissions to push/pull images from 'namespace-1' and push/pull images to 'namespace-2' 
+    openshift.withCredentials( 'myuser' ) {
+        
+        openshift.tag( 'namespace-1/imagename:version', 'namespace-2/imagename:version')
+    }
+}
+
+```
 ### Deleting objects. Easy.
 
 ```groovy
