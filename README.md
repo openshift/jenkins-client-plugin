@@ -683,16 +683,31 @@ That step was introduced prior to the introduction of the OpenShift Pipeline Bui
 With the advent of OpenShift Pipeline Build Strategy, incorporating your pipeline into such a BuildConfig along with the use of an Image Change Trigger is the better choice for triggering pipeline jobs from changes to ImageStreams in OpenShift.
 
 ### Tagging images across namespaces
+
+Re-tagging existing images or promoting images across different namespaces (e.g. from Staging to Production) can be done easily and only requires valid credentials.
+
+```groovy
+openshift.withCluster( 'mycluster' ) {
+
+    // 'myuser' should have permissions to push/pull images from 'mynamespace' 
+    openshift.withCredentials( 'myuser' ) {
+        
+	// We tag our 'imagename:latest' image to 'imagename:lastStable' so that we can revert if needed
+        openshift.tag( 'mynamespace/imagename:latest', 'mynamespace/imagename:lastStable')
+    }
+}
+```
+
 ```groovy
 openshift.withCluster( 'mycluster' ) {
 
     // 'myuser' should have permissions to push/pull images from 'namespace-1' and push/pull images to 'namespace-2' 
     openshift.withCredentials( 'myuser' ) {
-        
+    
+        // We tag our image, making it available in another namespace
         openshift.tag( 'namespace-1/imagename:version', 'namespace-2/imagename:version')
     }
 }
-
 ```
 ### Deleting objects. Easy.
 
