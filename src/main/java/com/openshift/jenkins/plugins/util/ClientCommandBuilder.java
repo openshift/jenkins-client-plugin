@@ -19,17 +19,19 @@ import jenkins.security.MasterToSlaveCallable;
 
 public class ClientCommandBuilder implements Serializable {
 
-	private static Logger LOGGER = Logger.getLogger(ClientCommandBuilder.class.getName());
+	private static final long serialVersionUID = -631237029459897399L;
+
+	private final static Logger LOGGER = Logger.getLogger(ClientCommandBuilder.class.getName());
 
 	public final String server;
 	public final String project;
 	public final boolean skipTLSVerify;
 	public final String caPath;
 	public final String verb;
-	public final List advArgs;
-	protected final List verbArgs;
-	protected final List userArgs;
-	protected final List options;
+	public final List<String> advArgs;
+	protected final List<String> verbArgs;
+	protected final List<String> userArgs;
+	protected final List<String> options;
 	protected final String token;
 	public final int logLevel;
 	public final boolean streamStdOutToConsolePrefix;
@@ -77,6 +79,7 @@ public class ClientCommandBuilder implements Serializable {
 		 * https://bugzilla.redhat.com/show_bug.cgi?id=1625518 we analyze the PATH env
 		 * var and do 1)
 		 */
+
 		OsType targetType = filePath.act(new getOsType());
 		String path = envVars.get("PATH");
 		List<String> foundOcs = new ArrayList<String>();
@@ -108,8 +111,8 @@ public class ClientCommandBuilder implements Serializable {
 	}
 
 	public ClientCommandBuilder(String server, String project, boolean skipTLSVerify, String caPath, String verb,
-			List advArgs, List verbArgs, List userArgs, List options, String token, int logLevel,
-			boolean streamStdOutToConsolePrefix) {
+			List<String> advArgs, List<String> verbArgs, List<String> userArgs, List<String> options, String token,
+			int logLevel, boolean streamStdOutToConsolePrefix) {
 		if (token != null && (token.contains("\r") || token.contains("\n")))
 			throw new IllegalArgumentException("tokens cannot contain carriage returns or new lines");
 		this.server = server;
@@ -147,28 +150,28 @@ public class ClientCommandBuilder implements Serializable {
 		return s;
 	}
 
-	private List<String> toStringArray(List l) {
-		ArrayList<String> n = new ArrayList<String>();
-		if (l == null) {
-			return n;
+	private List<String> toStringArray(List list) {
+		ArrayList<String> array = new ArrayList<String>();
+		if (list == null) {
+			return array;
 		}
-		ArrayList<String> ll = new ArrayList<String>(l);
-		for (int i = 0; i < ll.size(); i++) {
-			String s = ll.get(i);
-			if (s != null && s.trim().length() == 0) {
+		ArrayList<String> listCopy = new ArrayList<String>(list);
+		for (int i = 0; i < listCopy.size(); i++) {
+			String element = listCopy.get(i);
+			if (element != null && element.trim().length() == 0) {
 				// skip entry presumably blanked by our -f processing below
 				continue;
 			}
-			int nextIdx = i + 1;
-			if (s.trim().equals("-f") && nextIdx < ll.size() && !this.streamStdOutToConsolePrefix) {
-				n.add(s);
+			int nextIndex = i + 1;
+			if (element.trim().equals("-f") && nextIndex < listCopy.size() && !this.streamStdOutToConsolePrefix) {
+				array.add(element);
 				// this means we have a -f <tmp file name>, where the tmp file name
 				// now includes the job name, which can have spaces
-				String f = ll.get(nextIdx);
-				if (f.trim().length() > 0 && f.trim().contains(" ")) {
-					n.add("\"" + f + "\"");
+				String fileModifier = listCopy.get(nextIndex);
+				if (fileModifier.trim().length() > 0 && fileModifier.trim().contains(" ")) {
+					array.add("\"" + fileModifier + "\"");
 					// blank out entry with space so we can skip it next time
-					ll.set(nextIdx, "");
+					listCopy.set(nextIndex, "");
 				}
 			} else {
 				/**
@@ -195,15 +198,16 @@ public class ClientCommandBuilder implements Serializable {
 				 * just ignore the param setting (yikes) if those params are required, then the
 				 * template processing notes a required param is missing (sheeesh)
 				 **/
-				if (wrapperInQuotes() && s.contains(" ")) {
-					String[] params1 = s.trim().split("-p=");
-					String[] params2 = s.trim().split("-p ");
+				if (wrapperInQuotes() && element.contains(" ")) { // this handle the case of 'oc process '
+
+					String[] params1 = element.trim().split("-p=");
+					String[] params2 = element.trim().split("-p ");
 					if (params1.length > 1) {
 						for (String p : params1) {
 							if (p.trim().length() > 0) {
 								if (p.trim().contains(" "))
 									p = dealWithQuotes(p);
-								n.add("-p=" + p.trim());
+								array.add("-p=" + p.trim());
 							}
 						}
 					} else if (params2.length > 1) {
@@ -211,31 +215,50 @@ public class ClientCommandBuilder implements Serializable {
 							if (p.trim().length() > 0) {
 								if (p.trim().contains(" "))
 									p = dealWithQuotes(p);
-								n.add("-p " + p.trim());
+								array.add("-p " + p.trim());
 							}
 						}
 					} else {
-						s = dealWithQuotes(s);
-						n.add(s);
+						element = dealWithQuotes(element);
+						array.add(element);
 					}
 
 				} else {
-					n.add(s);
+					array.add(element);
 				}
 			}
 		}
-		return n;
+		return array;
 	}
 
+	@Deprecated
+	/**
+	 * use hasArg(String...argsToFind)
+	 * 
+	 * @param args
+	 * @param argsToFind
+	 * @return
+	 * @deprecated
+	 */
 	private boolean hasArg(List<String> args, String... argsToFind) {
-		for (String arg : args) {
-			for (String atf : argsToFind) {
-				if (arg.equals(atf) || arg.startsWith(atf + "=")) {
-					return true;
+		if (args != null) {
+			for (String arg : args) {
+				if (argsToFind != null) {
+					for (String atf : argsToFind) {
+						if (arg.equals(atf) || arg.startsWith(atf + "=")) {
+							return true;
+						}
+					}
 				}
 			}
 		}
 		return false;
+
+	}
+
+	private boolean hasArg(String... argsToFind) {
+		return this.hasArg(this.advArgs, argsToFind) || this.hasArg(this.userArgs, argsToFind)
+				|| this.hasArg(this.verbArgs, argsToFind);
 	}
 
 	/**
@@ -256,6 +279,7 @@ public class ClientCommandBuilder implements Serializable {
 		 * particular was confusing args like --server as arguments into the command the
 		 * user was trying to execute in the target pod, etc.
 		 */
+
 		if (this.server != null) {
 			cmd.add("--server=" + server);
 		}
@@ -271,9 +295,10 @@ public class ClientCommandBuilder implements Serializable {
 		}
 
 		if (this.project != null) {
-			if (!hasArg(cmd, "-n", "--namespace")) {
-				// only set namespace if user has not supplied it directly
-				cmd.add("--namespace=" + project);
+			if (!this.hasArg("-n", "--namespace")) {
+				LOGGER.finest("No -n or --namespace=  find in all arguments. Project namespace will be set instead");
+				// only set namespace if user has *not* supplied it directly
+				cmd.add("--namespace=" + this.project);
 			}
 		}
 
@@ -309,7 +334,6 @@ public class ClientCommandBuilder implements Serializable {
 			sb.append(arg);
 			sb.append(" ");
 		}
-
 		return sb.toString();
 	}
 

@@ -888,12 +888,29 @@ class OpenShiftDSL implements Serializable {
         }
         return l;
     }
+	
+        /**
+	 * See details in toSingleString for rationale.
+	 */
+	@NonCPS
+	private static List<String> toStringList(Object[] objects) {
+		List<String> l = new ArrayList<String>();
+		if (objects != null) {
+			for (int i = 0; i < objects.length; i++) {
+				l.add(objects[i].toString());
+			}
+		}
+		return l;
+	}
 
+	
+	
 
     public Result raw(Object... oargs) {
         String[] args = toStringArray(oargs);
+		List<String> argsList = toStringList(oargs);
         Result r = new Result("raw");
-        r.actions.add((OcAction.OcActionResult)script._OcAction(buildCommonArgs("", null, args)));
+        r.actions.add((OcAction.OcActionResult)script._OcAction(buildCommonArgs("", argsList, null)));
         r.failIf("raw command " + args + " returned an error");
         return r;
     }
