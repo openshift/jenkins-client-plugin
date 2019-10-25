@@ -4,7 +4,7 @@
 # You must be correctly logged in an OpenShift or Kubernetes cluster (KUBECONFIG set or oc login)
 pod_name=$( oc get pods -l name=jenkins --output=name | cut -f2 -d/)
 plugin_path=/var/lib/jenkins/plugins
-plugin_name=openshift-client
+plugin_name=$( xmllint --xpath "/*[local-name() = 'project']/*[local-name() = 'artifactId']/text()" pom.xml )
 plugin_dst_extension=jpi
 plugin_src_extension=hpi
 plugin_full_path=$plugin_path/$plugin_name.$plugin_dst_extension
