@@ -898,7 +898,7 @@ openshift.withCluster( 'mycluster' ) {
 
     // You can pass this list of object models directly to the create API
     def created = openshift.create( models )
-    echo "The template instantiated: ${models.names()}"
+    echo "The template instantiated: ${created.names()}"
 
     // Want more control? You could model the template itself!
     def template = openshift.withProject( 'openshift' ) {
