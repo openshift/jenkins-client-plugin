@@ -90,7 +90,7 @@ void actualTest() {*/
                                 "sourceStrategy":[
                                     "from":[
                                         "kind":"DockerImage",
-                                        "name":"centos/ruby-22-centos7"
+                                        "name":"centos/ruby-25-centos7"
                                     ]
                                 ]
                             ],
