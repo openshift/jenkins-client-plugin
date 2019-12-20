@@ -41,13 +41,13 @@ void actualTest() {*/
             // Select the default cluster
             openshift.withCluster() {
                 // Test openshift.patch and selector.patch
-                /*openshift.withProject() {
+                openshift.withProject() {
                     openshift.create("https://raw.githubusercontent.com/openshift/nodejs-ex/master/openshift/templates/nodejs.json")
                     openshift.newApp("nodejs-example")
                     openshift.patch("dc/nodejs-example", '\'{"spec":{"strategy":{"type":"Recreate"}}}\'')
                     def mySelector = openshift.selector("bc/nodejs-example")
                     mySelector.patch('\'{"spec":{"source":{"git":{"ref": "development"}}}}\'')
-                }*/
+                }
                 // Select the default project
                 openshift.withProject() {
     
