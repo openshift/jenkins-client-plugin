@@ -118,7 +118,8 @@ public class ClusterConfig extends AbstractDescribableImpl<ClusterConfig>
     /**
      * Takes in defaults, with assumption that the 'env' pipeline global var
      * is better populated as pipelines evolve
-     * 
+     * @param defaultHost the default host
+     * @param defaultPort the default port
      * @return Returns a URL to contact the API server of the OpenShift cluster
      *         running this node or throws an Exception if it cannot be
      *         determined.
