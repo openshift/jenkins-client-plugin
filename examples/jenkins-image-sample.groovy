@@ -42,11 +42,18 @@ void actualTest() {*/
             openshift.withCluster() {
                 // Test openshift.patch and selector.patch
                 openshift.withProject() {
+                  def currentProject = openshift.project()
                   def templateSelector = openshift.selector( "template", "nodejs-example")
                   if (!templateSelector.exists() ) {
                       openshift.create("https://raw.githubusercontent.com/openshift/nodejs-ex/master/openshift/templates/nodejs.json")
+                  } else {
+                    openshift.selector( 'svc', [ app:'nodejs-example' ] ).delete()
+                    openshift.selector( 'routes', [ app:'nodejs-example' ] ).delete()
+                    openshift.selector( 'dc', [ app:'nodejs-example' ] ).delete()
+                    openshift.selector( 'is', [ app:'nodejs-example' ] ).delete()
+                    openshift.selector( 'bc', [ app:'nodejs-example' ] ).delete()
                   } 
-                  openshift.newApp("nodejs-example")
+                  openshift.newApp("--template=${currentProject}/nodejs-example")
                   openshift.patch("dc/nodejs-example", '\'{"spec":{"strategy":{"type":"Recreate"}}}\'')
                   def mySelector = openshift.selector("bc/nodejs-example")
                   mySelector.patch('\'{"spec":{"source":{"git":{"ref": "development"}}}}\'')
