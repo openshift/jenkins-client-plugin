@@ -14,17 +14,20 @@ import hudson.Launcher;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.Computer;
-import hudson.model.Run;
 import hudson.model.TaskListener;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.Builder;
 import hudson.util.ListBoxModel;
 
+import org.apache.commons.io.IOUtils;
+import org.apache.commons.io.LineIterator;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -34,6 +37,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+
+import static com.openshift.jenkins.plugins.util.ClientCommandOutputCleaner.redactSensitiveData;
 
 public abstract class BaseStep extends Builder {
 
@@ -255,16 +260,18 @@ public abstract class BaseStep extends Builder {
                         new Thread(new Runnable() {
                             @Override
                             public void run() {
-                                byte buffer[] = new byte[1024];
-                                int count;
-                                try {
-                                    while ((count = output.read(buffer)) != -1) {
-                                        listener.getLogger().write(buffer, 0,
-                                                count);
+                                StringBuffer sb = new StringBuffer();
+                                try (Reader reader = new InputStreamReader(output)) {
+                                    LineIterator it = IOUtils.lineIterator(reader);
+                                    while (it.hasNext()) {
+                                        String line = it.nextLine();
+                                        sb.append(line).append("\n");
                                     }
                                 } catch (Exception e) {
                                     listener.error("Error streaming process output");
                                     e.printStackTrace(listener.getLogger());
+                                } finally {
+                                    listener.getLogger().println(redactSensitiveData(sb.toString()));
                                 }
                             }
                         }).start();

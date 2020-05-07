@@ -1,6 +1,7 @@
 package com.openshift.jenkins.plugins.pipeline;
 
 import com.openshift.jenkins.plugins.util.ClientCommandBuilder;
+import com.openshift.jenkins.plugins.util.ClientCommandOutputCleaner;
 import com.openshift.jenkins.plugins.util.ClientCommandRunner;
 import hudson.*;
 import hudson.model.Computer;
@@ -63,14 +64,18 @@ public class OcAction extends AbstractStepImpl {
         public int status;
         @Whitelisted
         public HashMap<String, String> reference = new HashMap<String, String>();
+        @Whitelisted
+        public boolean verbose = false;
 
         public HashMap toMap() {
             HashMap m = new HashMap();
             m.put("verb", verb);
             m.put("cmd", cmd);
             m.put("out", out);
-            m.put("err", err);
-            m.put("reference", reference);
+            m.put("err", ClientCommandOutputCleaner.redactSensitiveData(err));
+            if (verbose) {
+                m.put("reference", reference);
+            }
             m.put("status", status);
             return m;
         }
@@ -206,6 +211,7 @@ public class OcAction extends AbstractStepImpl {
             result.reference = step.reference;
             result.out = stdout.toString();
             result.err = stderr.toString();
+            result.verbose = step.verbose;
 
             if (step.verbose) {
                 listener.getLogger().println("Verbose sub-step output:");
