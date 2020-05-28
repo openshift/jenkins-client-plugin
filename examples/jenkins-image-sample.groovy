@@ -292,9 +292,7 @@ void actualTest() {*/
                     if (dc2Selector.exists()) {
                         openshift.delete("dc", "jenkins-second-deployment")
                     }
-                    openshift.run("jenkins-second-deployment", "--image=docker.io/openshift/jenkins-2-centos7:latest")
-                    dc2Selector.rollout().status("-w")
-    
+
                     // Empty static / selectors are powerful tools to check the state of the system.
                     // Intentionally create one using a narrow and exercise it.
                     emptySelector = openshift.selector("pods").narrow("bc")
@@ -305,12 +303,13 @@ void actualTest() {*/
                     emptySelector.label(["x":"y"]) // Should have no impact
     
                     // sanity check for latest and cancel
-                    dc2Selector.rollout().latest()
+                    def dc3Selector = openshift.selector("dc", "mongodb")
+                    dc3Selector.rollout().latest()
                     sleep 3
-                    dc2Selector.rollout().cancel()
+                    dc3Selector.rollout().cancel()
     
                     // perform a retry on a failed or cancelled deployment
-                    //dc2Selector.rollout().retry()
+                    //dc3Selector.rollout().retry()
     
                     // validate some watch/selector error handling
                     try {
