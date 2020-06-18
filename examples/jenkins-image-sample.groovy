@@ -288,14 +288,12 @@ void actualTest() {*/
     
                     // add this rollout -w test when v0.9.6 is available in our centos image so
                     // the overnight tests pass
-			
-		    // Commenting these out as failure on e2e tests seem to be happening here
-		    // The following deploymentConfig is not supposed to exist as jenkins-second-deployment is not created above
-	            // dc2Selector.exists() returns true which is incorrect. And the command following it fails with the same reason.
-                    // def dc2Selector = openshift.selector("dc", "jenkins-second-deployment")
-                    // if (dc2Selector.exists()) {
-                    //     openshift.delete("dc", "jenkins-second-deployment")
-                    // }
+                    def dc2Selector = openshift.selector("dc", "jenkins-second-deployment")
+                    if (dc2Selector.exists()) {
+                        openshift.delete("dc", "jenkins-second-deployment")
+                    }
+                    openshift.run("jenkins-second-deployment", "--image=docker.io/openshift/jenkins-2-centos7:latest")
+                    dc2Selector.rollout().status("-w")
 
                     // Empty static / selectors are powerful tools to check the state of the system.
                     // Intentionally create one using a narrow and exercise it.
