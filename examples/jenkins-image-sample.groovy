@@ -289,10 +289,10 @@ void actualTest() {*/
     
         	    // add this rollout -w test when v0.9.6 is available in our centos image so
                     // the overnight tests pass
-                    def dc2Selector = openshift.selector("dc", "jenkins-second-deployment")
-                    if (dc2Selector.exists()) {
-                        openshift.delete("dc", "jenkins-second-deployment")
-                    }
+                    //def dc2Selector = openshift.selector("dc", "jenkins-second-deployment")
+                    //if (dc2Selector.exists()) {
+                    //    openshift.delete("dc", "jenkins-second-deployment")
+                    //}
 	
                     //openshift.run("jenkins-second-deployment", "--image=quay.io/openshift/origin-jenkins:4.3")
                     //dc2Selector.rollout().status("-w")
