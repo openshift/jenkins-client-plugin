@@ -294,9 +294,9 @@ void actualTest() {*/
                         openshift.delete("dc", "jenkins-second-deployment")
                     }
 	
-                    openshift.run("jenkins-second-deployment", "--image=quay.io/openshift/origin-jenkins:4.3")
-                    dc2Selector.rollout().status("-w")
-                    dc2Selector.rollout().latest()
+                    //openshift.run("jenkins-second-deployment", "--image=quay.io/openshift/origin-jenkins:4.3")
+                    //dc2Selector.rollout().status("-w")
+                    //dc2Selector.rollout().latest()
 
                     // Empty static / selectors are powerful tools to check the state of the system.
                     // Intentionally create one using a narrow and exercise it.
