@@ -24,9 +24,17 @@ github.com/modern-go/concurrent
 # github.com/modern-go/reflect2 v1.0.1
 github.com/modern-go/reflect2
 # github.com/openshift/api v0.0.0-20200326160804-ecb9283fe820
+github.com/openshift/api/build/v1
 github.com/openshift/api/pkg/serialization
+github.com/openshift/api/project/v1
 github.com/openshift/api/template/v1
 # github.com/openshift/client-go v0.0.0-20200326155132-2a6cd50aedd0
+github.com/openshift/client-go/build/clientset/versioned
+github.com/openshift/client-go/build/clientset/versioned/scheme
+github.com/openshift/client-go/build/clientset/versioned/typed/build/v1
+github.com/openshift/client-go/project/clientset/versioned
+github.com/openshift/client-go/project/clientset/versioned/scheme
+github.com/openshift/client-go/project/clientset/versioned/typed/project/v1
 github.com/openshift/client-go/template/clientset/versioned
 github.com/openshift/client-go/template/clientset/versioned/scheme
 github.com/openshift/client-go/template/clientset/versioned/typed/template/v1
