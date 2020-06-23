@@ -304,31 +304,31 @@ void actualTest() {*/
                     // exercise oc run path, including verification of proper handling of groovy cps
                     // var binding (converting List to array)
 		            // using the quay origin-jenkins:4.3+ as it deploys without error on 4.x
-                    //def runargs1 = []
-                    //runargs1 << "jenkins-second-deployment"
-                    //runargs1 << "--image=quay.io/openshift/origin-jenkins:4.3"
-                    //runargs1 << "--dry-run"
-                    //runargs1 << "-o yaml"
-                    //openshift.run(runargs1)
+                    def runargs1 = []
+                    runargs1 << "jenkins-second-deployment"
+                    runargs1 << "--image=quay.io/openshift/origin-jenkins:4.3"
+                    runargs1 << "--dry-run"
+                    runargs1 << "-o yaml"
+                    openshift.run(runargs1)
     
                     // FYI - pipeline cps groovy compile does not allow String[] runargs2 =  {"jenkins-second-deployment", "--image=docker.io/openshift/jenkins-2-centos7:latest", "--dry-run"}
                     //String[] runargs2 = new String[4]
-                    //runargs2[0] = "jenkins-second-deployment"
-                    //runargs2[1] = "--image=quay.io/openshift/origin-jenkins:4.3"
-                    //runargs2[2] = "--dry-run"
-                    //runargs2[3] = "-o yaml"
-                    //openshift.run(runargs2)
+                    runargs2[0] = "jenkins-second-deployment"
+                    runargs2[1] = "--image=quay.io/openshift/origin-jenkins:4.3"
+                    runargs2[2] = "--dry-run"
+                    runargs2[3] = "-o yaml"
+                    openshift.run(runargs2)
     
         	        // add this rollout -w test when v0.9.6 is available in our centos image so
                     // the overnight tests pass
-                    //def dc2Selector = openshift.selector("dc", "jenkins-second-deployment")
-                    //if (dc2Selector.exists()) {
-                    //    openshift.delete("dc", "jenkins-second-deployment")
-                    //}
+                    def dc2Selector = openshift.selector("dc", "jenkins-second-deployment")
+                    if (dc2Selector.exists()) {
+                        openshift.delete("dc", "jenkins-second-deployment")
+                    }
 	
-                    //openshift.run("jenkins-second-deployment", "--image=quay.io/openshift/origin-jenkins:4.3")
-                    //dc2Selector.rollout().status("-w")
-                    //dc2Selector.rollout().latest()
+                    openshift.run("jenkins-second-deployment", "--image=quay.io/openshift/origin-jenkins:4.3")
+                    dc2Selector.rollout().status("-w")
+                    dc2Selector.rollout().latest()
 
                     // Empty static / selectors are powerful tools to check the state of the system.
                     // Intentionally create one using a narrow and exercise it.
