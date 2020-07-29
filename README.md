@@ -22,6 +22,7 @@
   - [Watching and waiting? Of course!](#watching-and-waiting-of-course)
   - [Looking to Verify a Deployment or Service? We Can Still Do That!](#looking-to-verify-a-deployment-or-service-we-can-still-do-that)
   - [ImageStream SCMs? Use Pipeline Build Strategy and Image Change Triggers instead.](#imagestream-scms-use-pipeline-build-strategy-and-image-change-triggers-instead)
+  - [Tagging images across namespaces](#tagging-images-across-namespaces)
   - [Deleting objects. Easy.](#deleting-objects-easy)
   - [Creating objects. Easier than you were expecting... hopefully.](#creating-objects-easier-than-you-were-expecting-hopefully)
   - [Need to update an object without replacing it?](#need-to-update-an-object-without-replacing-it)
@@ -659,7 +660,7 @@ openshift.withCluster() {
 ```
 
 If you are looking for the equivalent of `openshiftVerifyService` from [the OpenShift Jenkins Plugin](https://github.com/openshift/jenkins-plugin), we added a similar operation.
-
+This works with Services with ClusterIP as well as [headless Services (with selectors)](https://kubernetes.io/docs/concepts/services-networking/service/#with-selectors) in the namespace specified by the openshift.withProject().
 ```groovy
 openshift.withCluster() {
     openshift.withProject() {
@@ -680,8 +681,34 @@ No equivalent of the ImageStream SCM (SCM steps are a special extension point in
 That step was introduced prior to the introduction of the OpenShift Pipeline Build Strategy.
 
 With the advent of OpenShift Pipeline Build Strategy, incorporating your pipeline into such a BuildConfig along with the use of an Image Change Trigger is the better choice for triggering pipeline jobs from changes to ImageStreams in OpenShift.
-   
 
+### Tagging images across namespaces
+
+Re-tagging existing images or promoting images across different namespaces (e.g. from Staging to Production) can be done easily and only requires valid credentials.
+
+```groovy
+openshift.withCluster( 'mycluster' ) {
+
+    // 'myuser' should have permissions to push/pull images from 'mynamespace' 
+    openshift.withCredentials( 'myuser' ) {
+        
+	// We tag our 'imagename:latest' image to 'imagename:lastStable' so that we can revert if needed
+        openshift.tag( 'mynamespace/imagename:latest', 'mynamespace/imagename:lastStable')
+    }
+}
+```
+
+```groovy
+openshift.withCluster( 'mycluster' ) {
+
+    // 'myuser' should have permissions to push/pull images from 'namespace-1' and push/pull images to 'namespace-2' 
+    openshift.withCredentials( 'myuser' ) {
+    
+        // We tag our image, making it available in another namespace
+        openshift.tag( 'namespace-1/imagename:version', 'namespace-2/imagename:version')
+    }
+}
+```
 ### Deleting objects. Easy.
 
 ```groovy
@@ -693,7 +720,7 @@ openshift.withCluster( 'mycluster' ) {
 }
 ```
 
-### Creating objects. Easier than you were expecting... hopefully.
+### Creating objects. Easier than you were expecting... hopefully....
 
 ```groovy
 openshift.withCluster( 'mycluster' ) {
@@ -737,6 +764,25 @@ openshift.withCluster( 'mycluster' ) {
 
 }
 ```
+
+#### ....aside from some lessons learned by our users 
+
+One of the core design points of this plugin when translating its pipeline syntax to `oc` invocations 
+is that the output type is hard coded to `name` for many operations.  In other words, we pass the `-o=name`
+argument.
+
+This assumption has prevented users from combining the `--dry-run` and `-o yaml` with `openshift.create` 
+to get the defaul yaml for a API object type, and then pipe that yaml as a parameter into a subsequent `openshift.create` 
+or `openshift.apply` call.
+
+At this time, the use of `openshift.raw` is required to achieve the expected results of combining `--dry-run` and `-o yaml`.
+
+For example:
+
+```groovy
+apply = openshift.apply(openshift.raw("create configmap frontend-config --dry-run --from-file=config.js --output=yaml").actions[0].out)
+```
+
 
 ### Need to update an object without replacing it?
 
@@ -852,7 +898,7 @@ openshift.withCluster( 'mycluster' ) {
 
     // You can pass this list of object models directly to the create API
     def created = openshift.create( models )
-    echo "The template instantiated: ${models.names()}"
+    echo "The template instantiated: ${created.names()}"
 
     // Want more control? You could model the template itself!
     def template = openshift.withProject( 'openshift' ) {

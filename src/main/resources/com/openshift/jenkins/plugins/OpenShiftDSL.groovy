@@ -12,12 +12,16 @@ import hudson.FilePath
 import hudson.Util
 
 import java.io.IOException
+import java.lang.management.BufferPoolMXBean
 import java.util.logging.Level
 import java.util.logging.Logger
 
 import java.net.InetSocketAddress;
 import java.net.Socket;
-
+import java.net.InetAddress;
+import java.net.UnknownHostException
+import java.util.regex.Matcher;
+import java.util.regex.Pattern
 
 import org.jenkinsci.plugins.workflow.cps.CpsFlowExecution;
 import org.jenkinsci.plugins.workflow.cps.CpsThread;
@@ -92,6 +96,7 @@ class OpenShiftDSL implements Serializable {
         ContextId(String name) {
             this.@name = name;
         }
+        @NonCPS
         public String toString() {
             return name;
         }
@@ -133,6 +138,7 @@ class OpenShiftDSL implements Serializable {
             }
         }
 
+        @NonCPS
         public ContextId getContextId() {
             return this.@id;
         }
@@ -232,6 +238,7 @@ class OpenShiftDSL implements Serializable {
     /**
      * Returns true if the test context identifier is found within the context
      */
+    @NonCPS
     private boolean contextContains(Context context, ContextId test) {
         while (context != null) {
             if (context.getContextId() == test) {
@@ -263,7 +270,7 @@ class OpenShiftDSL implements Serializable {
 
     @NonCPS
     private void dieIfNotWithin(ContextId me, Context context, ContextId required) throws AbortException {
-        if (contextContains(context, required)) {
+        if (!contextContains(context, required)) {
             throw new AbortException(me.toString() + " can only be used within a " + required.toString() + " closure body");
         }
     }
@@ -881,12 +888,29 @@ class OpenShiftDSL implements Serializable {
         }
         return l;
     }
+	
+        /**
+	 * See details in toSingleString for rationale.
+	 */
+	@NonCPS
+	private static List<String> toStringList(Object[] objects) {
+		List<String> l = new ArrayList<String>();
+		if (objects != null) {
+			for (int i = 0; i < objects.length; i++) {
+				l.add(objects[i].toString());
+			}
+		}
+		return l;
+	}
 
+	
+	
 
     public Result raw(Object... oargs) {
         String[] args = toStringArray(oargs);
+		List<String> argsList = toStringList(oargs);
         Result r = new Result("raw");
-        r.actions.add((OcAction.OcActionResult)script._OcAction(buildCommonArgs("", null, args)));
+        r.actions.add((OcAction.OcActionResult)script._OcAction(buildCommonArgs("", argsList, null)));
         r.failIf("raw command " + args + " returned an error");
         return r;
     }
@@ -942,31 +966,51 @@ class OpenShiftDSL implements Serializable {
     }
 
     public boolean verifyService(String svcName) {
+
         OpenShiftResourceSelector svcSel = this.selector("svc", svcName);
         String ip = (String)svcSel.object().get("spec").get("clusterIP");
         String port = (String)svcSel.object().get("spec").get("ports").get(0).get("port");
+        InetAddress inetAddress = null;
+        String hostAddress = null;
         int i = 0;
         while (i < 5) {
             i++;
-            InetSocketAddress address = new InetSocketAddress(ip, Integer.parseInt(port));
-            Socket socket = null;
-            try {
-                socket = new Socket();
-                socket.connect(address, 2500);
-                logToTaskListener("Connected to service " + svcName + " via IP " + ip + " and port " + port);
-                return true;
-            } catch (IOException e) {
-                logToTaskListener("IOException " + e.getMessage() + " connecting to service " + svcName);
-                LOGGER.log(Level.FINE, "verifyService", e);
-                try {
-                    Thread.sleep(2500);
-                } catch (InterruptedException e1) {
+            // ClusterIp is not present in headless services with selectors.
+            if (ip.trim() == "None"){
+                try{
+                    inetAddress = InetAddress.getByName(svcName+"."+svcSel.project());
+                    logToTaskListener("Connected to headless service " + svcName + " via port " + port + " with pod IP " +  inetAddress.getHostAddress());
+                    return true;
                 }
-            } finally {
+                catch (UnknownHostException e){
+                    logToTaskListener("UnknownHostException " + e.getMessage() + " connecting to service " + svcName);
+                    LOGGER.log(Level.FINE, "verifyService", e);
+                    try {
+                        Thread.sleep(2500);
+                    } catch (InterruptedException e1) {
+                    }
+                }
+            } else {
+                InetSocketAddress address = new InetSocketAddress(ip, Integer.parseInt(port));
+                Socket socket = null;
                 try {
-                    if (socket != null)
-                        socket.close();
+                    socket = new Socket();
+                    socket.connect(address, 2500);
+                    logToTaskListener("Connected to service " + svcName + " via IP " + ip + " and port " + port);
+                    return true;
                 } catch (IOException e) {
+                    logToTaskListener("IOException " + e.getMessage() + " connecting to service " + svcName);
+                    LOGGER.log(Level.FINE, "verifyService", e);
+                    try {
+                        Thread.sleep(2500);
+                    } catch (InterruptedException e1) {
+                    }
+                } finally {
+                    try {
+                        if (socket != null)
+                            socket.close();
+                    } catch (IOException e) {
+                    }
                 }
             }
         }
