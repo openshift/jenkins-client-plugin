@@ -727,7 +727,7 @@ openshift.withCluster( 'mycluster' ) {
 openshift.withCluster( 'mycluster' ) {
     // Scale a DeploymentConfig 'app' to 2 replicas
     openshift.selector( 'dc', 'app' ).scale(2)
-    // As alternative you could the same 
+    // As alternative you could do the same 
     openshift.selector( 'dc', 'app' ).scale("--replicas=3")
 }
 ```
