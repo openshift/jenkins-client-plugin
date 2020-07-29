@@ -1619,6 +1619,10 @@ class OpenShiftDSL implements Serializable {
             return onceForEach("deploy", "deploy", userArgs);
         }
 
+        public Result scale(int replicas) throws AbortException {
+            return onceForEach("scale", "scale", "--replicas=${replicas}")
+        }
+
         public Result scale(Object... userArgs) throws AbortException {
             return onceForEach("scale", "scale", userArgs);
         }

@@ -24,6 +24,7 @@
   - [ImageStream SCMs? Use Pipeline Build Strategy and Image Change Triggers instead.](#imagestream-scms-use-pipeline-build-strategy-and-image-change-triggers-instead)
   - [Tagging images across namespaces](#tagging-images-across-namespaces)
   - [Deleting objects. Easy.](#deleting-objects-easy)
+  - [Scale an application](#scale-an-application)
   - [Creating objects. Easier than you were expecting... hopefully.](#creating-objects-easier-than-you-were-expecting-hopefully)
   - [Need to update an object without replacing it?](#need-to-update-an-object-without-replacing-it)
   - [Cannot live without OpenShift templates? No problem.](#cannot-live-without-openshift-templates-no-problem)
@@ -717,6 +718,17 @@ openshift.withCluster( 'mycluster' ) {
     // Delete all deployment configs with a particular label.
     openshift.selector( 'dc', [ environment:'qe' ] ).delete()
 
+}
+```
+
+### Scale an application
+
+```groovy
+openshift.withCluster( 'mycluster' ) {
+    // Scale a DeploymentConfig 'app' to 2 replicas
+    openshift.selector( 'dc', 'app' ).scale(2)
+    // As alternative you could the same 
+    openshift.selector( 'dc', 'app' ).scale("--replicas=3")
 }
 ```
 
