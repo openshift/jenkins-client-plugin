@@ -26,6 +26,7 @@
   - [Deleting objects. Easy.](#deleting-objects-easy)
   - [Creating objects. Easier than you were expecting... hopefully.](#creating-objects-easier-than-you-were-expecting-hopefully)
   - [Need to update an object without replacing it?](#need-to-update-an-object-without-replacing-it)
+  - [Promote your images.](#promote-your-images)
   - [Cannot live without OpenShift templates? No problem.](#cannot-live-without-openshift-templates-no-problem)
   - [Want to promote or migrate objects between environments?](#want-to-promote-or-migrate-objects-between-environments)
   - [Error handling](#error-handling)
@@ -875,6 +876,29 @@ openshift.withCluster() {
     
         openshift.apply(dcpatch)
         
+    }
+}
+```
+
+### Promote your images
+
+In this example we show how to promote images to your existing applications deployed in Openshift.
+
+```groovy
+openshift.withCluster( 'mycluster' ) {
+    openshift.withProject("project") {
+        // In this example, we select a DeploymentConfig named "foo"
+        // then se on to the 'redis' container the image 'redis:alpine'
+        // also, we set the for the container 'nginx' the image 'nginx:alpine'
+        dc = openshift.selector('dc',"foo");
+        dc.containers([
+            "redis=redis:alpine",
+            "nginx=nginx:alpine"
+        ]);
+        // We set for the DeploymentConfig 'webapp', for it container 'app'
+        // the image myregistry.com/repository/customimage:2.3.0 
+        dc = openshift.selector('dc',"webapp");
+        dc.containers(["app=myregistry.com/repository/customimage:2.3.0"]);
     }
 }
 ```

@@ -1321,6 +1321,22 @@ class OpenShiftDSL implements Serializable {
 
         }
 
+        /**
+         *  Receives an array of String in the form containerName=image
+         *  For example ["nginx=nginx:alpine", "redis=redis"]
+         *  In any of the containers passed as arguments does not exists
+         *  then the Openshift API will throw an error indicating
+         *  that some of the containers does not exists
+         */
+        public Result containers(Object...args) throws AbortException {
+            String name = name();
+            Result r = new Result("set");
+            Map commonArgs = buildCommonArgs("set image", [name], args);
+            r.actions.add((OcAction.OcActionResult)script._OcAction(commonArgs));
+            r.failIf(r.highLevelOperation + " returned an error");
+            return r;
+        }
+
         public Result label(Map newLabels, Object... ouserArgs) throws AbortException {
             return runSubVerb("label", newLabels, ouserArgs);
         }
