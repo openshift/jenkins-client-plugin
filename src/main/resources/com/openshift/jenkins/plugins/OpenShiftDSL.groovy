@@ -922,14 +922,6 @@ class OpenShiftDSL implements Serializable {
         return new Result(deleteSelector.highLevelOperation, deleteSelector.actions);
     }
 
-    public Result set(Object... oargs) {
-        String[] args = toStringArray(oargs);
-        Result r = new Result("set");
-        r.actions.add((OcAction.OcActionResult)script._OcAction(buildCommonArgs("set", null, args)));
-        r.failIf("set returned an error");
-        return r;
-    }
-
     private OpenShiftResourceSelector newAppAction(Object[] oargs) {
         String[] args = toStringArray(oargs);
         // so we first run with -o=json so we can examine the template processing results around
@@ -1025,17 +1017,19 @@ class OpenShiftDSL implements Serializable {
         return r;
     }
 
+    public Result cp(Object... args) { return simplePassthrough("cp", args); }
     public Result exec(Object... args) { return simplePassthrough("exec", args); }
-    public Result rsh(Object... args) { return simplePassthrough("rsh", args); }
-    public Result rsync(Object... args) { return simplePassthrough("rsync", args); }
+    public Result expose(Object... args) { return simplePassthrough("expose", args); }
     public Result idle(Object... args) { return simplePassthrough("idle", args); }
     public Result _import(Object... args) { return simplePassthrough("import", args); }
     public Result policy(Object... args) { return simplePassthrough("policy", args); }
+    public Result rsh(Object... args) { return simplePassthrough("rsh", args); }
+    public Result rsync(Object... args) { return simplePassthrough("rsync", args); }
     public Result run(Object... args) { return simplePassthrough("run", args); }
     public Result secrets(Object... args) { return simplePassthrough("secrets", args); }
+    public Result set(Object... args) { return simplePassthrough("set", args); }
     public Result tag(Object... args) { return simplePassthrough("tag", args); }
-    public Result expose(Object... args) { return simplePassthrough("expose", args); }
-	
+
     public static class Result implements Serializable {
 
         public final ArrayList<OcAction.OcActionResult> actions = new ArrayList<OcAction.OcActionResult>();

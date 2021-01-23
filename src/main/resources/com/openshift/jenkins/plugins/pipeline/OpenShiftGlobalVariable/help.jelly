@@ -500,17 +500,18 @@
             </ul>
         </dd>
         <dt>
+            <code id="openshift_cp">openshift.cp(args...:String):Result</code><br />
             <code id="openshift_exec">openshift.exec(args...:String):Result</code><br />
+            <code id="openshift_expose">openshift.expose(args...:String):Result</code><br />
             <code id="openshift_idle">openshift.idle(args...:String):Result</code><br />
             <code id="openshift_import">openshift._import(args...:String):Result</code><br />
             <code id="openshift_policy">openshift.policy(args...:String):Result</code><br />
-            <code id="openshift_run">openshift.run(args...:String):Result</code><br />
             <code id="openshift_rsh">openshift.rsh(args...:String):Result</code><br />
             <code id="openshift_rsync">openshift.rsync(args...:String):Result</code><br />
+            <code id="openshift_run">openshift.run(args...:String):Result</code><br />
             <code id="openshift_secrets">openshift.secrets(args...:String):Result</code><br />
             <code id="openshift_set">openshift.set(args...:String):Result</code><br />
             <code id="openshift_tag">openshift.tag(args...:String):Result</code><br />
-            <code id="openshift_expose">openshift.expose(args...:String):Result</code><br />
         </dt>
         <dd>
             <p>
