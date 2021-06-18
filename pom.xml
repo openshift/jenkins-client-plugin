@@ -1,126 +1,96 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
-    <modelVersion>4.0.0</modelVersion>
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <configuration>
-                    <source>1.8</source>
-                    <target>1.8</target>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>findbugs-maven-plugin</artifactId>
-                <version>${findbugs-maven-plugin.version}</version>
-                <configuration>
-                    <xmlOutput>true</xmlOutput>
-                    <failOnError>${findbugs.failOnError}</failOnError>
-                </configuration>
-                <executions>
-                    <execution>
-                        <id>run-findbugs</id>
-                        <phase>verify</phase>
-                        <goals>
-                            <goal>check</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-        </plugins>
-    </build>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd" >
+  <modelVersion>4.0.0</modelVersion>
 
-    <parent>
-        <groupId>org.jenkins-ci.plugins</groupId>
-        <artifactId>plugin</artifactId>
-        <version>2.11</version>
-        <relativePath />
-    </parent>
+  <parent>
+    <groupId>org.jenkins-ci.plugins</groupId>
+    <artifactId>plugin</artifactId>
+    <version>4.16</version>
+    <relativePath />
+  </parent>
 
-    <groupId>com.openshift.jenkins.plugins</groupId>
-    <artifactId>openshift-client</artifactId>
-    <version>1.0.35-SNAPSHOT</version>
-    <packaging>hpi</packaging>
+  <name>OpenShift Client Jenkins Plugin</name>
+  <description>A Jenkins plugin which leverages the OpenShift client binary (oc) to enable powerful Pipeline DSL based interactions with OpenShift clusters.</description>
+  <url>https://wiki.jenkins-ci.org/display/JENKINS/OpenShift+Client+Plugin</url>
+  <groupId>com.openshift.jenkins.plugins</groupId>
+  <artifactId>openshift-client</artifactId>
+  <version>1.0.35-SNAPSHOT</version>
+  <packaging>hpi</packaging>
 
-    <properties>
-        <!-- Baseline Jenkins version you use to build the plugin. Users must have this version or newer to run. -->
-        <jenkins.version>1.625.3</jenkins.version>
-        <!-- Java Level to use. Java 7 required when using core >= 1.612 -->
-        <java.level>8</java.level>
-        <!-- Jenkins Test Harness version you use to test the plugin. -->
-        <!-- For Jenkins version >= 1.580.1 use JTH 2.x or higher. -->
-        <jenkins-test-harness.version>2.13</jenkins-test-harness.version>
-        <!-- Other properties you may want to use:
-             ~ hpi-plugin.version: The HPI Maven Plugin version used by the plugin..
-             ~ stapler-plugin.version: The Stapler Maven plugin version required by the plugin.
-        -->
-        <findbugs-maven-plugin.version>3.0.5</findbugs-maven-plugin.version>
-        <findbugs.failOnError>false</findbugs.failOnError>
-    </properties>
+  <properties>
+    <jenkins.version>2.289.1</jenkins.version>
+    <enforcer.skip>true</enforcer.skip>
+    <java.level>8</java.level>
+    <jenkins-test-harness.version>2.13</jenkins-test-harness.version>
+    <findbugs-maven-plugin.version>3.0.5</findbugs-maven-plugin.version>
+    <findbugs.failOnError>false</findbugs.failOnError>
+  </properties>
 
-    <name>OpenShift Client Jenkins Plugin</name>
-    <description>A Jenkins plugin which leverages the OpenShift client binary (oc) to enable powerful Pipeline DSL based interactions with OpenShift clusters.</description>
-    <url>https://wiki.jenkins-ci.org/display/JENKINS/OpenShift+Client+Plugin</url>
+  <dependencies>
+    <dependency>
+      <groupId>org.jenkins-ci.plugins</groupId>
+      <artifactId>credentials</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.jenkins-ci.plugins.workflow</groupId>
+      <artifactId>workflow-cps</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.jenkins-ci.plugins</groupId>
+      <artifactId>command-launcher</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
 
-    <licenses>
-        <license>
-            <name>Apache License</name>
-            <url>http://www.apache.org/licenses/LICENSE-2.0</url>
-        </license>
-    </licenses>
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>io.jenkins.tools.bom</groupId>
+        <artifactId>bom-2.277.x</artifactId>
+        <version>26</version>
+        <scope>import</scope>
+        <type>pom</type>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
 
-    <developers>
-      <developer>
-        <id>jupierce</id>
-        <name>Justin Pierce</name>
-        <email>jupierce@redhat.com</email>
-      </developer>
-    </developers>
+  <organization>
+    <name>Red Hat, Inc</name>
+    <url>http://www.redhat.com</url>
+  </organization>
 
-    <scm>
-      <connection>scm:git:git://github.com/jenkinsci/${project.artifactId}-plugin.git</connection>
-      <developerConnection>scm:git:git@github.com:jenkinsci/${project.artifactId}-plugin.git</developerConnection>
-      <url>http://github.com/jenkinsci/${project.artifactId}-plugin</url>
-      <tag>HEAD</tag>
+  <licenses>
+    <license>
+      <name>Apache License</name>
+      <url>http://www.apache.org/licenses/LICENSE-2.0</url>
+    </license>
+  </licenses>
+  <developers>
+    <developer>
+      <id>jupierce</id>
+      <name>Justin Pierce</name>
+      <email>jupierce@redhat.com</email>
+    </developer>
+  </developers>
+  <scm>
+    <connection>scm:git:git://github.com/jenkinsci/${project.artifactId}-plugin.git</connection>
+    <developerConnection>scm:git:git@github.com:jenkinsci/${project.artifactId}-plugin.git</developerConnection>
+    <url>http://github.com/jenkinsci/${project.artifactId}-plugin</url>
+    <tag>HEAD</tag>
   </scm>
 
-    <repositories>
-        <repository>
-            <id>repo.jenkins-ci.org</id>
-            <url>https://repo.jenkins-ci.org/public/</url>
-        </repository>
-    </repositories>
-    <pluginRepositories>
-        <pluginRepository>
-            <id>repo.jenkins-ci.org</id>
-            <url>https://repo.jenkins-ci.org/public/</url>
-        </pluginRepository>
-    </pluginRepositories>
-
-    <organization>
-        <name>Red Hat, Inc</name>
-        <url>http://www.redhat.com</url>
-    </organization>
-
-    <dependencies>
-        <dependency>
-            <groupId>org.jenkins-ci.plugins</groupId>
-            <artifactId>credentials</artifactId>
-            <version>2.1.9</version>
-        </dependency>
-        <dependency>
-            <groupId>org.jenkins-ci.plugins.workflow</groupId>
-            <artifactId>workflow-cps</artifactId>
-            <version>2.17</version>
-        </dependency>
-        <dependency>
-            <groupId>com.google.code.findbugs</groupId>
-            <artifactId>annotations</artifactId>
-            <version>3.0.0</version>
-            <scope>provided</scope>
-        </dependency>
-    </dependencies>
+  <repositories>
+    <repository>
+      <id>repo.jenkins-ci.org</id>
+      <url>https://repo.jenkins-ci.org/public/</url>
+    </repository>
+  </repositories>
+  <pluginRepositories>
+    <pluginRepository>
+      <id>repo.jenkins-ci.org</id>
+      <url>https://repo.jenkins-ci.org/public/</url>
+    </pluginRepository>
+  </pluginRepositories>
 
 </project>
