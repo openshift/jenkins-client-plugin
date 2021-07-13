@@ -2,7 +2,9 @@ package e2e
 
 import (
 	"context"
+	"fmt"
 	"io/ioutil"
+	"k8s.io/apimachinery/pkg/runtime"
 	"testing"
 
 	buildv1 "github.com/openshift/api/build/v1"
@@ -13,7 +15,9 @@ import (
 	templateset "github.com/openshift/client-go/template/clientset/versioned"
 
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	utilrand "k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/apimachinery/pkg/watch"
 	kubeset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -28,7 +32,7 @@ var (
 )
 
 const (
-	testNamespace = "jenkins-client-plugin-test-namespace"
+	testNamespace = "jenkins-client-plugin-test-namespace-"
 	pipeline      = `
 /*pipeline {
     agent none
@@ -422,35 +426,33 @@ func setupClients(t *testing.T) {
 
 }
 
-func instantiateJenkins(t *testing.T) {
-	template, err := templateClient.TemplateV1().Templates("openshift").Get(context.Background(),
-		"jenkins-ephemeral", metav1.GetOptions{})
+func instantiateTemplate(ta *testArgs) {
+	template, err := templateClient.TemplateV1().Templates(ta.templateNs).Get(context.Background(),
+		ta.template, metav1.GetOptions{})
 	if err != nil {
-		t.Fatalf("%#v", err)
+		ta.t.Fatalf("%#v", err)
 	}
 
 	// INSTANTIATE THE TEMPLATE.
 
 	// To set Template parameters, create a Secret holding overridden parameters
 	// and their values.
-	secret, err := kubeClient.CoreV1().Secrets(testNamespace).Create(context.Background(), &corev1.Secret{
+	secret, err := kubeClient.CoreV1().Secrets(ta.ns).Create(context.Background(), &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "parameters",
+			Name: ta.template,
 		},
-		StringData: map[string]string{
-			"MEMORY_LIMIT": "2048Mi",
-		},
+		StringData: ta.templateParams,
 	}, metav1.CreateOptions{})
 	if err != nil {
-		t.Fatalf("%#v", err)
+		ta.t.Fatalf("%#v", err)
 	}
 
 	// Create a TemplateInstance object, linking the Template and a reference to
 	// the Secret object created above.
-	ti, err := templateClient.TemplateV1().TemplateInstances(testNamespace).Create(context.Background(),
+	ti, err := templateClient.TemplateV1().TemplateInstances(ta.ns).Create(context.Background(),
 		&templatev1.TemplateInstance{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: "templateinstance",
+				Name: ta.template,
 			},
 			Spec: templatev1.TemplateInstanceSpec{
 				Template: *template,
@@ -460,16 +462,16 @@ func instantiateJenkins(t *testing.T) {
 			},
 		}, metav1.CreateOptions{})
 	if err != nil {
-		t.Fatalf("%#v", err)
+		ta.t.Fatalf("%#v", err)
 	}
 
 	// Watch the TemplateInstance object until it indicates the Ready or
 	// InstantiateFailure status condition.
-	watcher, err := templateClient.TemplateV1().TemplateInstances(testNamespace).Watch(context.Background(),
+	watcher, err := templateClient.TemplateV1().TemplateInstances(ta.ns).Watch(context.Background(),
 		metav1.SingleObject(ti.ObjectMeta),
 	)
 	if err != nil {
-		t.Fatalf("%#v", err)
+		ta.t.Fatalf("%#v", err)
 	}
 
 	for event := range watcher.ResultChan() {
@@ -491,46 +493,36 @@ func instantiateJenkins(t *testing.T) {
 					templatev1.TemplateInstanceInstantiateFailure &&
 					cond.Status == corev1.ConditionTrue &&
 					cond.Reason != "AlreadyExists" {
-					t.Fatalf("templateinstance instantiation failed reason %s message %s", cond.Reason, cond.Message)
+					ta.t.Fatalf("templateinstance instantiation failed reason %s message %s", cond.Reason, cond.Message)
 				}
 			}
 
 		default:
-			t.Fatalf("unexpected event type %s", string(event.Type))
+			ta.t.Fatalf("unexpected event type %s", string(event.Type))
 		}
 	}
 
 }
 
-func instantiateBuild(t *testing.T) {
-	bc := buildv1.BuildConfig{}
-	bc.Name = "client-plugin-sample"
-	bc.Spec = buildv1.BuildConfigSpec{
-		CommonSpec: buildv1.CommonSpec{
-			Strategy: buildv1.BuildStrategy{
-				JenkinsPipelineStrategy: &buildv1.JenkinsPipelineBuildStrategy{
-					Jenkinsfile: pipeline,
-				},
-			},
-		},
+func instantiateBuild(ta *testArgs) {
+	if !ta.skipBCCreate {
+		_, err := buildClient.BuildV1().BuildConfigs(ta.ns).Create(context.Background(), ta.bc, metav1.CreateOptions{})
+		if err != nil {
+			ta.t.Fatalf("%#v", err)
+		}
 	}
-
-	_, err := buildClient.BuildV1().BuildConfigs(testNamespace).Create(context.Background(), &bc, metav1.CreateOptions{})
-	if err != nil {
-		t.Fatalf("%#v", err)
-	}
-	build, err := buildClient.BuildV1().BuildConfigs(testNamespace).Instantiate(context.Background(),
-		bc.Name,
+	build, err := buildClient.BuildV1().BuildConfigs(ta.ns).Instantiate(context.Background(),
+		ta.bc.Name,
 		&buildv1.BuildRequest{
-			ObjectMeta: metav1.ObjectMeta{Name: bc.Name},
+			ObjectMeta: metav1.ObjectMeta{Name: ta.bc.Name},
 		}, metav1.CreateOptions{})
 	if err != nil {
-		t.Fatalf("%#v", err)
+		ta.t.Fatalf("%#v", err)
 	}
-	watcher, err := buildClient.BuildV1().Builds(testNamespace).Watch(context.Background(),
+	watcher, err := buildClient.BuildV1().Builds(ta.ns).Watch(context.Background(),
 		metav1.SingleObject(build.ObjectMeta))
 	if err != nil {
-		t.Fatalf("%#v", err)
+		ta.t.Fatalf("%#v", err)
 	}
 
 	for event := range watcher.ResultChan() {
@@ -543,72 +535,411 @@ func instantiateBuild(t *testing.T) {
 				watcher.Stop()
 				return
 			case buildv1.BuildPhaseError:
-				t.Logf("build error: %#v", build)
-				t.Log("dump job log")
-				NewRef(t, kubeClient, testNamespace).JobLogs(testNamespace, bc.Name)
-				t.Log("dump namespace pod logs")
-				dumpPods(t)
+				ta.t.Logf("build error: %#v", build)
+				ta.t.Log("dump job log")
+				NewRef(ta.t, kubeClient, ta.ns).JobLogs(ta.ns, ta.bc.Name)
+				ta.t.Log("dump namespace pod logs")
+				dumpPods(ta)
 				watcher.Stop()
-				t.Fatal()
+				ta.t.Fatal()
 			case buildv1.BuildPhaseFailed:
-				t.Logf("build failed: %#v", build)
-				t.Log("dump job log")
-				NewRef(t, kubeClient, testNamespace).JobLogs(testNamespace, bc.Name)
-				t.Log("dump namespace pod logs")
-				dumpPods(t)
+				ta.t.Logf("build failed: %#v", build)
+				ta.t.Log("dump job log")
+				NewRef(ta.t, kubeClient, ta.ns).JobLogs(ta.ns, ta.bc.Name)
+				ta.t.Log("dump namespace pod logs")
+				dumpPods(ta)
 				watcher.Stop()
-				t.Fatal()
+				ta.t.Fatal()
 			default:
-				t.Logf("build phase %s", build.Status.Phase)
+				ta.t.Logf("build phase %s", build.Status.Phase)
 			}
 
 		}
 	}
 }
 
-func dumpPods(t *testing.T) {
-	podClient := kubeClient.CoreV1().Pods(testNamespace)
+func dumpPods(ta *testArgs) {
+	podClient := kubeClient.CoreV1().Pods(ta.ns)
 	podList, err := podClient.List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
-		t.Fatalf("error list pods %v", err)
+		ta.t.Fatalf("error list pods %v", err)
 	}
-	t.Logf("dumpPods have %d items in list", len(podList.Items))
+	ta.t.Logf("dumpPods have %d items in list", len(podList.Items))
 	for _, pod := range podList.Items {
-		t.Logf("dumpPods looking at pod %s in phase %s", pod.Name, pod.Status.Phase)
+		ta.t.Logf("dumpPods looking at pod %s in phase %s", pod.Name, pod.Status.Phase)
 
 		for _, container := range pod.Spec.Containers {
 			req := podClient.GetLogs(pod.Name, &corev1.PodLogOptions{Container: container.Name})
 			readCloser, err := req.Stream(context.TODO())
 			if err != nil {
-				t.Fatalf("error getting pod logs for container %s: %s", container.Name, err.Error())
+				ta.t.Fatalf("error getting pod logs for container %s: %s", container.Name, err.Error())
 			}
 			b, err := ioutil.ReadAll(readCloser)
 			if err != nil {
-				t.Fatalf("error reading pod stream %s", err.Error())
+				ta.t.Fatalf("error reading pod stream %s", err.Error())
 			}
 			podLog := string(b)
-			t.Logf("pod logs for container %s in pod %s:  %s", container.Name, pod.Name, podLog)
+			ta.t.Logf("pod logs for container %s in pod %s:  %s", container.Name, pod.Name, podLog)
 
 		}
 
 	}
 }
 
+const (
+	maxNameLength          = 63
+	randomLength           = 5
+	maxGeneratedNameLength = maxNameLength - randomLength
+)
+
+func generateName(base string) string {
+	if len(base) > maxGeneratedNameLength {
+		base = base[:maxGeneratedNameLength]
+	}
+	return fmt.Sprintf("%s%s", base, utilrand.String(randomLength))
+
+}
+
+type testArgs struct {
+	t              *testing.T
+	ns             string
+	template       string
+	templateNs     string
+	templateParams map[string]string
+	bc             *buildv1.BuildConfig
+	skipBCCreate   bool
+}
+
 func TestPlugin(t *testing.T) {
 	setupClients(t)
 
+	randomTestNamespaceName := generateName(testNamespace)
+	defer projectClient.ProjectV1().Projects().Delete(context.Background(), randomTestNamespaceName, metav1.DeleteOptions{})
+	ta := &testArgs{
+		t:  t,
+		ns: randomTestNamespaceName,
+	}
 	_, err := projectClient.ProjectV1().ProjectRequests().Create(context.Background(), &projectv1.ProjectRequest{
-		ObjectMeta: metav1.ObjectMeta{Name: testNamespace},
+		ObjectMeta: metav1.ObjectMeta{Name: randomTestNamespaceName},
 	}, metav1.CreateOptions{})
 
 	if err != nil {
 		t.Fatalf("%#v", err)
 	}
 
-	defer projectClient.ProjectV1().Projects().Delete(context.Background(), testNamespace, metav1.DeleteOptions{})
+	ta.template = "jenkins-ephemeral"
+	ta.templateNs = "openshift"
+	ta.templateParams = map[string]string{"MEMORY_LIST": "2048Mi"}
+	instantiateTemplate(ta)
 
-	instantiateJenkins(t)
+	bc := buildv1.BuildConfig{}
+	bc.Name = "client-plugin-sample"
+	bc.Spec = buildv1.BuildConfigSpec{
+		CommonSpec: buildv1.CommonSpec{
+			Strategy: buildv1.BuildStrategy{
+				JenkinsPipelineStrategy: &buildv1.JenkinsPipelineBuildStrategy{
+					Jenkinsfile: pipeline,
+				},
+			},
+		},
+	}
+	ta.bc = &bc
+	instantiateBuild(ta)
 
-	instantiateBuild(t)
+}
+
+func TestMultiNamespaceTemplates(t *testing.T) {
+	setupClients(t)
+
+	randomTestNamespaceName1 := generateName(testNamespace)
+	randomTestNamespaceName2 := generateName(testNamespace)
+	randomTestNamespaceName3 := generateName(testNamespace)
+	defer projectClient.ProjectV1().Projects().Delete(context.Background(), randomTestNamespaceName1, metav1.DeleteOptions{})
+	defer projectClient.ProjectV1().Projects().Delete(context.Background(), randomTestNamespaceName2, metav1.DeleteOptions{})
+	defer projectClient.ProjectV1().Projects().Delete(context.Background(), randomTestNamespaceName3, metav1.DeleteOptions{})
+
+	testNamespaces := []string{randomTestNamespaceName1, randomTestNamespaceName2, randomTestNamespaceName3}
+
+	for _, randomTestNamespaceName := range testNamespaces {
+		_, err := projectClient.ProjectV1().ProjectRequests().Create(context.Background(), &projectv1.ProjectRequest{
+			ObjectMeta: metav1.ObjectMeta{Name: randomTestNamespaceName},
+		}, metav1.CreateOptions{})
+
+		if err != nil {
+			t.Fatalf("%#v", err)
+		}
+	}
+
+	ta1 := &testArgs{
+		t:              t,
+		ns:             randomTestNamespaceName1,
+		template:       "jenkins-ephemeral",
+		templateNs:     "openshift",
+		templateParams: map[string]string{"MEMORY_LIST": "2048Mi"},
+	}
+	instantiateTemplate(ta1)
+
+	_, err := kubeClient.RbacV1().RoleBindings(randomTestNamespaceName2).Create(context.Background(), &rbacv1.RoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "binding2",
+		},
+		Subjects: []rbacv1.Subject{
+			{
+				APIGroup: "rbac.authorization.k8s.io",
+				Kind:     "User",
+				Name:     "system:serviceaccount:" + randomTestNamespaceName1 + ":jenkins",
+			},
+		},
+		RoleRef: rbacv1.RoleRef{
+			APIGroup: "rbac.authorization.k8s.io",
+			Kind:     "ClusterRole",
+			Name:     "edit",
+		},
+	}, metav1.CreateOptions{})
+	if err != nil {
+		t.Fatalf("%#v", err)
+	}
+	_, err = kubeClient.RbacV1().RoleBindings(randomTestNamespaceName3).Create(context.Background(), &rbacv1.RoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "binding3",
+		},
+		Subjects: []rbacv1.Subject{
+			{
+				APIGroup: "rbac.authorization.k8s.io",
+				Kind:     "User",
+				Name:     "system:serviceaccount:" + randomTestNamespaceName1 + ":jenkins",
+			},
+		},
+		RoleRef: rbacv1.RoleRef{
+			APIGroup: "rbac.authorization.k8s.io",
+			Kind:     "ClusterRole",
+			Name:     "edit",
+		},
+	}, metav1.CreateOptions{})
+	if err != nil {
+		t.Fatalf("%#v", err)
+	}
+
+	testTemplateTemplate := &templatev1.Template{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "multi-namespace-template",
+		},
+		Objects: []runtime.RawExtension{
+			{
+				Object: &corev1.Secret{
+					TypeMeta: metav1.TypeMeta{
+						Kind:       "Secret",
+						APIVersion: "v1",
+					},
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "mariadb",
+						Namespace: "${NAMESPACE1}",
+					},
+					StringData: map[string]string{
+						"database-name": "foo",
+					},
+				},
+			},
+			{
+				Object: &corev1.Secret{
+					TypeMeta: metav1.TypeMeta{
+						Kind:       "Secret",
+						APIVersion: "v1",
+					},
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "mariadb",
+						Namespace: "${NAMESPACE2}",
+					},
+					StringData: map[string]string{
+						"database-name": "foo",
+					},
+				},
+			},
+			{
+				Object: &corev1.Service{
+					TypeMeta: metav1.TypeMeta{
+						Kind:       "Service",
+						APIVersion: "v1",
+					},
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "mariadb",
+						Namespace: "${NAMESPACE3}",
+					},
+					Spec: corev1.ServiceSpec{
+						Ports: []corev1.ServicePort{
+							{
+								Name: "mariadb",
+								Port: 3306,
+							},
+						},
+						Selector: map[string]string{
+							"name": "mariadb",
+						},
+					},
+				},
+			},
+		},
+		Parameters: []templatev1.Parameter{
+			{
+				Name:  "NAMESPACE1",
+				Value: randomTestNamespaceName1,
+			},
+			{
+				Name:  "NAMESPACE2",
+				Value: randomTestNamespaceName2,
+			},
+			{
+				Name:  "NAMESPACE3",
+				Value: randomTestNamespaceName3,
+			},
+		},
+		ObjectLabels: map[string]string{
+			"template": "multi-namespace-template",
+		},
+	}
+	_, err = templateClient.TemplateV1().Templates(randomTestNamespaceName1).Create(context.Background(), testTemplateTemplate, metav1.CreateOptions{})
+	if err != nil {
+		t.Fatalf("%s", err.Error())
+	}
+
+	testPipelineTemplate := &templatev1.Template{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "multi-namespace-pipeline",
+		},
+		Objects: []runtime.RawExtension{
+			{
+				Object: &buildv1.BuildConfig{
+					TypeMeta: metav1.TypeMeta{
+						Kind:       "BuildConfig",
+						APIVersion: "v1",
+					},
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "multi-namespace-pipeline",
+					},
+					Spec: buildv1.BuildConfigSpec{
+						CommonSpec: buildv1.CommonSpec{
+							Strategy: buildv1.BuildStrategy{
+								Type: buildv1.JenkinsPipelineBuildStrategyType,
+								JenkinsPipelineStrategy: &buildv1.JenkinsPipelineBuildStrategy{
+									Env: []corev1.EnvVar{
+										{
+											Name:  "NAMESPACE1",
+											Value: "${NAMESPACE1}",
+										},
+										{
+											Name:  "NAMESPACE2",
+											Value: "${NAMESPACE2}",
+										},
+										{
+											Name:  "NAMESPACE3",
+											Value: "${NAMESPACE3}",
+										},
+									},
+									Jenkinsfile: `
+          try {
+              timeout(time: 20, unit: 'MINUTES') {
+                  // Select the default cluster
+                  openshift.withCluster() {
+                      // Select the default project
+                      openshift.withProject() {
+
+                          // Output the url of the currently selected cluster
+                          echo "Using project ${openshift.project()} in cluster with url ${openshift.cluster()}"
+
+                          def templateSelector = openshift.selector( "template", "multi-namespace-template")
+                          template = templateSelector.object()
+
+                          // Explore the Groovy object which models the OpenShift template as a Map
+                          echo "Template contains ${template.parameters.size()} parameters"
+
+                          // Process the modeled template. We could also pass JSON/YAML, a template name, or a url instead.
+                          def objectModels = openshift.process( template, "-p", "NAMESPACE1=${env.NAMESPACE1}", "-p", "NAMESPACE2=${env.NAMESPACE2}", "-p", "NAMESPACE3=${env.NAMESPACE3}" )
+
+                          // objectModels is a list of objects the template defined, modeled as Groovy objects
+                          echo "The template references ${objectModels.size()} objects"
+
+                          def objects = openshift.create(objectModels)
+
+                          // Create returns a selector which will always select the objects created
+                          objects.withEach {
+                              // Each loop binds the variable 'it' to a selector which selects a single object
+                              echo "Created ${it.name()} from template with labels ${it.object().metadata.labels}"
+                          }
+
+               
+                      }
+                  }
+              }
+          } catch (err) {
+             echo "in catch block"
+             echo "Caught: ${err}"
+             currentBuild.result = 'FAILURE'
+             throw err
+          }
+`,
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		Parameters: []templatev1.Parameter{
+			{
+				Name:  "NAMESPACE1",
+				Value: randomTestNamespaceName1,
+			},
+			{
+				Name:  "NAMESPACE2",
+				Value: randomTestNamespaceName2,
+			},
+			{
+				Name:  "NAMESPACE3",
+				Value: randomTestNamespaceName3,
+			},
+		},
+		ObjectLabels: map[string]string{
+			"template": "multi-namespace-pipeline",
+		},
+	}
+
+	_, err = templateClient.TemplateV1().Templates(randomTestNamespaceName1).Create(context.Background(), testPipelineTemplate, metav1.CreateOptions{})
+	if err != nil {
+		t.Fatalf("%s", err.Error())
+	}
+
+	ta2 := &testArgs{
+		t:              t,
+		ns:             randomTestNamespaceName1,
+		template:       "multi-namespace-pipeline",
+		templateNs:     randomTestNamespaceName1,
+		templateParams: map[string]string{"NAMESPACE": randomTestNamespaceName1, "NAMESPACE2": randomTestNamespaceName2, "NAMESPACE3": randomTestNamespaceName3},
+	}
+	instantiateTemplate(ta2)
+
+	bc, err := buildClient.BuildV1().BuildConfigs(randomTestNamespaceName1).Get(context.Background(), "multi-namespace-pipeline", metav1.GetOptions{})
+	if err != nil {
+		t.Fatalf("%s", err.Error())
+	}
+	ta3 := &testArgs{
+		t:  t,
+		ns: randomTestNamespaceName1,
+		bc: bc,
+		skipBCCreate: true,
+	}
+	instantiateBuild(ta3)
+
+	_, err = kubeClient.CoreV1().Secrets(randomTestNamespaceName1).Get(context.Background(), "mariadb", metav1.GetOptions{})
+	if err != nil {
+		t.Fatalf("%s", err.Error())
+	}
+	_, err = kubeClient.CoreV1().Secrets(randomTestNamespaceName2).Get(context.Background(), "mariadb", metav1.GetOptions{})
+	if err != nil {
+		t.Fatalf("%s", err.Error())
+	}
+	_, err = kubeClient.CoreV1().Services(randomTestNamespaceName3).Get(context.Background(), "mariadb", metav1.GetOptions{})
+	if err != nil {
+		t.Fatalf("%s", err.Error())
+	}
 
 }
