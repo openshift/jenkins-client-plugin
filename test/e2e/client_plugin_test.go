@@ -104,11 +104,11 @@ void actualTest() {*/
                     def saSelector1 = openshift.selector( "serviceaccount" )
                     saSelector1.describe()
     
-                    def templateSelector = openshift.selector( "template", "mongodb-ephemeral")
+                    def templateSelector = openshift.selector( "template", "mariadb-ephemeral")
     
                     def templateExists = templateSelector.exists()
     
-                    def templateGeneratedSelector = openshift.selector(["dc/mongodb", "service/mongodb", "secret/mongodb"])
+                    def templateGeneratedSelector = openshift.selector(["dc/mariadb", "service/mariadb", "secret/mariadb"])
     
                     def objectsGeneratedFromTemplate = templateGeneratedSelector.exists()
                     
@@ -158,7 +158,7 @@ void actualTest() {*/
 
                     def template
                     if (!templateExists) {
-                        template = openshift.create('https://raw.githubusercontent.com/openshift/origin/master/examples/db-templates/mongodb-ephemeral-template.json').object()
+                        template = openshift.create('https://raw.githubusercontent.com/openshift/cluster-samples-operator/release-4.9/assets/operator/ocp-x86_64/mariadb/templates/mariadb-ephemeral.json').object()
                     } else {
                         template = templateSelector.object()
                     }
@@ -171,7 +171,7 @@ void actualTest() {*/
 
                     // verify we can handle unquoted param values with spaces
                     //def muser = "All Users"
-                    //openshift.process( template, '-p', "MONGODB_USER=${muser}")
+                    //openshift.process( template, '-p', "MYSQL_USER=${muser}")
                     //def exist2 = openshift.selector("template", "grape-spring-boot").exists()
                     //if (!exist2) {
                     //    openshift.create("https://raw.githubusercontent.com/openshift/jenkins-client-plugin/master/examples/issue184-template.yml")
@@ -241,7 +241,7 @@ void actualTest() {*/
                     echo "DeploymentConfig history"
                     dcs.rollout().history()
 
-                    //openshift.verifyService('mongodb')
+                    //openshift.verifyService('mariadb')
     
                     def rubySelector = openshift.selector("bc", "ruby")
                     def builds
@@ -340,7 +340,7 @@ void actualTest() {*/
                     emptySelector.label(["x":"y"]) // Should have no impact
     
                     // sanity check for latest and cancel
-                    def dc3Selector = openshift.selector("dc", "mongodb")
+                    def dc3Selector = openshift.selector("dc", "mariadb")
                     dc3Selector.rollout().latest()
                     sleep 3
                     dc3Selector.rollout().cancel()
