@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"testing"
 
 	buildv1 "github.com/openshift/api/build/v1"
@@ -32,9 +33,42 @@ var (
 )
 
 const (
-	testNamespace = "jenkins-client-plugin-test-namespace-"
-	pipeline      = `
-/*pipeline {
+	testNamespace                           = "jenkins-client-plugin-test-namespace-"
+	pipeline_verify_normal_headless_service = `
+          try {
+              timeout(time: 20, unit: 'MINUTES') {
+                  // Select the default cluster
+                  openshift.withCluster() {
+                      // Select the default project
+                      openshift.withProject() {
+						// launch redis template
+						openshift.newApp("redis-ephemeral", "--name", "redis", "-p", "MEMORY_LIMIT=128Mi")
+
+						// make sure dc rolled out
+						def dcs = openshift.selector("dc", "redis")
+						dcs.related('pods').untilEach(1) {
+							if (it.object().status.phase != 'Pending') {
+								return true;
+							}
+							return false;
+						}
+
+                        // Verify Normal Services
+                        def connectedNormalService = openshift.verifyService('redis')
+                        // Verify Headless Services with Selectors
+                        def connectedHeadlessService = openshift.verifyService('redis-headless')
+                      }
+                  }
+              }
+          } catch (err) {
+             echo "in catch block"
+             echo "Caught: ${err}"
+             currentBuild.result = 'FAILURE'
+             throw err
+          }
+`
+	pipeline_parallel_with_lock = `
+  pipeline {
     agent none
     stages {
         stage('test init') {
@@ -64,9 +98,169 @@ const (
             }
         }
     }
-}
+  }  
+  void actualTest() {
+      try {
+          timeout(time: 20, unit: 'MINUTES') {
+              // Select the default cluster
+              openshift.withCluster() {
+                  // Select the default project
+                  openshift.withProject() {
+                      echo "Using project ${openshift.project()} in cluster with url ${openshift.cluster()}"
+				      sleep 10
+                  }
+              }
+          }
+      } catch (err) {
+          echo "in catch block"
+          echo "Caught: ${err}"
+          currentBuild.result = 'FAILURE'
+          throw err
+      }
 
-void actualTest() {*/
+  }
+`
+	pipeline_run_cmd = `
+	try {
+        timeout(time: 20, unit: 'MINUTES') {
+			openshift.withCluster() {
+				openshift.withProject() {
+					// exercise oc run path, including verification of proper handling of groovy cps
+					// var binding (converting List to array)
+					// using the quay origin-jenkins:4.3+ as it deploys without error on 4.x
+					def runargs1 = []
+					runargs1 << "jenkins-second-deployment"
+					runargs1 << "--image=quay.io/openshift/origin-jenkins:4.3"
+					runargs1 << "--dry-run"
+					runargs1 << "-o yaml"
+					def r1 = openshift.run(runargs1)
+					echo "run 1 status: ${r1.status}"
+					echo "run 1 err: ${r1.err}"
+					echo "run 1 actions size: ${r1.actions.size()}"
+					echo "run 1 stdout: ${r1.getOut()}"
+					echo "run 1 stderr: ${r1.getErr()}"
+					if (r1.status != 0) {
+						error("r1 error")
+					}
+					if (r1.getOut().length() == 0) {
+						error("r1 expected output")
+					}
+					if (!r1.getOut().contains("kind: Pod")) {
+						error("r1 no pod yaml")
+					}
+				
+					// FYI - pipeline cps groovy compile does not allow String[] runargs2 =  {"jenkins-second-deployment", "--image=docker.io/openshift/jenkins-2-centos7:latest", "--dry-run"}
+					String[] runargs2 = new String[4]
+					runargs2[0] = "jenkins-second-deployment"
+					runargs2[1] = "--image=quay.io/openshift/origin-jenkins:4.3"
+					runargs2[2] = "--dry-run"
+					runargs2[3] = "-o yaml"
+					def r2 = openshift.run(runargs2)
+					echo "run 2 status: ${r2.status}"
+					echo "run 2 err: ${r2.err}"
+					echo "run 2 actions size: ${r2.actions.size()}"
+					echo "run 2 stdout: ${r2.getOut()}"
+					echo "run 2 stderr: ${r2.getErr()}"
+					if (r2.status != 0) {
+						error("r2 error")
+					}
+					if (r2.getOut().length() == 0) {
+						error("r2 expected output")
+					}
+					if (!r2.getOut().contains("kind: Pod")) {
+						error("r2 no pod yaml")
+					}
+				}
+			}
+		}
+	} catch (err) {
+        echo "in catch block"
+        echo "Caught: ${err}"
+        currentBuild.result = 'FAILURE'
+        throw err
+    }
+`
+	pipeline_selector_patch = `
+    try {
+        timeout(time: 20, unit: 'MINUTES') {
+            // Select the default cluster
+            openshift.withCluster() {
+                // Select the default project
+                openshift.withProject() {
+    
+                    // Output the url of the currently selected cluster
+                    echo "Using project ${openshift.project()} in cluster with url ${openshift.cluster()}"
+    
+                    def currentProject = openshift.project()
+                    def templateSelector = openshift.selector("template", "postgresql-ephemeral")
+                    def exist = templateSelector.exists()
+                    if (!exist) {
+                       openshift.create('https://raw.githubusercontent.com/openshift/cluster-samples-operator/release-4.9/assets/operator/ocp-x86_64/postgresql/templates/postgresql-ephemeral.json')
+                    } else {
+                       openshift.selector( 'svc', [ app:'postgresql-ephemeral' ] ).delete()
+                       openshift.selector( 'dc', [ app:'postgresql-ephemeral' ] ).delete()
+                    }
+                    openshift.newApp("--template=${currentProject}/postgresql-ephemeral")
+                    openshift.patch("dc/postgresql", '\'{"spec":{"strategy":{"type":"Recreate"}}}\'')
+
+    
+                }
+            }
+        }
+    } catch (err) {
+        echo "in catch block"
+        echo "Caught: ${err}"
+        currentBuild.result = 'FAILURE'
+        throw err
+    }
+`
+	pipeline_unquoted_param_spaces = `
+    try {
+        timeout(time: 20, unit: 'MINUTES') {
+            // Select the default cluster
+            openshift.withCluster() {
+                // Select the default project
+                openshift.withProject() {
+    
+                    // Output the url of the currently selected cluster
+                    echo "Using project ${openshift.project()} in cluster with url ${openshift.cluster()}"
+    
+                    // verify we can handle unquoted param values with spaces
+                    def templateSelector = openshift.selector( "template", "mariadb-ephemeral") 
+                    def templateExists = templateSelector.exists()
+                    def template
+                    if (!templateExists) {
+                        template = openshift.create('https://raw.githubusercontent.com/openshift/cluster-samples-operator/release-4.9/assets/operator/ocp-x86_64/mariadb/templates/mariadb-ephemeral.json').object()
+                    } else {
+                        template = templateSelector.object()
+                    }
+                    def muser = "All Users"
+                    openshift.process( template, '-p', "MYSQL_USER=${muser}")
+                    def exist2 = openshift.selector("template", "grape-spring-boot").exists()
+                    if (!exist2) {
+                        openshift.create("https://raw.githubusercontent.com/openshift/jenkins-client-plugin/master/examples/issue184-template.yml")
+                    }
+                    def exist3 = openshift.selector("template", "postgresql-ephemeral").exists()
+                    if (!exist3) {
+                       openshift.create('https://raw.githubusercontent.com/openshift/cluster-samples-operator/release-4.9/assets/operator/ocp-x86_64/postgresql/templates/postgresql-ephemeral.json')
+                    }
+                    openshift.process("postgresql-ephemeral", "-p=MEMORY_LIMIT=120 -p=NAMESPACE=80 -p=DATABASE_SERVICE_NAME=\"-Xmx768m -Dmy.sys.param=aete\" -p=POSTGRESQL_USER=verify -p=POSTGRESQL_PASSWORD=aete -p=POSTGRESQL_DATABASE=400 -p=POSTGRESQL_VERSION=grape-regtest-tools-aete")
+                    openshift.process("grape-spring-boot", "-p=LIVENESS_INITIAL_DELAY_SECONDS=120 -p=READYNESS_INITIAL_DELAY_SECONDS=80 -p=JVMARGS=\"-Xmx768m -Dmy.sys.param=aete\"-p=APPNAME=verify -p=DEPLOYMENTTAG=aete -p=ROLLING_TIMEOUT_SECONDS=400 -p=NAMESPACE=grape-regtest-tools-aete")
+                    openshift.process("grape-spring-boot", "-p LIVENESS_INITIAL_DELAY_SECONDS=120 -p READYNESS_INITIAL_DELAY_SECONDS=80 -p JVMARGS=\"-Xmx768m -Dmy.sys.param=aete\"-p APPNAME=verify -p DEPLOYMENTTAG=aete -p ROLLING_TIMEOUT_SECONDS=400 -p NAMESPACE=grape-regtest-tools-aete")
+                    openshift.process("grape-spring-boot", "-p=LIVENESS_INITIAL_DELAY_SECONDS=120", "-p=READYNESS_INITIAL_DELAY_SECONDS=80", "-p=JVMARGS=\"-Xmx768m -Dmy.sys.param=aete\"", "-p=APPNAME=verify", "-p=DEPLOYMENTTAG=aete", "-p=ROLLING_TIMEOUT_SECONDS=400", "-p=NAMESPACE=grape-regtest-tools-aete")
+    
+    
+                }
+            }
+        }
+    } catch (err) {
+        echo "in catch block"
+        echo "Caught: ${err}"
+        currentBuild.result = 'FAILURE'
+        throw err
+    }
+`
+	pipeline = `
     /**
      * This script does nothing in particular,
      * but is meant to show actual usage of most of the API.
@@ -76,24 +270,6 @@ void actualTest() {*/
         timeout(time: 20, unit: 'MINUTES') {
             // Select the default cluster
             openshift.withCluster() {
-                // Test openshift.patch and selector.patch
-                /* openshift.withProject() {
-                  def currentProject = openshift.project()
-                  def templateSelector = openshift.selector( "template", "nodejs-example")
-                  if (!templateSelector.exists() ) {
-                      openshift.create("https://raw.githubusercontent.com/openshift/nodejs-ex/master/openshift/templates/nodejs.json")
-                  } else {
-                    openshift.selector( 'svc', [ app:'nodejs-example' ] ).delete()
-                    openshift.selector( 'routes', [ app:'nodejs-example' ] ).delete()
-                    openshift.selector( 'dc', [ app:'nodejs-example' ] ).delete()
-                    openshift.selector( 'is', [ app:'nodejs-example' ] ).delete()
-                    openshift.selector( 'bc', [ app:'nodejs-example' ] ).delete()
-                  } 
-                  openshift.newApp("--template=${currentProject}/nodejs-example")
-                  openshift.patch("dc/nodejs-example", '\'{"spec":{"strategy":{"type":"Recreate"}}}\'')
-                  def mySelector = openshift.selector("bc/nodejs-example")
-                  mySelector.patch('\'{"spec":{"source":{"git":{"ref": "development"}}}}\'')
-                } */
                 // Select the default project
                 openshift.withProject() {
     
@@ -172,23 +348,7 @@ void actualTest() {*/
     
                     // For fun, modify the template easily while modeled in Groovy
                     template.labels["mylabel"] = "myvalue"
-
-                    // verify we can handle unquoted param values with spaces
-                    //def muser = "All Users"
-                    //openshift.process( template, '-p', "MYSQL_USER=${muser}")
-                    //def exist2 = openshift.selector("template", "grape-spring-boot").exists()
-                    //if (!exist2) {
-                    //    openshift.create("https://raw.githubusercontent.com/openshift/jenkins-client-plugin/master/examples/issue184-template.yml")
-                    //}
-                    //def exist3 = openshift.selector("template", "postgresql-ephemeral").exists()
-                    //if (!exist3) {
-                    //   openshift.create('https://raw.githubusercontent.com/openshift/origin/master/examples/db-templates/postgresql-ephemeral-template.json')
-                    //}
-                    //openshift.process("postgresql-ephemeral", "-p=MEMORY_LIMIT=120 -p=NAMESPACE=80 -p=DATABASE_SERVICE_NAME=\"-Xmx768m -Dmy.sys.param=aete\" -p=POSTGRESQL_USER=verify -p=POSTGRESQL_PASSWORD=aete -p=POSTGRESQL_DATABASE=400 -p=POSTGRESQL_VERSION=grape-regtest-tools-aete")
-                    //openshift.process("grape-spring-boot", "-p=LIVENESS_INITIAL_DELAY_SECONDS=120 -p=READYNESS_INITIAL_DELAY_SECONDS=80 -p=JVMARGS=\"-Xmx768m -Dmy.sys.param=aete\"-p=APPNAME=verify -p=DEPLOYMENTTAG=aete -p=ROLLING_TIMEOUT_SECONDS=400 -p=NAMESPACE=grape-regtest-tools-aete")
-                    //openshift.process("grape-spring-boot", "-p LIVENESS_INITIAL_DELAY_SECONDS=120 -p READYNESS_INITIAL_DELAY_SECONDS=80 -p JVMARGS=\"-Xmx768m -Dmy.sys.param=aete\"-p APPNAME=verify -p DEPLOYMENTTAG=aete -p ROLLING_TIMEOUT_SECONDS=400 -p NAMESPACE=grape-regtest-tools-aete")
-                    //openshift.process("grape-spring-boot", "-p=LIVENESS_INITIAL_DELAY_SECONDS=120", "-p=READYNESS_INITIAL_DELAY_SECONDS=80", "-p=JVMARGS=\"-Xmx768m -Dmy.sys.param=aete\"", "-p=APPNAME=verify", "-p=DEPLOYMENTTAG=aete", "-p=ROLLING_TIMEOUT_SECONDS=400", "-p=NAMESPACE=grape-regtest-tools-aete")
-    
+ 
                     // Process the modeled template. We could also pass JSON/YAML, a template name, or a url instead.
                     // note: -p option for oc process not in the oc version that we currently ship with openshift jenkins images
                     def objectModels = openshift.process( template )//, "-p", "MEMORY_LIMIT=600Mi")
@@ -244,8 +404,9 @@ void actualTest() {*/
                     dcs.describe()
                     echo "DeploymentConfig history"
                     dcs.rollout().history()
+					dcs.rollout().status("-w")
 
-                    //openshift.verifyService('mariadb')
+                    openshift.verifyService('mariadb')
     
                     def rubySelector = openshift.selector("bc", "ruby")
                     def builds
@@ -304,35 +465,7 @@ void actualTest() {*/
     
                     // The following steps below are geared toward testing of bugs or features that have been introduced
                     // into the openshift client plugin since its initial release
-    
-                    // exercise oc run path, including verification of proper handling of groovy cps
-                    // var binding (converting List to array)
-		            // using the quay origin-jenkins:4.3+ as it deploys without error on 4.x
-                    //def runargs1 = []
-                    //runargs1 << "jenkins-second-deployment"
-                    //runargs1 << "--image=quay.io/openshift/origin-jenkins:4.3"
-                    //runargs1 << "--dry-run"
-                    //runargs1 << "-o yaml"
-                    //openshift.run(runargs1)
-    
-                    // FYI - pipeline cps groovy compile does not allow String[] runargs2 =  {"jenkins-second-deployment", "--image=docker.io/openshift/jenkins-2-centos7:latest", "--dry-run"}
-                    //String[] runargs2 = new String[4]
-                    //runargs2[0] = "jenkins-second-deployment"
-                    //runargs2[1] = "--image=quay.io/openshift/origin-jenkins:4.3"
-                    //runargs2[2] = "--dry-run"
-                    //runargs2[3] = "-o yaml"
-                    //openshift.run(runargs2)
-    
-        	        // add this rollout -w test when v0.9.6 is available in our centos image so
-                    // the overnight tests pass
-                    //def dc2Selector = openshift.selector("dc", "jenkins-second-deployment")
-                    //if (dc2Selector.exists()) {
-                    //    openshift.delete("dc", "jenkins-second-deployment")
-                    //}
-	
-                    //openshift.run("jenkins-second-deployment", "--image=quay.io/openshift/origin-jenkins:4.3")
-                    //dc2Selector.rollout().status("-w")
-                    //dc2Selector.rollout().latest()
+     
 
                     // Empty static / selectors are powerful tools to check the state of the system.
                     // Intentionally create one using a narrow and exercise it.
@@ -348,9 +481,6 @@ void actualTest() {*/
                     dc3Selector.rollout().latest()
                     sleep 3
                     dc3Selector.rollout().cancel()
-    
-                    // perform a retry on a failed or cancelled deployment
-                    //dc3Selector.rollout().retry()
     
                     // validate some watch/selector error handling
                     try {
@@ -610,21 +740,18 @@ type testArgs struct {
 	skipBCCreate   bool
 }
 
-func TestPlugin(t *testing.T) {
-	setupClients(t)
+func basicPipelineInvocationAndValidation(ta *testArgs) {
+	setupClients(ta.t)
 
 	randomTestNamespaceName := generateName(testNamespace)
+	ta.ns = randomTestNamespaceName
 	defer projectClient.ProjectV1().Projects().Delete(context.Background(), randomTestNamespaceName, metav1.DeleteOptions{})
-	ta := &testArgs{
-		t:  t,
-		ns: randomTestNamespaceName,
-	}
 	_, err := projectClient.ProjectV1().ProjectRequests().Create(context.Background(), &projectv1.ProjectRequest{
 		ObjectMeta: metav1.ObjectMeta{Name: randomTestNamespaceName},
 	}, metav1.CreateOptions{})
 
 	if err != nil {
-		t.Fatalf("%#v", err)
+		ta.t.Fatalf("%#v", err)
 	}
 
 	ta.template = "jenkins-ephemeral"
@@ -632,6 +759,11 @@ func TestPlugin(t *testing.T) {
 	ta.templateParams = map[string]string{"MEMORY_LIST": "2048Mi"}
 	instantiateTemplate(ta)
 
+	instantiateBuild(ta)
+
+}
+
+func TestPlugin(t *testing.T) {
 	bc := buildv1.BuildConfig{}
 	bc.Name = "client-plugin-sample"
 	bc.Spec = buildv1.BuildConfigSpec{
@@ -643,9 +775,149 @@ func TestPlugin(t *testing.T) {
 			},
 		},
 	}
-	ta.bc = &bc
-	instantiateBuild(ta)
+	ta := &testArgs{
+		t:  t,
+		bc: &bc,
+	}
+	basicPipelineInvocationAndValidation(ta)
+}
 
+func TestUnquotedParamsWithSpaces(t *testing.T) {
+	bc := buildv1.BuildConfig{}
+	bc.Name = "client-plugin-unquoted-params-spaces"
+	bc.Spec = buildv1.BuildConfigSpec{
+		CommonSpec: buildv1.CommonSpec{
+			Strategy: buildv1.BuildStrategy{
+				JenkinsPipelineStrategy: &buildv1.JenkinsPipelineBuildStrategy{
+					Jenkinsfile: pipeline_unquoted_param_spaces,
+				},
+			},
+		},
+	}
+	ta := &testArgs{
+		t:  t,
+		bc: &bc,
+	}
+	basicPipelineInvocationAndValidation(ta)
+}
+
+func TestSelectorWithPath(t *testing.T) {
+	bc := buildv1.BuildConfig{}
+	bc.Name = "client-plugin-selector-with-patch"
+	bc.Spec = buildv1.BuildConfigSpec{
+		CommonSpec: buildv1.CommonSpec{
+			Strategy: buildv1.BuildStrategy{
+				JenkinsPipelineStrategy: &buildv1.JenkinsPipelineBuildStrategy{
+					Jenkinsfile: pipeline_selector_patch,
+				},
+			},
+		},
+	}
+	ta := &testArgs{
+		t:  t,
+		bc: &bc,
+	}
+	basicPipelineInvocationAndValidation(ta)
+}
+
+func TestRun(t *testing.T) {
+	bc := buildv1.BuildConfig{}
+	bc.Name = "client-plugin-run-cmd"
+	bc.Spec = buildv1.BuildConfigSpec{
+		CommonSpec: buildv1.CommonSpec{
+			Strategy: buildv1.BuildStrategy{
+				JenkinsPipelineStrategy: &buildv1.JenkinsPipelineBuildStrategy{
+					Jenkinsfile: pipeline_run_cmd,
+				},
+			},
+		},
+	}
+	ta := &testArgs{
+		t:  t,
+		bc: &bc,
+	}
+	basicPipelineInvocationAndValidation(ta)
+}
+
+func TestParallelWithLock(t *testing.T) {
+	bc := buildv1.BuildConfig{}
+	bc.Name = "client-plugin-parallel-with-lock"
+	bc.Spec = buildv1.BuildConfigSpec{
+		CommonSpec: buildv1.CommonSpec{
+			Strategy: buildv1.BuildStrategy{
+				JenkinsPipelineStrategy: &buildv1.JenkinsPipelineBuildStrategy{
+					Jenkinsfile: pipeline_parallel_with_lock,
+				},
+			},
+		},
+	}
+	ta := &testArgs{
+		t:  t,
+		bc: &bc,
+	}
+	basicPipelineInvocationAndValidation(ta)
+}
+
+func TestVerifyHeadlessService(t *testing.T) {
+	ta := &testArgs{t: t}
+	setupClients(ta.t)
+
+	randomTestNamespaceName := generateName(testNamespace)
+	ta.ns = randomTestNamespaceName
+	defer projectClient.ProjectV1().Projects().Delete(context.Background(), randomTestNamespaceName, metav1.DeleteOptions{})
+	_, err := projectClient.ProjectV1().ProjectRequests().Create(context.Background(), &projectv1.ProjectRequest{
+		ObjectMeta: metav1.ObjectMeta{Name: randomTestNamespaceName},
+	}, metav1.CreateOptions{})
+
+	if err != nil {
+		ta.t.Fatalf("%#v", err)
+	}
+
+	ta.template = "jenkins-ephemeral"
+	ta.templateNs = "openshift"
+	ta.templateParams = map[string]string{"MEMORY_LIST": "2048Mi"}
+	instantiateTemplate(ta)
+
+	// create headless servie to go along with normal service defined in template
+	// used in pipeline
+	headless := &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   "redis-headless",
+			Labels: map[string]string{"app": "redis"},
+		},
+		Spec: corev1.ServiceSpec{
+			Ports: []corev1.ServicePort{
+				{
+					Port: 6379,
+					TargetPort: intstr.IntOrString{
+						Type:   intstr.Int,
+						IntVal: 6379,
+						StrVal: "",
+					},
+				},
+			},
+			Selector:  map[string]string{"name": "redis"},
+			ClusterIP: "None",
+		},
+	}
+	_, err = kubeClient.CoreV1().Services(randomTestNamespaceName).Create(context.Background(), headless, metav1.CreateOptions{})
+	if err != nil {
+		t.Fatalf("%s", err.Error())
+	}
+
+	bc := &buildv1.BuildConfig{}
+	bc.Name = "client-plugin-verify-headless"
+	bc.Spec = buildv1.BuildConfigSpec{
+		CommonSpec: buildv1.CommonSpec{
+			Strategy: buildv1.BuildStrategy{
+				JenkinsPipelineStrategy: &buildv1.JenkinsPipelineBuildStrategy{
+					Jenkinsfile: pipeline_verify_normal_headless_service,
+				},
+			},
+		},
+	}
+	ta.bc = bc
+	instantiateBuild(ta)
 }
 
 func TestMultiNamespaceTemplates(t *testing.T) {
@@ -922,9 +1194,9 @@ func TestMultiNamespaceTemplates(t *testing.T) {
 		t.Fatalf("%s", err.Error())
 	}
 	ta3 := &testArgs{
-		t:  t,
-		ns: randomTestNamespaceName1,
-		bc: bc,
+		t:            t,
+		ns:           randomTestNamespaceName1,
+		bc:           bc,
 		skipBCCreate: true,
 	}
 	instantiateBuild(ta3)
