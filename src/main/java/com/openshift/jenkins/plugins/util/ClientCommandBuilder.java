@@ -290,7 +290,7 @@ public class ClientCommandBuilder implements Serializable {
 			cmd.add("--insecure-skip-tls-verify");
 		} else {
 			if (this.caPath != null) {
-				cmd.add("--certificate-authority=" + this.caPath);
+				cmd.add("--certificate-authority=\"" + this.caPath + "\"");
 			}
 		}
 
