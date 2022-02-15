@@ -1527,7 +1527,7 @@ class OpenShiftDSL implements Serializable {
                 r.failIf("Unable to retrieve object names: " + this.toString());
             } else {
                 r = (OcAction.OcActionResult)script._OcAction(buildCommonArgs("get", selectionArgs(), null, "-o=name"));
-                if (r.status != 0 && r.err.contains("(NotFound)")) {
+                if (r.status != 0 && (r.err.contains("(NotFound)") || r.out.contains("(NotFound)"))) {
                     return new ArrayList<String>();
                 } else {
                     r.failIf("Unable to retrieve object names: " + this.toString());
