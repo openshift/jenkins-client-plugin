@@ -2,6 +2,7 @@ package com.openshift.jenkins.plugins
 
 import com.cloudbees.groovy.cps.NonCPS
 import com.cloudbees.plugins.credentials.CredentialsProvider
+import com.cloudbees.plugins.credentials.impl.BaseStandardCredentials
 import com.openshift.jenkins.plugins.pipeline.OcAction
 import com.openshift.jenkins.plugins.pipeline.OcContextInit
 
@@ -145,7 +146,11 @@ class OpenShiftDSL implements Serializable {
 
         public String getToken() {
             if (this.@credentialsId != null) {
-                OpenShiftTokenCredentials tokenSecret = CredentialsProvider.findCredentialById(credentialsId, OpenShiftTokenCredentials.class, script.$build(), Collections.emptyList());
+                // With the decoupling of jenkins sync and jenkins client plugins, the OpenshiftSyncClientToken class can now come from jenkins-sync-plugin
+                //  In order to be able to use it, we now allow any token inheriting from BaseStandardCredentials that has a .getToken() method.
+                //  If the passed token id does not point to a valid credential, ie an implementation having a .getToken() method, the call fails at runtime
+                //  the same way as if the token id was invalid or not found.
+                BaseStandardCredentials tokenSecret = CredentialsProvider.findCredentialById(credentialsId, BaseStandardCredentials.class, script.$build(), Collections.emptyList());
                 if (tokenSecret != null) {
                     return tokenSecret.getToken();
                 }
