@@ -163,9 +163,11 @@ public class ClusterConfig extends AbstractDescribableImpl<ClusterConfig> implem
         // relevent class loader. If the plugin is not installed, it is just ignored
         try {
             PluginWrapper plugin = Jenkins.get().pluginManager.getPlugin(OPENSHIFT_SYNC_PLUGIN_NAME);
-            Class clazz = plugin.classLoader.loadClass(IO_OPENSHIFT_CREDENTIALS_CLASS_NAME);
-            standardListBoxModel.includeAs(ACL.SYSTEM, Jenkins.get(), clazz);
-        } catch (ClassNotFoundException | NullPointerException e) {
+            if (plugin != null) {
+                Class clazz = plugin.classLoader.loadClass(IO_OPENSHIFT_CREDENTIALS_CLASS_NAME);
+                standardListBoxModel.includeAs(ACL.SYSTEM, Jenkins.get(), clazz);
+            }
+        } catch (ClassNotFoundException e) {
             LOGGER.warning("Class not found: " + IO_OPENSHIFT_CREDENTIALS_CLASS_NAME);
         }
         standardListBoxModel.includeCurrentValue(credentialsId);
