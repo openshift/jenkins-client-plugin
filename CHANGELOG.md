@@ -13,7 +13,7 @@
 - finally migrate fix oc path logging to verbose only
 - Enhance documentation
 - travis/prow no longer copacetic
-- remove space param test again since we have 3.11 jenkins e2e working again and haven't decided about bumping the version of client plugin in 3.11
+- remove space param test again since we have 3.11 jenkins e2e working again and haven't decided about bumping the version of client plug-in in 3.11
 
 ## 1.0.30
 - deal with possible spaces in job names when accessing workspace based tmp dirs

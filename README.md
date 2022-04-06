@@ -1,5 +1,5 @@
 
-# OpenShift Jenkins Pipeline (DSL) Plugin
+# OpenShift Jenkins Pipeline (DSL) Plug-in
 
 <!-- Install doctoc with `npm install -g doctoc`  then `doctoc README.md --github` -->
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
@@ -42,20 +42,20 @@
 
 ## Overview
 The [OpenShift](https://www.openshift.com) [Pipeline](https://jenkins.io/solutions/pipeline/)
-DSL Plugin is a Jenkins plugin which aims to provide a readable, concise, comprehensive, and fluent
+DSL Plug-in is a Jenkins plug-in which aims to provide a readable, concise, comprehensive, and fluent
 [Jenkins Pipeline](https://jenkins.io/doc/book/pipeline/) syntax for rich interactions with an OpenShift API Server. The
-plugin leverages an OpenShift command line tool (oc) which must be available on the nodes executing the script
+plug-in leverages an OpenShift command line tool (oc) which must be available on the nodes executing the script
 (options for getting the binary on your nodes can be found [here](#setting-up-jenkins-nodes)).
 
-Starting with the 3.7 release of OpenShift, this plugin is now considered GA, is fully supported, and is included
-in the OpenShift Jenkins images. 
+Starting with the 3.7 release of OpenShift, this plug-in is now considered GA, is fully supported, and is included
+in the OpenShift Jenkins images.
 
-If you are interested in the legacy Jenkins plugin, you can find it
+If you are interested in the legacy Jenkins plug-in, you can find it
 [here](https://github.com/openshift/jenkins-plugin).
 
 ## Reader Prerequisites
 * Familiarity with OpenShift [command line interface](https://docs.openshift.org/latest/cli_reference/basic_cli_operations.html)
-is highly encouraged before exploring the plugin's features. The DSL leverages the [oc](https://docs.openshift.org/latest/cli_reference/index.html)
+is highly encouraged before exploring the plug-in's features. The DSL leverages the [oc](https://docs.openshift.org/latest/cli_reference/index.html)
 binary and, in many cases, passes method arguments directly on to the command line. This document cannot, therefore,
 provide a complete description of all possible OpenShift interactions -- the user may need to reference
 the CLI documentation to find the pass-through arguments a given interaction requires.
@@ -66,10 +66,10 @@ since pipeline scripts are written using Groovy (Note: Jenkins sandboxes and [in
 with the use of some Groovy facilities).
 
 ## Installing and developing
-This plugin is available at the [Jenkins Update Center](https://updates.jenkins-ci.org/download/plugins/openshift-client/) and is included
+This plug-in is available at the [Jenkins Update Center](https://updates.jenkins-ci.org/download/plugins/openshift-client/) and is included
 in the [OpenShift Jenkins image.](https://github.com/openshift/jenkins)
 
-Otherwise, if you are interested in building this plugin locally, follow these steps:
+Otherwise, if you are interested in building this plug-in locally, follow these steps:
 
 1. Install maven (platform specific)
 2. Clone this git repository:
@@ -81,11 +81,11 @@ Otherwise, if you are interested in building this plugin locally, follow these s
     cd jenkins-client-plugin
     mvn clean package
     ```
-4. Maven will build target/openshift-client.hpi  (the Jenkins plugin binary)
+4. Maven will build target/openshift-client.hpi  (the Jenkins plug-in binary)
 5. Open Jenkins in your browser, and navigate (as an administrator):
-  1. Manage Jenkins > Manage Plugins.
+  1. Manage Jenkins > Manage Plug-ins.
   2. Select the "Advanced" Tab.
-  3. Find the "Upload Plugin" HTML form and click "Browse".
+  3. Find the "Upload Plug-in" HTML form and click "Browse".
   4. Find the openshift-client.hpi built in the previous steps.
   5. Submit the file.
   6. Check that Jenkins should be restarted.
@@ -94,16 +94,16 @@ You should now be able to [configure an OpenShift Cluster](#configuring-an-opens
 Before running a job, you may also need to ensure your Jenkins nodes [have the 'oc' binary](#setting-up-jenkins-nodes)
 installed.  And for Linux users, there can be [some additional requirements](https://docs.openshift.org/latest/cli_reference/get_started_cli.html#cli-linux) for running 'oc' based on which Linux distribution you are using.
 
-If you want to test your changes against a running OpenShift server using the regression test suite located 
+If you want to test your changes against a running OpenShift server using the regression test suite located
 in the OpenShift Origin repository, see [these instructions.](https://github.com/openshift/jenkins-client-plugin/blob/master/PR-Testing/README)
 
 ## Compatibility with Declarative Pipeline
 
-The means by which this plugin has been able to coexist with [declarative pipeline](https://jenkins.io/doc/book/pipeline/syntax/#declarative-pipeline)
+The means by which this plug-in has been able to coexist with [declarative pipeline](https://jenkins.io/doc/book/pipeline/syntax/#declarative-pipeline)
 has taken a few twists and turns since v1.0 of that feature first arrived in [early 2017](https://jenkins.io/blog/2017/02/03/declarative-pipeline-ga/).
 
-In particular, the recommendation around leveraging this plugin's directives with the declarative `pipeline { ... }` directive have 
-had to be adjusted as the [pipeline-model-definition plugin](https://github.com/jenkinsci/pipeline-model-definition-plugin) has evolved.
+In particular, the recommendation around leveraging this plug-in's directives with the declarative `pipeline { ... }` directive have
+had to be adjusted as the [pipeline-model-definition plug-in](https://github.com/jenkinsci/pipeline-model-definition-plugin) has evolved.
 
 Currently, there are two requirements of note:
 
@@ -119,9 +119,9 @@ pipeline {
 
 directive must be the outer most closure to fully enable all the declarative pipeline semantics and features.
 
-2. Declarative currently does not support groovy body/closures that are not pipeline script steps.  And since 
-this plugin integrates into Jenkins as a Global Variable, it does not meet that restriction.  As such, you must 
-encapsulate all use of this plugin with the declarative
+2. Declarative currently does not support groovy body/closures that are not pipeline script steps.  And since
+this plug-in integrates into Jenkins as a Global Variable, it does not meet that restriction.  As such, you must
+encapsulate all use of this plug-in with the declarative
 
 ```groovy
 script {
@@ -133,28 +133,28 @@ script {
 
 directive such that the declarative interpreter is told to treat this as scripted pipeline.
 
-In fact, per https://issues.jenkins-ci.org/browse/JENKINS-42360 this situation has been discussed upstream and it is stated that this restrictions between declarative and global variables will not be lifted. 
+In fact, per https://issues.jenkins-ci.org/browse/JENKINS-42360 this situation has been discussed upstream and it is stated that this restrictions between declarative and global variables will not be lifted.
 
-As development of this plugin continues, periodic attempts will be made to monitor that these recommendations 
-are still valid, and if not, either adjust recommendations accordingly, or leverage any new integration points 
-with declarative that are synergistic with this plugin's design.  
+As development of this plug-in continues, periodic attempts will be made to monitor that these recommendations
+are still valid, and if not, either adjust recommendations accordingly, or leverage any new integration points
+with declarative that are synergistic with this plug-in's design.  
 
-But certainly if users of this plugin notice changes before the maintainers of the plugin, please advise via opening issues at 
+But certainly if users of this plug-in notice changes before the maintainers of the plug-in, please advise via opening issues at
 https://github.com/openshift/jenkins-client-plugin.
 
 ## Compatibility with parallel step
 
-As this plugin is implemented as a Jenkins Global Variable, then its step name, `openshift`, is, as a 
+As this plug-in is implemented as a Jenkins Global Variable, then its step name, `openshift`, is, as a
 Global Variable implies, a singleton within the context of a job run.  This aspect has ramifications when
 employing `openshift.withCluster(...)` within the `parallel` step's closure, as `openshift.withCluster` (and the
-`openshift.withProject` or `openshift.withCredentials` calls that can occur within a `openshift.withCluster` closure) modifies the 
+`openshift.withProject` or `openshift.withCredentials` calls that can occur within a `openshift.withCluster` closure) modifies the
 state of the `openshift` global variable for a pipeline run.  
 
 The current version of groovy in Jenkins, as well as the lack of API for Global Variables to interpret that they
-are running within the context of a given `parallel` closure, prevent this plugin from managing `withCluster`, 
+are running within the context of a given `parallel` closure, prevent this plug-in from managing `withCluster`,
 `withProject`, or `withCredentials` calls in parallel.
 
-As such, any use of the `parallel` step must be within the inner most closure of whatever combination of 
+As such, any use of the `parallel` step must be within the inner most closure of whatever combination of
 `openshift.withCluster`, `openshift.withProject`, and `openshift.withCredentials` your pipeline employs
 
 ```groovy
@@ -167,15 +167,15 @@ openshift.withCluster() {
 }
 ```
 
-NOTE: while the more recent pipeline documentation discusses `parallel` as part of the Declarative Syntax, at least 
-at the time of this writing, it was still provided as part of the workflow-cps plugin (i.e. the original Scripted Syntax).
+NOTE: while the more recent pipeline documentation discusses `parallel` as part of the Declarative Syntax, at least
+at the time of this writing, it was still provided as part of the workflow-cps plug-in (i.e. the original Scripted Syntax).
 If that were to change, and `parallel` were only available via the Declarative Syntax, then the above restrictions regarding
 Declarative Syntax would apply.
 
-If you cannot prevent `openshift.withCluster` from being called from within a `parallel` block, the `openshift.setLockName` method 
+If you cannot prevent `openshift.withCluster` from being called from within a `parallel` block, the `openshift.setLockName` method
 can be called prior `openshift.withCluster` to denote a lock resource to be processed by the pipeline `lock` step provided
-by the [Lockable Resources plugin](https://jenkins.io/doc/pipeline/steps/lockable-resources/). This plugin is included in the 
-OpenShift Jenkins image.  But if you are running Jenkins outside of the OpenShift Jenkins image, you need to have that plugin 
+by the [Lockable Resources plug-in](https://jenkins.io/doc/pipeline/steps/lockable-resources/). This plug-in is included in the
+OpenShift Jenkins image.  But if you are running Jenkins outside of the OpenShift Jenkins image, you need to have that plug-in
 installed in order to leverage this integration.
 
 An example usage would be
@@ -202,7 +202,7 @@ pipeline {
                         }
                     }
                 }
-      
+
                 stage('Test run 2') {
                     steps {
                         script {
@@ -233,7 +233,7 @@ Under the covers, the `load` step creates a new version of the internal objects 
 and `openshift.withProject` calls are in separate scripts, and Jenkins is restarted, we've seen state stored by the `openshift.withCluster` call
 lost as the pipeline run is read back into the system after the restart completes.  The state is not lost if a restart does not occur.
 
-We'll illustrate with a user provided example.  First, here is some of this plugin's DSL stored in a Groovy method within a `deploy.groovy` file:
+We'll illustrate with a user provided example.  First, here is some of this plug-in's DSL stored in a Groovy method within a `deploy.groovy` file:
 
 ```groovy
 def execute(String env) {
@@ -253,7 +253,7 @@ def execute(String env) {
 return this
 ```
 
-Next, some examples uses of `load`.  First, our user saw the problem during a Jenkins restart while the pipeline was paused on the 
+Next, some examples uses of `load`.  First, our user saw the problem during a Jenkins restart while the pipeline was paused on the
 second `input` call (an NPE trying to get the server URL that is stored when `openshift.withCluster` is called occurred when the pipeline resumed
 after the restart):
 
@@ -339,7 +339,7 @@ node('master') {
 }
 ```
 
-* make the `openshift.withCluster` the outer most closure/context (only fully viable with scripted plugins ... see declaritive notes above) and still use the `load` step
+* make the `openshift.withCluster` the outer most closure/context (only fully viable with scripted plug-ins ... see declaritive notes above) and still use the `load` step
 
 ```groovy
 node('master') {
@@ -480,8 +480,8 @@ openshift.withCluster( 'mycluster' ) {
 
     // Or a static list of names
     openshift.selector( [ 'dc/jenkins', 'build/ruby1' ] ).describe()
-    
-    // Also, you can easily test to see if the selector found what 
+
+    // Also, you can easily test to see if the selector found what
     // were looking for and vary your pipeline's logic as needed.
     def templateSelector = openshift.selector( "template", "mongodb-ephemeral")
     def templateExists = templateSelector.exists()
@@ -491,7 +491,7 @@ openshift.withCluster( 'mycluster' ) {
     } else {
         template = templateSelector.object()
     }
-    
+
 }
 ```
 
@@ -626,14 +626,14 @@ openshift.withCluster( 'mycluster' ) {
 ```
 
 Note: We currently advise against running multiple watches in parallel.  Both with our internal testing
-as well as those from upstream users (see https://github.com/openshift/jenkins-client-plugin/issues/140), 
+as well as those from upstream users (see https://github.com/openshift/jenkins-client-plugin/issues/140),
 we see issues where the same CpsStepContext is called on multiple watches.  There are future plans
-to upgrade some of this plugin's integration with pipelines to later levels in the hopes of resolving 
+to upgrade some of this plug-in's integration with pipelines to later levels in the hopes of resolving
 this restriction.  
 
 ### Looking to Verify a Deployment or Service? We Can Still Do That!
 
-If you are looking for the equivalent of `openshiftVerifyDeployment` from [the OpenShift Jenkins Plugin](https://github.com/openshift/jenkins-plugin), the below performs the same operation.
+If you are looking for the equivalent of `openshiftVerifyDeployment` from [the OpenShift Jenkins Plug-in](https://github.com/openshift/jenkins-plugin), the below performs the same operation.
 
 ```groovy
 openshift.withCluster() {
@@ -659,7 +659,7 @@ openshift.withCluster() {
 }
 ```
 
-If you are looking for the equivalent of `openshiftVerifyService` from [the OpenShift Jenkins Plugin](https://github.com/openshift/jenkins-plugin), we added a similar operation.
+If you are looking for the equivalent of `openshiftVerifyService` from [the OpenShift Jenkins Plug-in](https://github.com/openshift/jenkins-plugin), we added a similar operation.
 This works with Services with ClusterIP as well as [headless Services (with selectors)](https://kubernetes.io/docs/concepts/services-networking/service/#with-selectors) in the namespace specified by the openshift.withProject().
 ```groovy
 openshift.withCluster() {
@@ -676,7 +676,7 @@ openshift.withCluster() {
 
 ### ImageStream SCMs? Use Pipeline Build Strategy and Image Change Triggers instead.
 
-No equivalent of the ImageStream SCM (SCM steps are a special extension point in Jenkins pipelines) provided by `openshiftImageStream` from [the OpenShift Jenkins Plugin](https://github.com/openshift/jenkins-plugin) is provided.
+No equivalent of the ImageStream SCM (SCM steps are a special extension point in Jenkins pipelines) provided by `openshiftImageStream` from [the OpenShift Jenkins Plug-in](https://github.com/openshift/jenkins-plugin) is provided.
 
 That step was introduced prior to the introduction of the OpenShift Pipeline Build Strategy.
 
@@ -689,9 +689,9 @@ Re-tagging existing images or promoting images across different namespaces (e.g.
 ```groovy
 openshift.withCluster( 'mycluster' ) {
 
-    // 'myuser' should have permissions to push/pull images from 'mynamespace' 
+    // 'myuser' should have permissions to push/pull images from 'mynamespace'
     openshift.withCredentials( 'myuser' ) {
-        
+
 	// We tag our 'imagename:latest' image to 'imagename:lastStable' so that we can revert if needed
         openshift.tag( 'mynamespace/imagename:latest', 'mynamespace/imagename:lastStable')
     }
@@ -701,9 +701,9 @@ openshift.withCluster( 'mycluster' ) {
 ```groovy
 openshift.withCluster( 'mycluster' ) {
 
-    // 'myuser' should have permissions to push/pull images from 'namespace-1' and push/pull images to 'namespace-2' 
+    // 'myuser' should have permissions to push/pull images from 'namespace-1' and push/pull images to 'namespace-2'
     openshift.withCredentials( 'myuser' ) {
-    
+
         // We tag our image, making it available in another namespace
         openshift.tag( 'namespace-1/imagename:version', 'namespace-2/imagename:version')
     }
@@ -755,7 +755,7 @@ openshift.withCluster( 'mycluster' ) {
         // But, you say, I've already modeled my object in JSON/YAML! It is in
         // an SCM or accessible with via HTTP, or..., or ...
         // Don't worry. Just get it to the current Jenkins workspace any way
-        // you want (e.g. using a Jenkins plugin for your SCM). Then read the
+        // you want (e.g. using a Jenkins plug-in for your SCM). Then read the
         // file into a String using normal Jenkins steps.
         def fromJSON = openshift.create( readFile( 'myobjects.json' ) )
 
@@ -765,14 +765,14 @@ openshift.withCluster( 'mycluster' ) {
 }
 ```
 
-#### ....aside from some lessons learned by our users 
+#### ....aside from some lessons learned by our users
 
-One of the core design points of this plugin when translating its pipeline syntax to `oc` invocations 
+One of the core design points of this plug-in when translating its pipeline syntax to `oc` invocations
 is that the output type is hard coded to `name` for many operations.  In other words, we pass the `-o=name`
 argument.
 
-This assumption has prevented users from combining the `--dry-run` and `-o yaml` with `openshift.create` 
-to get the defaul yaml for a API object type, and then pipe that yaml as a parameter into a subsequent `openshift.create` 
+This assumption has prevented users from combining the `--dry-run` and `-o yaml` with `openshift.create`
+to get the defaul yaml for a API object type, and then pipe that yaml as a parameter into a subsequent `openshift.create`
 or `openshift.apply` call.
 
 At this time, the use of `openshift.raw` is required to achieve the expected results of combining `--dry-run` and `-o yaml`.
@@ -794,7 +794,7 @@ openshift.withCluster( 'mycluster' ) {
 }
 ```
 
-However, be forewarned, controllers or other users can update objects while you are trying to 
+However, be forewarned, controllers or other users can update objects while you are trying to
 update objects, and you can get collision conflicts.  Consider:
 
 1. Pruning any object `status` or other optional fields you are not concerned with
@@ -829,14 +829,14 @@ openshift.withCluster() {
         dcmap.spec.remove('triggers')
         dcmap.spec.template.spec.containers[0].ports[0].name = "jolokia"
         echo "${dcmap}"
-        
+
         openshift.apply(dcmap)
-        
+
     }
 }
 ```
 
-Next, here is the analogous example where we simply called `openshift.newApp` to create 
+Next, here is the analogous example where we simply called `openshift.newApp` to create
 the Deployment Config, but then constructed from scratch a minimal portion of the API object
 such that we can update the object in the same way as above:
 
@@ -872,9 +872,9 @@ openshift.withCluster() {
                    ]
                    ]
                ]
-    
+
         openshift.apply(dcpatch)
-        
+
     }
 }
 ```
@@ -1055,7 +1055,7 @@ But honestly, wouldn't you rather contribute and add the operation you need? ;-)
 Are you running your Jenkins instance within an OpenShift cluster? Does it
 only interact with resources within that cluster? You might not need to do anything here!
 Leaving out the cluster name when calling openshift.withCluster will cause
-the plugin to try:
+the plug-in to try:
 1. To access a Jenkins cluster configuration named "default" and, if one does not exist..
 2. To assume it is running within an OpenShift Pod with a service account. In this scenario,
 the following cluster information will be used:
@@ -1071,7 +1071,7 @@ openshift.withCluster() {  // find "default" cluster configuration and fallback 
 ```
 
 If you do need to configure clusters, it is a simple matter. As an authorized
-Jenkins user, navigate to Manage Jenkins -> Configure System -> and find the OpenShift Plugin section.
+Jenkins user, navigate to Manage Jenkins -> Configure System -> and find the OpenShift Plug-in section.
 
 Add a new cluster and you should see a form like the following.
 ![cluster-config](src/readme/images/cluster-config.png)
@@ -1085,7 +1085,7 @@ openshift.withCluster( 'mycluster' ) {
 }
 ```
 
-The cluster configuration can be exported and imported with the [Jenkins Configuration as Code Plugin](https://github.com/jenkinsci/configuration-as-code-plugin).
+The cluster configuration can be exported and imported with the [Jenkins Configuration as Code Plug-in](https://github.com/jenkinsci/configuration-as-code-plugin).
 
 ```yaml
 unclassified:
@@ -1096,9 +1096,9 @@ unclassified:
 ```
 
 ## Setting up Credentials
-You can define a new credential using the [OpenShift Sync plugin](https://github.com/openshift/jenkins-sync-plugin) or directly in the Jenkins credential store.
+You can define a new credential using the [OpenShift Sync plug-in](https://github.com/openshift/jenkins-sync-plugin) or directly in the Jenkins credential store.
 
-To define a new credential using the OpenShift sync plugin, you can add a Opaque/generic secret where the data has a "openshift-client-token" key.
+To define a new credential using the OpenShift sync plug-in, you can add a Opaque/generic secret where the data has a "openshift-client-token" key.
 ```bash
 # Create the secret
 oc create secret generic my-prilvileged-token-id --from-file=openshift-client-token=mysecretToken.txt
@@ -1131,8 +1131,8 @@ Here you can define a version of the client tools, where to find them, and if th
 should be automatically instead when a node requires them.
 
 In the following example, a logical name "oc1.3.2" is associated with a particular
-build of the [client tools available on github](https://github.com/openshift/origin/releases), 
-which contains a folder inside with the 'oc' binary so you must specify this folder as 
+build of the [client tools available on github](https://github.com/openshift/origin/releases),
+which contains a folder inside with the 'oc' binary so you must specify this folder as
 "Subdirectory of extracted archive" while configuring the tool.
 
 ![tool-config-by-url](src/readme/images/tool-config-by-url.png)
@@ -1157,24 +1157,24 @@ Linux and Windows nodes to acquire different builds of a tool.
 
 ### Understanding the implications of the KUBECONFIG environment variable or presence of `.kube/config` in the home directory of the user running Jenkins
 
-Users with prior experience with the OpenShift command line tool (oc) may be familiar with 
+Users with prior experience with the OpenShift command line tool (oc) may be familiar with
 the `KUBECONFIG` environment variable, and the config file location you set for `KUBECONFIG`,
 as a means of establishing default settings for the various parameters for the command.
 
 Similarly default settings can be provided by creating a `.kube/config` file in the home directory
 of whatever user is invoking the `oc` command if no `KUBECONFIG` variable is set.
 
-The settings in `.kube/config` are analogous to the arguments this plugin supplies to `oc` as a result
+The settings in `.kube/config` are analogous to the arguments this plug-in supplies to `oc` as a result
 of the various DSL methods you employ in your pipeline.  If you have established at `.kube/config` file
 in your Jenkins environment which will be found by the invocations of `oc` your pipeline induces, they
 may interfere with the intentions of your use of various `openshift.with...` directives in your pipeline.
 
-In the case where you run Jenkins out of an OpenShift pod though via the OpenShift Jenkins image, the 
+In the case where you run Jenkins out of an OpenShift pod though via the OpenShift Jenkins image, the
 environment is set up such that conflicts of this nature will not occur.
- 
+
 ### Moving Images Cluster to Cluster
 
-Multiple OpenShift clusters is a common practice. A non-production and production cluster is very common. In a continuous integration pipeline, we want to achieve promotion to all environments and clusters. We need a way to promote images from 
+Multiple OpenShift clusters is a common practice. A non-production and production cluster is very common. In a continuous integration pipeline, we want to achieve promotion to all environments and clusters. We need a way to promote images from
 cluster to cluster. The `oc` command line tool has a built-in command, `image mirror`, that will promote images from
 cluster to cluster.
 
@@ -1198,8 +1198,8 @@ stage('Move Image') {
 Note the [docker related requirements](https://docs.okd.io/latest/dev_guide/managing_images.html#managing-images-mirror-registry-images) when using `oc image mirror`.
 
 ## You call this documentation?!
-Not exactly. This is a brief overview of some of the capabilities of the plugin. The details
-of the API are embedded within the plugin's online documentation within a running Jenkins instance.
+Not exactly. This is a brief overview of some of the capabilities of the plug-in. The details
+of the API are embedded within the plug-in's online documentation within a running Jenkins instance.
 To find it:
 1. Create a new Pipeline Item
 2. Click "Pipeline Syntax" below the DSL text area
@@ -1208,5 +1208,5 @@ To find it:
 A preview is provided below, but please see the Global Variable Reference in a running
 instance for the latest API information.
 
-<!-- Created using Firefox Nimbus screenshot plugin. Choose page fragment -->
+<!-- Created using Firefox Nimbus screenshot plug-in. Choose page fragment -->
 ![jenkins-online-help](src/readme/images/jenkins-online-help.png)
