@@ -1210,3 +1210,4 @@ instance for the latest API information.
 
 <!-- Created using Firefox Nimbus screenshot plug-in. Choose page fragment -->
 ![jenkins-online-help](src/readme/images/jenkins-online-help.png)
+confirm e2e's break in client plugin repo
