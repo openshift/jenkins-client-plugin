@@ -195,7 +195,7 @@ const (
                     def templateSelector = openshift.selector("template", "postgresql-ephemeral")
                     def exist = templateSelector.exists()
                     if (!exist) {
-                       openshift.create('https://raw.githubusercontent.com/openshift/cluster-samples-operator/release-4.9/assets/operator/ocp-x86_64/postgresql/templates/postgresql-ephemeral.json')
+                       openshift.create('https://raw.githubusercontent.com/openshift/cluster-samples-operator/release-4.11/assets/operator/ocp-x86_64/postgresql/templates/postgresql-ephemeral.json')
                     } else {
                        openshift.selector( 'svc', [ app:'postgresql-ephemeral' ] ).delete()
                        openshift.selector( 'dc', [ app:'postgresql-ephemeral' ] ).delete()
@@ -230,7 +230,7 @@ const (
                     def templateExists = templateSelector.exists()
                     def template
                     if (!templateExists) {
-                        template = openshift.create('https://raw.githubusercontent.com/openshift/cluster-samples-operator/release-4.9/assets/operator/ocp-x86_64/mariadb/templates/mariadb-ephemeral.json').object()
+                        template = openshift.create('https://raw.githubusercontent.com/openshift/cluster-samples-operator/release-4.11/assets/operator/ocp-x86_64/mariadb/templates/mariadb-ephemeral.json').object()
                     } else {
                         template = templateSelector.object()
                     }
@@ -238,11 +238,11 @@ const (
                     openshift.process( template, '-p', "MYSQL_USER=${muser}")
                     def exist2 = openshift.selector("template", "grape-spring-boot").exists()
                     if (!exist2) {
-                        openshift.create("https://raw.githubusercontent.com/openshift/jenkins-client-plugin/master/examples/issue184-template.yml")
+                        openshift.create("https://raw.githubusercontent.com/gabemontero/jenkins-client-plugin/oc-groupified-restrictions/examples/issue184-template.yml")
                     }
                     def exist3 = openshift.selector("template", "postgresql-ephemeral").exists()
                     if (!exist3) {
-                       openshift.create('https://raw.githubusercontent.com/openshift/cluster-samples-operator/release-4.9/assets/operator/ocp-x86_64/postgresql/templates/postgresql-ephemeral.json')
+                       openshift.create('https://raw.githubusercontent.com/openshift/cluster-samples-operator/release-4.11/assets/operator/ocp-x86_64/postgresql/templates/postgresql-ephemeral.json')
                     }
                     openshift.process("postgresql-ephemeral", "-p=MEMORY_LIMIT=120 -p=NAMESPACE=80 -p=DATABASE_SERVICE_NAME=\"-Xmx768m -Dmy.sys.param=aete\" -p=POSTGRESQL_USER=verify -p=POSTGRESQL_PASSWORD=aete -p=POSTGRESQL_DATABASE=400 -p=POSTGRESQL_VERSION=grape-regtest-tools-aete")
                     openshift.process("grape-spring-boot", "-p=LIVENESS_INITIAL_DELAY_SECONDS=120 -p=READYNESS_INITIAL_DELAY_SECONDS=80 -p=JVMARGS=\"-Xmx768m -Dmy.sys.param=aete\"-p=APPNAME=verify -p=DEPLOYMENTTAG=aete -p=ROLLING_TIMEOUT_SECONDS=400 -p=NAMESPACE=grape-regtest-tools-aete")
@@ -295,7 +295,7 @@ const (
                     // create single object in array
                     def bc = [[
                         "kind":"BuildConfig",
-                        "apiVersion":"v1",
+                        "apiVersion":"build.openshift.io/v1",
                         "metadata":[
                             "name":"test",
                             "labels":[
@@ -338,7 +338,7 @@ const (
 
                     def template
                     if (!templateExists) {
-                        template = openshift.create('https://raw.githubusercontent.com/openshift/cluster-samples-operator/release-4.9/assets/operator/ocp-x86_64/mariadb/templates/mariadb-ephemeral.json').object()
+                        template = openshift.create('https://raw.githubusercontent.com/openshift/cluster-samples-operator/release-4.11/assets/operator/ocp-x86_64/mariadb/templates/mariadb-ephemeral.json').object()
                     } else {
                         template = templateSelector.object()
                     }
