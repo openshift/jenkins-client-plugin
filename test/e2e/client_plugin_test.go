@@ -238,7 +238,7 @@ const (
                     openshift.process( template, '-p', "MYSQL_USER=${muser}")
                     def exist2 = openshift.selector("template", "grape-spring-boot").exists()
                     if (!exist2) {
-                        openshift.create("https://raw.githubusercontent.com/gabemontero/jenkins-client-plugin/oc-groupified-restrictions/examples/issue184-template.yml")
+                        openshift.create("https://raw.githubusercontent.com/openshift/jenkins-client-plugin/master/examples/issue184-template.yml")
                     }
                     def exist3 = openshift.selector("template", "postgresql-ephemeral").exists()
                     if (!exist3) {
