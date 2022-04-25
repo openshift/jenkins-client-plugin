@@ -614,6 +614,7 @@ func instantiateTemplate(ta *testArgs) {
 				// Ready == True, stop watching.
 				if cond.Type == templatev1.TemplateInstanceReady &&
 					cond.Status == corev1.ConditionTrue {
+					ta.t.Logf("templateinstance %s/%s instantiation ready", ti.Namespace, ti.Name)
 					watcher.Stop()
 				}
 
@@ -623,12 +624,13 @@ func instantiateTemplate(ta *testArgs) {
 					templatev1.TemplateInstanceInstantiateFailure &&
 					cond.Status == corev1.ConditionTrue &&
 					cond.Reason != "AlreadyExists" {
+					dumpPods(ta)
 					ta.t.Fatalf("templateinstance instantiation failed reason %s message %s", cond.Reason, cond.Message)
 				}
 			}
 
 		default:
-			ta.t.Fatalf("unexpected event type %s", string(event.Type))
+			ta.t.Logf("unexpected event type %s: %#v", string(event.Type), event.Object)
 		}
 	}
 
