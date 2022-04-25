@@ -35,6 +35,9 @@ func (ut *Tester) CreateExecPod(name, cmd string) {
 	}
 	ut.t.Logf("Creating new curl pod")
 	immediate := int64(0)
+	user := int64(65532)
+	truVal := true
+	falVal := false
 	execPod := &v1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
@@ -46,8 +49,19 @@ func (ut *Tester) CreateExecPod(name, cmd string) {
 				{
 					Command:         []string{"/bin/bash", "-c", cmd},
 					Name:            "hostexec",
-					Image:           "centos:7",
+					Image:           "quay.io/redhat-developer/test-build-simples2i:latest",
 					ImagePullPolicy: v1.PullIfNotPresent,
+					SecurityContext: &v1.SecurityContext{
+						AllowPrivilegeEscalation: &falVal,
+						Capabilities: &v1.Capabilities{
+							Drop: []v1.Capability{"ALL"},
+						},
+						RunAsNonRoot: &truVal,
+						RunAsUser:    &user,
+						SeccompProfile: &v1.SeccompProfile{
+							Type: v1.SeccompProfileTypeRuntimeDefault,
+						},
+					},
 				},
 			},
 			HostNetwork:                   false,
