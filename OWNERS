@@ -1,18 +1,25 @@
 reviewers:
+- bparees
+- gabemontero
+- adambkaplan
 - akram
-- jkhelil
-- waveywaves
 - otaviof
 - sbose78
-- akashshinde
+- jkhelil
+- jitendar-singh
+- coreydaley
+- divyansh42
+- mbharatk
+
 approvers:
 - bparees
 - gabemontero
-- jupierce
 - adambkaplan
 - akram
-- jkhelil
-- waveywaves
 - otaviof
 - sbose78
-- akashshinde
+- jkhelil
+- jitendar-singh
+- coreydaley
+- divyansh42
+- mbharatk
