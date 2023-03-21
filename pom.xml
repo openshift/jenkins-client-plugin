@@ -42,6 +42,12 @@
       <artifactId>command-launcher</artifactId>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>com.thoughtworks.xstream</groupId>
+      <artifactId>xstream</artifactId>
+      <version>1.4.20</version>
+      <scope>provided</scope>
+    </dependency>
   </dependencies>
 
   <dependencyManagement>
