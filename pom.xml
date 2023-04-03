@@ -5,7 +5,7 @@
   <parent>
     <groupId>org.jenkins-ci.plugins</groupId>
     <artifactId>plugin</artifactId>
-    <version>4.16</version>
+    <version>4.32</version>
     <relativePath />
   </parent>
 
@@ -22,8 +22,8 @@
     <spotbugs.failOnError>false</spotbugs.failOnError>
     <animal.sniffer.skip>true</animal.sniffer.skip>
     <enforcer.skip>true</enforcer.skip>
-    <java.level>8</java.level>
-    <jenkins-test-harness.version>2.13</jenkins-test-harness.version>
+    <java.level>11</java.level>
+    <jenkins-test-harness.version>1952.v3a_b_0cd3f5a_03</jenkins-test-harness.version>
     <findbugs-maven-plugin.version>3.0.5</findbugs-maven-plugin.version>
     <findbugs.failOnError>false</findbugs.failOnError>
   </properties>
@@ -36,6 +36,7 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-cps</artifactId>
+      <version>3565.v4b_d9b_8c29a_b_3</version>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
@@ -56,15 +57,35 @@
     </dependencies>
   </dependencyManagement>
 
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.jenkins-ci.tools</groupId>
+        <artifactId>maven-hpi-plugin</artifactId>
+        <configuration>
+          <minimumJavaVersion>11</minimumJavaVersion>
+          <pluginFirstClassLoader>true</pluginFirstClassLoader>
+          <loggers>
+            <io.fabric8>${log.level}</io.fabric8>
+            <okhttp3>${log.level}</okhttp3>
+          </loggers>
+          <webApp>
+            <contextPath>/</contextPath>
+          </webApp>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+
   <organization>
     <name>Red Hat, Inc</name>
-    <url>http://www.redhat.com</url>
+    <url>https://www.redhat.com</url>
   </organization>
 
   <licenses>
     <license>
       <name>Apache License</name>
-      <url>http://www.apache.org/licenses/LICENSE-2.0</url>
+      <url>https://www.apache.org/licenses/LICENSE-2.0</url>
     </license>
   </licenses>
   <developers>
@@ -77,7 +98,7 @@
   <scm>
     <connection>scm:git:git://github.com/jenkinsci/${project.artifactId}-plugin.git</connection>
     <developerConnection>scm:git:git@github.com:jenkinsci/${project.artifactId}-plugin.git</developerConnection>
-    <url>http://github.com/jenkinsci/${project.artifactId}-plugin</url>
+    <url>https://github.com/jenkinsci/${project.artifactId}-plugin</url>
     <tag>HEAD</tag>
   </scm>
 
