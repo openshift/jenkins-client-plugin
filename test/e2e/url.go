@@ -23,17 +23,17 @@ func NewTester(client kclientset.Interface, ns string, t *testing.T) *Tester {
 	return &Tester{client: client, namespace: ns, t: t}
 }
 
-// createExecPod creates a simple centos:7 pod in a sleep loop used as a
+// CreateExecPod creates a simple centos:7 pod in a sleep loop used as a
 // vessel for kubectl exec commands.
 // Returns the name of the created pod.
-func (ut *Tester) CreateExecPod(name, cmd string) {
+func (ut *Tester) CreateExecPod(name, cmd string) error {
 	client := ut.client.CoreV1()
 	_, err := client.Pods(ut.namespace).Get(context.Background(), name, metav1.GetOptions{})
 	if err == nil {
-		ut.t.Log("curl job logs pod already exists")
-		return
+		ut.t.Logf("curl pod %s already exists", name)
+		return nil
 	}
-	ut.t.Logf("Creating new curl pod")
+	ut.t.Logf("Creating new curl pod %s", name)
 	immediate := int64(0)
 	user := int64(65532)
 	truVal := true
@@ -49,7 +49,7 @@ func (ut *Tester) CreateExecPod(name, cmd string) {
 				{
 					Command:         []string{"/bin/bash", "-c", cmd},
 					Name:            "hostexec",
-					Image:           "quay.io/redhat-developer/test-build-simples2i:latest",
+					Image:           "centos:7",
 					ImagePullPolicy: v1.PullIfNotPresent,
 					SecurityContext: &v1.SecurityContext{
 						AllowPrivilegeEscalation: &falVal,
@@ -70,24 +70,21 @@ func (ut *Tester) CreateExecPod(name, cmd string) {
 	}
 	created, err := client.Pods(ut.namespace).Create(context.Background(), execPod, metav1.CreateOptions{})
 	if err != nil {
-		ut.t.Fatalf("%#v", err)
+		return err
 	}
 	err = wait.PollImmediate(1*time.Second, 5*time.Minute, func() (bool, error) {
 		retrievedPod, err := client.Pods(execPod.Namespace).Get(context.Background(), created.Name, metav1.GetOptions{})
-		ut.t.Logf("get of curl pod %s got err %#v", created.Name, err)
 		if err != nil {
+			ut.t.Logf("get of curl pod %s got err %#v", created.Name, err)
 			return false, nil
 		}
 		for _, status := range retrievedPod.Status.ContainerStatuses {
-			ut.t.Logf("looking at pod state %#v", status.State)
 			if status.State.Terminated != nil {
+				ut.t.Logf("curl pod %s terminated", name)
 				return true, nil
 			}
 		}
-		ut.t.Logf("done with container state, still cehcking")
 		return false, nil
 	})
-	if err != nil {
-		ut.t.Fatalf("%#v", err)
-	}
+	return err
 }
