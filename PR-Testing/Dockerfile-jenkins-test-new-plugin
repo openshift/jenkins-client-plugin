@@ -1,6 +1,5 @@
-FROM openshift/jenkins-2-centos7:v3.11
+FROM quay.io/openshift/origin-jenkins:latest
 USER root
-RUN touch /opt/openshift/configuration/plugins.txt
-RUN touch /opt/openshift/plugins/openshift-client-plugin.lock
+COPY download-dependencies.sh /usr/local/bin
 COPY ./jpi /opt/openshift/plugins
-RUN /usr/local/bin/install-plugins.sh /opt/openshift/configuration/plugins.txt
+RUN /usr/local/bin/download-dependencies.sh
