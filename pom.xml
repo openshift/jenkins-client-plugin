@@ -6,14 +6,16 @@
     <groupId>org.jenkins-ci.plugins</groupId>
     <artifactId>plugin</artifactId>
     <version>4.61</version>
-    <relativePath/>
+    <relativePath />
   </parent>
   <groupId>io.fabric8.jenkins.plugins</groupId>
   <artifactId>openshift-client</artifactId>
-  <version>1.1.0-SNAPSHOT</version>
+  <version>${revision}.${changelist}</version>
   <packaging>hpi</packaging>
 
   <properties>
+    <revision>1.1.0</revision>
+    <changelist>999999-SNAPSHOT</changelist>
     <jenkins.version>2.387.2</jenkins.version>
     <java.level>11</java.level>
     <log.level>INFO</log.level>
@@ -215,7 +217,7 @@
                 </goals>
                 <configuration>
                   <rules>
-                    <dependencyConvergence/>
+                    <dependencyConvergence />
                     <requireReleaseDeps>
                       <message>No Snapshots Allowed!</message>
                     </requireReleaseDeps>
