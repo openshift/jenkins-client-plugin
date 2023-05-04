@@ -67,7 +67,7 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>command-launcher</artifactId>
-      <version>1.5</version>
+      <version>100.v2f6722292ee8</version>
       <scope>test</scope>
     </dependency>
     <dependency>
