@@ -94,7 +94,7 @@ public class OcWatch extends AbstractStepImpl {
         private transient TaskListener listener;
 
         public Void run() throws IOException, InterruptedException {
-            if (filePath != null && !filePath.exists()) {
+            if (!filePath.exists()) {
                 filePath.mkdirs();
             }
             getContext().saveState();
@@ -145,7 +145,7 @@ public class OcWatch extends AbstractStepImpl {
                                 if (t.getCause() != null) {
                                     exceptionMsgs = exceptionMsgs + "; " + t.getCause().getMessage();
                                 }
-                                listener.getLogger().println(String.format("\nwatch closure threw an exception: \"%s\".\n", exceptionMsgs));
+                                listener.getLogger().println(String.format("%nwatch closure threw an exception: \"%s\".%n", exceptionMsgs));
                                 throw new IOException(t);
                             }
                         }

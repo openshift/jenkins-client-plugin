@@ -41,7 +41,7 @@ public class ClientCommandBuilder implements Serializable {
 		DARWIN, UNIX, WINDOWS, ZOS
 	}
 
-	public static final class getOsType extends MasterToSlaveCallable<OsType, RuntimeException> {
+	public static final class GetOsType extends MasterToSlaveCallable<OsType, RuntimeException> {
 		@Override
 		public OsType call() throws RuntimeException {
 			return getOsFromPlatform();
@@ -80,9 +80,9 @@ public class ClientCommandBuilder implements Serializable {
 		 * var and do 1)
 		 */
 
-		OsType targetType = filePath.act(new getOsType());
+		OsType targetType = filePath.act(new GetOsType());
 		String path = envVars.get("PATH");
-		List<String> foundOcs = new ArrayList<String>();
+		List<String> foundOcs;
 		FindOC finder = new FindOC(path);
 		try {
 			foundOcs = filePath.act(finder);
@@ -90,14 +90,11 @@ public class ClientCommandBuilder implements Serializable {
 			t.printStackTrace(listener.getLogger());
 			return command;
 		}
-		if (foundOcs == null || foundOcs.size() == 0) {
+		if (foundOcs.size() == 0) {
 			if (verbose)
 				listener.getLogger()
 						.println("could not find oc binary on the target computer of OS type " + targetType);
-			if (!(launcher instanceof RemoteLauncher) || !(launcher instanceof LocalLauncher)) {
-				if (verbose)
-					listener.getLogger().println("but your launcher is of a type that might have hindered out scan");
-			}
+
 		} else {
 			if (verbose)
 				listener.getLogger().println("found the following oc executables on the target computer of OS type "
@@ -158,7 +155,7 @@ public class ClientCommandBuilder implements Serializable {
 		ArrayList<String> listCopy = new ArrayList<String>(list);
 		for (int i = 0; i < listCopy.size(); i++) {
 			String element = listCopy.get(i);
-			if (element != null && element.trim().length() == 0) {
+			if ( element.trim().length() == 0) {
 				// skip entry presumably blanked by our -f processing below
 				continue;
 			}
