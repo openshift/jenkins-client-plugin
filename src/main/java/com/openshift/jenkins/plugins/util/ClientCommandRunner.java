@@ -1,5 +1,6 @@
 package com.openshift.jenkins.plugins.util;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.EnvVars;
 import hudson.FilePath;
 import hudson.Launcher;
@@ -11,6 +12,7 @@ import org.apache.commons.io.LineIterator;
 
 import javax.annotation.Nonnull;
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -21,6 +23,7 @@ import java.util.logging.Logger;
 /***
  * {@link ClientCommandRunner} runs `oc` on a slave
  */
+@SuppressFBWarnings("SE_BAD_FIELD")
 public class ClientCommandRunner implements Serializable {
     private static final long serialVersionUID = 42L;
     private static final Logger LOGGER = Logger.getLogger(ClientCommandRunner.class.getName());
@@ -75,6 +78,7 @@ public class ClientCommandRunner implements Serializable {
         this.stderrOutputObserver = stderrOutputObserver;
     }
 
+
     private static class OcOutputConsumer implements Callable<Object> {
         private InputStream in;
         private OutputObserver outputObserver;
@@ -86,7 +90,7 @@ public class ClientCommandRunner implements Serializable {
 
         @Override
         public Boolean call() throws IOException, InterruptedException {
-            try (Reader reader = new InputStreamReader(in)) {
+            try (Reader reader = new InputStreamReader(in, StandardCharsets.UTF_8)) {
                 LineIterator it = IOUtils.lineIterator(reader);
                 while (it.hasNext()) {
                     String line = it.nextLine();

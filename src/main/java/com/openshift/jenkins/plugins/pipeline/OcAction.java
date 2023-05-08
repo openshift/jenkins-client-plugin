@@ -161,7 +161,7 @@ public class OcAction extends AbstractStepImpl {
 
         @Override
         protected OcActionResult run() throws IOException, InterruptedException, ExecutionException {
-            if (filePath != null && !filePath.exists()) {
+            if (!filePath.exists()) {
                 filePath.mkdirs();
             }
 

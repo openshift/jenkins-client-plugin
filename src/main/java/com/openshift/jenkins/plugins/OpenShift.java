@@ -18,17 +18,12 @@ public class OpenShift extends AbstractDescribableImpl<OpenShift> {
 
     @Extension
     public static class DescriptorImpl extends Descriptor<OpenShift> {
-
-        // Store a config version so we're able to migrate config.
-        public Long configVersion;
-
         public List<ClusterConfig> clusterConfigs;
 
         public String ocTool = "oc"; // TODO: Make this configurable for
                                      // kubectl?
 
         public DescriptorImpl() {
-            configVersion = 1L;
             load();
         }
 

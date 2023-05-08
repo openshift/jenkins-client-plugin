@@ -17,7 +17,6 @@
     <revision>1.1.0</revision>
     <changelist>999999-SNAPSHOT</changelist>
     <jenkins.version>2.387.2</jenkins.version>
-    <java.level>11</java.level>
     <log.level>INFO</log.level>
   </properties>
 
@@ -40,9 +39,9 @@
 
   <scm>
     <connection>scm:git:https://github.com/jenkinsci/${project.artifactId}-plugin.git</connection>
-    <developerConnection>scm:git:git@github.com:jenkinsci/${project.artifactId}-plugin.git</developerConnection>
-    <url>https://github.com/jenkinsci/${project.artifactId}-plugin</url>
-    <tag>HEAD</tag>
+    <developerConnection>scm:git:https://github.com/jenkinsci/${project.artifactId}-plugin.git</developerConnection>
+    <url>https://github.com/jenkinsci/${project.artifactId}-plugin/</url>
+    <tag>${scmTag}</tag>
   </scm>
 
   <repositories>
@@ -153,7 +152,7 @@
               <goal>generate</goal>
             </goals>
             <configuration>
-              <fileMask>Messages.properties</fileMask>
+              <fileMask>FileLocations.properties</fileMask>
               <outputDirectory>target/generated-sources/localizer</outputDirectory>
             </configuration>
           </execution>

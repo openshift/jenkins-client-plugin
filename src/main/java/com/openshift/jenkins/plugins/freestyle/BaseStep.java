@@ -33,20 +33,13 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
+import java.util.*;
 
 import static com.openshift.jenkins.plugins.util.ClientCommandOutputCleaner.redactSensitiveData;
 
 public abstract class BaseStep extends Builder {
 
     public static final String DEFAULT_LOGLEVEL = "0";
-
-    public static final String SERVICE_ACCOUNT_NAMESPACE_PATH = "/var/run/secrets/kubernetes.io/serviceaccount/namespace";
-    public static final String SERVICE_ACCOUNT_TOKEN_PATH = "/var/run/secrets/kubernetes.io/serviceaccount/token";
-    public static final String SERVICE_ACCOUNT_CA_PATH = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt";
 
     private String clusterName;
 
@@ -147,6 +140,8 @@ public abstract class BaseStep extends Builder {
 
         ArrayList<String> advArgs = new ArrayList<String>();
 
+        ResourceBundle bundle = ResourceBundle.getBundle("io.fabric8.jenkins.plugins.FileLocations");
+
         if (advancedArguments != null) {
             for (AdvancedArgument advArg : advancedArguments) {
                 advArgs.add(advArg.getValue(overrides));
@@ -156,6 +151,7 @@ public abstract class BaseStep extends Builder {
         if (c == null) { // if null, we assume the cluster is running the
                          // Jenkins node.
             server = ClusterConfig.getHostClusterApiServerUrl();
+            String SERVICE_ACCOUNT_CA_PATH = bundle.getString("SERVICE_ACCOUNT_CA_PATH");
             selectedCAPath = SERVICE_ACCOUNT_CA_PATH;
             caContent = null;
         } else {
@@ -178,6 +174,7 @@ public abstract class BaseStep extends Builder {
                                     + getClusterName(overrides));
                 }
             } else {
+                String SERVICE_ACCOUNT_NAMESPACE_PATH = bundle.getString("SERVICE_ACCOUNT_NAMESPACE_PATH");
                 project = new String(Files.readAllBytes(Paths
                         .get(SERVICE_ACCOUNT_NAMESPACE_PATH)),
                         StandardCharsets.UTF_8);
@@ -213,6 +210,7 @@ public abstract class BaseStep extends Builder {
             }
             token = tokenSecret.getToken();
         } else {
+            String SERVICE_ACCOUNT_TOKEN_PATH = bundle.getString("SERVICE_ACCOUNT_TOKEN_PATH");
             // We are running within a host cluster, so use mounted secret
             token = new String(Files.readAllBytes(Paths
                     .get(SERVICE_ACCOUNT_TOKEN_PATH)), StandardCharsets.UTF_8);
@@ -261,7 +259,7 @@ public abstract class BaseStep extends Builder {
                             @Override
                             public void run() {
                                 StringBuffer sb = new StringBuffer();
-                                try (Reader reader = new InputStreamReader(output)) {
+                                try (Reader reader = new InputStreamReader(output, StandardCharsets.UTF_8)) {
                                     LineIterator it = IOUtils.lineIterator(reader);
                                     while (it.hasNext()) {
                                         String line = it.nextLine();
@@ -348,7 +346,7 @@ public abstract class BaseStep extends Builder {
         // try override when the key is the entire parameter ... we don't just
         // use
         // replaceMacro cause we also support PARM with $ or ${}
-        if (overrides != null && overrides.containsKey(val)) {
+        if (overrides.containsKey(val)) {
             val = overrides.get(val);
         } else {
             // see if it is a mix used key (i.e. myapp-${VERSION}) or ${val}
