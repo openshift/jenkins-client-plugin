@@ -8,7 +8,7 @@
     <version>4.61</version>
     <relativePath />
   </parent>
-  <groupId>io.fabric8.jenkins.plugins</groupId>
+  <groupId>com.openshift.jenkins.plugins</groupId>
   <artifactId>openshift-client</artifactId>
   <version>${revision}.${changelist}</version>
   <packaging>hpi</packaging>
