@@ -122,9 +122,6 @@
             <version>4.7.3</version>
           </dependency>
         </dependencies>
-        <configuration>
-          <failOnError>false</failOnError>
-        </configuration>
       </plugin>
       <plugin>
         <groupId>org.jenkins-ci.tools</groupId>
