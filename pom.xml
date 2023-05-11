@@ -62,28 +62,28 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>credentials</artifactId>
-      <version>1224.vc23ca_a_9a_2cb_0</version>
+      <version>1254.vb_96f366e7b_a_d</version>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>command-launcher</artifactId>
-      <version>1.5</version>
+      <version>101.va_d7c41d52a_51</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>script-security</artifactId>
-      <version>1244.ve463715a_f89c</version>
+      <version>1248.vf6a_9efa_e5492</version>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-step-api</artifactId>
-      <version>639.v6eca_cd8c04a_a_</version>
+      <version>640.vfcc3c7eff1d8</version>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-cps</artifactId>
-      <version>3641.vf58904a_b_b_5d8</version>
+      <version>3663.v478a_ceb_280c8</version>
     </dependency>
   </dependencies>
 
@@ -103,7 +103,7 @@
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>versions-maven-plugin</artifactId>
-        <version>2.7</version>
+        <version>2.15.0</version>
         <configuration>
           <excludes>
             <exclude>org.apache.commons:commons-collections4</exclude>
@@ -113,7 +113,7 @@
       <plugin>
         <groupId>com.github.spotbugs</groupId>
         <artifactId>spotbugs-maven-plugin</artifactId>
-        <version>4.7.2.1</version>
+        <version>4.7.3.4</version>
         <dependencies>
           <!-- overwrite dependency on spotbugs if you want to specify the version of spotbugs -->
           <dependency>
@@ -126,7 +126,7 @@
       <plugin>
         <groupId>org.jenkins-ci.tools</groupId>
         <artifactId>maven-hpi-plugin</artifactId>
-        <version>3.43</version>
+        <version>3.45-rc1439.a_feb_e362b_c03</version>
         <configuration>
           <pluginFirstClassLoader>true</pluginFirstClassLoader>
           <loggers>
@@ -141,7 +141,7 @@
       <plugin>
         <groupId>org.jvnet.localizer</groupId>
         <artifactId>maven-localizer-plugin</artifactId>
-        <version>1.12</version>
+        <version>1.26</version>
         <executions>
           <execution>
             <phase>generate-sources</phase>
@@ -158,7 +158,7 @@
       <plugin>
         <groupId>com.mycila</groupId>
         <artifactId>license-maven-plugin</artifactId>
-        <version>2.11</version>
+        <version>4.2</version>
         <configuration>
           <aggregate>true</aggregate>
           <header>header.txt</header>
@@ -190,7 +190,7 @@
           <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-gpg-plugin</artifactId>
-            <version>1.6</version>
+            <version>3.1.0</version>
             <executions>
               <execution>
                 <id>sign-artifacts</id>
@@ -239,7 +239,7 @@
           <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-source-plugin</artifactId>
-            <version>2.4</version>
+            <version>3.2.1</version>
             <executions>
               <execution>
                 <id>attach-sources</id>
