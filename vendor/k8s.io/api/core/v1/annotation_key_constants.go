@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// This file should be consistent with pkg/api/annotation_key_constants.go.
+// This file should be consistent with pkg/apis/core/annotation_key_constants.go.
 
 package v1
 
@@ -22,9 +22,6 @@ const (
 	// ImagePolicyFailedOpenKey is added to pods created by failing open when the image policy
 	// webhook backend fails.
 	ImagePolicyFailedOpenKey string = "alpha.image-policy.k8s.io/failed-open"
-
-	// PodPresetOptOutAnnotationKey represents the annotation key for a pod to exempt itself from pod preset manipulation
-	PodPresetOptOutAnnotationKey string = "podpreset.admission.kubernetes.io/exclude"
 
 	// MirrorAnnotationKey represents the annotation key set by kubelets when creating mirror pods
 	MirrorPodAnnotationKey string = "kubernetes.io/config.mirror"
@@ -124,7 +121,7 @@ const (
 	EndpointsLastChangeTriggerTime = "endpoints.kubernetes.io/last-change-trigger-time"
 
 	// EndpointsOverCapacity will be set on an Endpoints resource when it
-	// exceeds the maximum capacity of 1000 addresses. Inititially the Endpoints
+	// exceeds the maximum capacity of 1000 addresses. Initially the Endpoints
 	// controller will set this annotation with a value of "warning". In a
 	// future release, the controller may set this annotation with a value of
 	// "truncated" to indicate that any addresses exceeding the limit of 1000
@@ -144,11 +141,22 @@ const (
 	// pod deletion order.
 	// The implicit deletion cost for pods that don't set the annotation is 0, negative values are permitted.
 	//
-	// This annotation is alpha-level and is only honored when PodDeletionCost feature is enabled.
+	// This annotation is beta-level and is only honored when PodDeletionCost feature is enabled.
 	PodDeletionCost = "controller.kubernetes.io/pod-deletion-cost"
 
-	// AnnotationTopologyAwareHints can be used to enable or disable Topology
-	// Aware Hints for a Service. This may be set to "Auto" or "Disabled". Any
-	// other value is treated as "Disabled".
-	AnnotationTopologyAwareHints = "service.kubernetes.io/topology-aware-hints"
+	// DeprecatedAnnotationTopologyAwareHints can be used to enable or disable
+	// Topology Aware Hints for a Service. This may be set to "Auto" or
+	// "Disabled". Any other value is treated as "Disabled". This annotation has
+	// been deprecated in favor of the "service.kubernetes.io/topology-mode"
+	// annotation.
+	DeprecatedAnnotationTopologyAwareHints = "service.kubernetes.io/topology-aware-hints"
+
+	// AnnotationTopologyMode can be used to enable or disable Topology Aware
+	// Routing for a Service. Well known values are "Auto" and "Disabled".
+	// Implementations may choose to develop new topology approaches, exposing
+	// them with domain-prefixed values. For example, "example.com/lowest-rtt"
+	// could be a valid implementation-specific value for this annotation. These
+	// heuristics will often populate topology hints on EndpointSlices, but that
+	// is not a requirement.
+	AnnotationTopologyMode = "service.kubernetes.io/topology-mode"
 )
