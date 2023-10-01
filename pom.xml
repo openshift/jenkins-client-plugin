@@ -93,7 +93,7 @@
       <dependency>
         <groupId>io.jenkins.tools.bom</groupId>
         <artifactId>bom-2.401.x</artifactId>
-        <version>2220.vea_cea_f1a_35e4</version>
+        <version>2483.v3b_22f030990a_</version>
         <type>pom</type>
       </dependency>
     </dependencies>
