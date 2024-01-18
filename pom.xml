@@ -5,7 +5,7 @@
   <parent>
     <groupId>org.jenkins-ci.plugins</groupId>
     <artifactId>plugin</artifactId>
-    <version>4.69</version>
+    <version>4.77</version>
     <relativePath />
   </parent>
   <groupId>com.openshift.jenkins.plugins</groupId>
@@ -16,7 +16,7 @@
   <properties>
     <revision>1.1.0</revision>
     <changelist>999999-SNAPSHOT</changelist>
-    <jenkins.version>2.401.1</jenkins.version>
+    <jenkins.version>2.426.2</jenkins.version>
     <log.level>INFO</log.level>
   </properties>
 
@@ -62,7 +62,40 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>credentials</artifactId>
-      <version>1254.vb_96f366e7b_a_d</version>
+    </dependency>
+    <dependency>
+      <groupId>org.jenkins-ci.plugins</groupId>
+      <artifactId>command-launcher</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.jenkins-ci.plugins</groupId>
+      <artifactId>script-security</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.jenkins-ci.plugins.workflow</groupId>
+      <artifactId>workflow-step-api</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.jenkins-ci.plugins.workflow</groupId>
+      <artifactId>workflow-cps</artifactId>
+    </dependency>
+  </dependencies>
+
+  <dependencyManagement>
+    <dependencies>
+      <!-- https://mvnrepository.com/artifact/io.jenkins.tools.bom/bom-2.303.x -->
+      <dependency>
+        <groupId>io.jenkins.tools.bom</groupId>
+        <artifactId>bom-2.426.x</artifactId>
+        <version>2705.vf5c48c31285b_</version>
+        <scope>import</scope>
+        <type>pom</type>
+    </dependency>
+    <dependency>
+      <groupId>org.jenkins-ci.plugins</groupId>
+      <artifactId>credentials</artifactId>
+      <version>1311.vcf0a_900b_37c2</version>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
@@ -73,7 +106,7 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>script-security</artifactId>
-      <version>1251.vfe552ed55f8d</version>
+      <version>1313.v7a_6067dc7087</version>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
@@ -83,20 +116,9 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-cps</artifactId>
-      <version>3673.v5b_dd74276262</version>
+      <version>3837.v305192405b_c0</version>
     </dependency>
   </dependencies>
-
-  <dependencyManagement>
-    <dependencies>
-      <!-- https://mvnrepository.com/artifact/io.jenkins.tools.bom/bom-2.303.x -->
-      <dependency>
-        <groupId>io.jenkins.tools.bom</groupId>
-        <artifactId>bom-2.401.x</artifactId>
-        <version>2220.vea_cea_f1a_35e4</version>
-        <type>pom</type>
-      </dependency>
-    </dependencies>
   </dependencyManagement>
   <build>
     <plugins>
@@ -113,16 +135,19 @@
       <plugin>
         <groupId>com.github.spotbugs</groupId>
         <artifactId>spotbugs-maven-plugin</artifactId>
-        <version>4.7.3.5</version>
+        <version>4.8.2.0</version>
+        <configuration>
+            <failOnError>false</failOnError>
+        </configuration>
         <dependencies>
-          <!-- overwrite dependency on spotbugs if you want to specify the version of spotbugs -->
-          <dependency>
-            <groupId>com.github.spotbugs</groupId>
-            <artifactId>spotbugs</artifactId>
-            <version>4.7.3</version>
-          </dependency>
+            <!-- overwrite dependency on spotbugs if you want to specify the version of spotbugs -->
+            <dependency>
+                <groupId>com.github.spotbugs</groupId>
+                <artifactId>spotbugs</artifactId>
+                <version>4.8.3</version>
+            </dependency>
         </dependencies>
-      </plugin>
+    </plugin>
       <plugin>
         <groupId>org.jenkins-ci.tools</groupId>
         <artifactId>maven-hpi-plugin</artifactId>
@@ -204,25 +229,25 @@
           <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-enforcer-plugin</artifactId>
-            <version>3.3.0</version>
+            <version>3.4.1</version>
             <executions>
-              <execution>
-                <id>enforce-no-snapshots</id>
-                <goals>
-                  <goal>enforce</goal>
-                </goals>
-                <configuration>
-                  <rules>
-                    <dependencyConvergence />
-                    <requireReleaseDeps>
-                      <message>No Snapshots Allowed!</message>
-                    </requireReleaseDeps>
-                  </rules>
-                  <fail>true</fail>
-                </configuration>
-              </execution>
+                <execution>
+                    <id>enforce-no-snapshots</id>
+                    <goals>
+                        <goal>enforce</goal>
+                    </goals>
+                    <configuration>
+                        <rules>
+                            <banDuplicatePomDependencyVersions />
+                            <requireReleaseDeps>
+                                <message>No Snapshots Allowed!</message>
+                            </requireReleaseDeps>
+                        </rules>
+                        <fail>true</fail>
+                    </configuration>
+                </execution>
             </executions>
-          </plugin>
+        </plugin>
           <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-javadoc-plugin</artifactId>
