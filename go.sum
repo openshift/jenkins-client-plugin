@@ -157,8 +157,8 @@ github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 h1:C3w9PqII01/Oq
 github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822/go.mod h1:+n7T8mK8HuQTcFwEeznm/DIxMOiR9yIdICNftLE1DvQ=
 github.com/onsi/ginkgo/v2 v2.9.1 h1:zie5Ly042PD3bsCvsSOPvRnFwyo3rKe64TJlD6nu0mk=
 github.com/onsi/gomega v1.27.4 h1:Z2AnStgsdSayCMDiCU42qIz+HLqEPcgiOCXjAU/w+8E=
-github.com/openshift/api v0.0.0-20230705144233-e28cd4dd28a8 h1:ZLMYbvXXYPgytju27PdVQPSMU55oAySGGIWhaDU7LX8=
-github.com/openshift/api v0.0.0-20230705144233-e28cd4dd28a8/go.mod h1:yimSGmjsI+XF1mr+AKBs2//fSXIOhhetHGbMlBEfXbs=
+github.com/openshift/api v0.0.0-20230711095040-ca06f4a23b64 h1:j7LIIr4Vrdy4Dpd4bw2j53UXUSjA1eXXC0x89g9kyAI=
+github.com/openshift/api v0.0.0-20230711095040-ca06f4a23b64/go.mod h1:yimSGmjsI+XF1mr+AKBs2//fSXIOhhetHGbMlBEfXbs=
 github.com/openshift/client-go v0.0.0-20230705133330-7f808ad59404 h1:7Q/RkeK4UHpB25nu7z03tSFlWgWjcnAUbjwI1Ud22H4=
 github.com/openshift/client-go v0.0.0-20230705133330-7f808ad59404/go.mod h1:8Hq3t7Ba02Z0sjDGtTCARPXylxbOyzFrbwiqb1ViWMA=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
