@@ -1,9 +1,9 @@
 module github.com/openshift/jenkins-client-plugin
 
-go 1.19
+go 1.20
 
 require (
-	github.com/openshift/api v0.0.0-20230705144233-e28cd4dd28a8
+	github.com/openshift/api v0.0.0-20230711095040-ca06f4a23b64
 	github.com/openshift/client-go v0.0.0-20230705133330-7f808ad59404
 	k8s.io/api v0.27.3
 	k8s.io/apimachinery v0.27.3
