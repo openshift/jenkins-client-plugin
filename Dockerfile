@@ -13,9 +13,7 @@ RUN curl -L -o maven.tar.gz https://dlcdn.apache.org/maven/maven-3/3.8.8/binarie
 RUN ./maven/bin/mvn --version && \
 	./maven/bin/mvn clean package
 
-FROM registry.redhat.io/ocp-tools-4/jenkins-rhel8:v4.12.0
+FROM registry.ci.openshift.org/origin/4.14:jenkins
 RUN rm /opt/openshift/plugins/openshift-client.jpi
 COPY --from=builder /java/src/github.com/openshift/jenkins-client-plugin/target/openshift-client.hpi /opt/openshift/plugins
 RUN mv /opt/openshift/plugins/openshift-client.hpi /opt/openshift/plugins/openshift-client.jpi
-COPY --from=builder /java/src/github.com/openshift/jenkins-client-plugin/PR-Testing/download-dependencies.sh /usr/local/bin
-RUN /usr/local/bin/download-dependencies.sh
