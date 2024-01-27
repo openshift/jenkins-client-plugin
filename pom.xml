@@ -21,7 +21,6 @@
   </properties>
 
   <name>OpenShift Client Jenkins Plugin</name>
-  <description>A Jenkins plugin which leverages the OpenShift client binary (oc) to enable powerful Pipeline DSL based interactions with OpenShift clusters.</description>
   <url>https://plugins.jenkins.io/openshift-client/</url>
 
   <organization>
@@ -95,12 +94,12 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>credentials</artifactId>
-      <version>1311.vcf0a_900b_37c2</version>
+      <version>1319.v7eb_51b_3a_c97b_</version>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>command-launcher</artifactId>
-      <version>100.v2f6722292ee8</version>
+      <version>107.v773860566e2e</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -111,12 +110,17 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-step-api</artifactId>
-      <version>639.v6eca_cd8c04a_a_</version>
+      <version>657.v03b_e8115821b_</version>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-cps</artifactId>
-      <version>3837.v305192405b_c0</version>
+      <version>3853.vb_a_490d892963</version>
+    </dependency>
+    <dependency>
+      <groupId>org.jenkins-ci.plugins</groupId>
+      <artifactId>structs</artifactId>
+      <version>337.v1b_04ea_4df7c8</version>
     </dependency>
   </dependencies>
   </dependencyManagement>
