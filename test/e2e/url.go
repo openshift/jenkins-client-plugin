@@ -26,9 +26,9 @@ func NewTester(client kclientset.Interface, ns string, t *testing.T) *Tester {
 // createExecPod creates a simple centos:7 pod in a sleep loop used as a
 // vessel for kubectl exec commands.
 // Returns the name of the created pod.
-func (ut *Tester) CreateExecPod(name, cmd string) {
+func (ut *Tester) CreateExecPod(ctx context.Context, name string, cmd string) {
 	client := ut.client.CoreV1()
-	_, err := client.Pods(ut.namespace).Get(context.Background(), name, metav1.GetOptions{})
+	_, err := client.Pods(ut.namespace).Get(ctx, name, metav1.GetOptions{})
 	if err == nil {
 		ut.t.Log("curl job logs pod already exists")
 		return
@@ -68,20 +68,26 @@ func (ut *Tester) CreateExecPod(name, cmd string) {
 			TerminationGracePeriodSeconds: &immediate,
 		},
 	}
-	created, err := client.Pods(ut.namespace).Create(context.Background(), execPod, metav1.CreateOptions{})
+	created, err := client.Pods(ut.namespace).Create(ctx, execPod, metav1.CreateOptions{})
 	if err != nil {
 		ut.t.Fatalf("%#v", err)
 	}
-	err = wait.PollImmediate(1*time.Second, 5*time.Minute, func() (bool, error) {
-		retrievedPod, err := client.Pods(execPod.Namespace).Get(context.Background(), created.Name, metav1.GetOptions{})
+	err = wait.PollUntilContextTimeout(ctx, 1*time.Second, 5*time.Minute, true, func(ctx context.Context) (bool, error) {
+		retrievedPod, err := client.Pods(execPod.Namespace).Get(ctx, created.Name, metav1.GetOptions{})
 		ut.t.Logf("get of curl pod %s got err %#v", created.Name, err)
 		if err != nil {
 			return false, nil
 		}
 		for _, status := range retrievedPod.Status.ContainerStatuses {
-			ut.t.Logf("looking at pod state %#v", status.State)
 			if status.State.Terminated != nil {
+				ut.t.Logf("pod is terminated with exit code %d", status.State.Terminated.ExitCode)
 				return true, nil
+			}
+			if status.State.Waiting != nil {
+				ut.t.Logf("waiting on pod: %s", status.State.Waiting.Reason)
+			}
+			if status.State.Running != nil {
+				ut.t.Logf("pod is running since %s", status.State.Running.StartedAt)
 			}
 		}
 		ut.t.Logf("done with container state, still cehcking")

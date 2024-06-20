@@ -4,9 +4,10 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
+	"testing"
+
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	"testing"
 
 	buildv1 "github.com/openshift/api/build/v1"
 	projectv1 "github.com/openshift/api/project/v1"
@@ -638,12 +639,12 @@ func instantiateTemplate(ta *testArgs) {
 
 func instantiateBuild(ta *testArgs) {
 	if !ta.skipBCCreate {
-		_, err := buildClient.BuildV1().BuildConfigs(ta.ns).Create(context.Background(), ta.bc, metav1.CreateOptions{})
+		_, err := buildClient.BuildV1().BuildConfigs(ta.ns).Create(ta.Context(), ta.bc, metav1.CreateOptions{})
 		if err != nil {
 			ta.t.Fatalf("%#v", err)
 		}
 	}
-	build, err := buildClient.BuildV1().BuildConfigs(ta.ns).Instantiate(context.Background(),
+	build, err := buildClient.BuildV1().BuildConfigs(ta.ns).Instantiate(ta.Context(),
 		ta.bc.Name,
 		&buildv1.BuildRequest{
 			ObjectMeta: metav1.ObjectMeta{Name: ta.bc.Name},
@@ -651,7 +652,7 @@ func instantiateBuild(ta *testArgs) {
 	if err != nil {
 		ta.t.Fatalf("%#v", err)
 	}
-	watcher, err := buildClient.BuildV1().Builds(ta.ns).Watch(context.Background(),
+	watcher, err := buildClient.BuildV1().Builds(ta.ns).Watch(ta.Context(),
 		metav1.SingleObject(build.ObjectMeta))
 	if err != nil {
 		ta.t.Fatalf("%#v", err)
@@ -669,7 +670,7 @@ func instantiateBuild(ta *testArgs) {
 			case buildv1.BuildPhaseError:
 				ta.t.Logf("build error: %#v", build)
 				ta.t.Log("dump job log")
-				NewRef(ta.t, kubeClient, ta.ns).JobLogs(ta.ns, ta.bc.Name)
+				NewRef(ta.t, kubeClient, ta.ns).JobLogs(ta.Context(), ta.ns, ta.bc.Name)
 				ta.t.Log("dump namespace pod logs")
 				dumpPods(ta)
 				watcher.Stop()
@@ -677,7 +678,7 @@ func instantiateBuild(ta *testArgs) {
 			case buildv1.BuildPhaseFailed:
 				ta.t.Logf("build failed: %#v", build)
 				ta.t.Log("dump job log")
-				NewRef(ta.t, kubeClient, ta.ns).JobLogs(ta.ns, ta.bc.Name)
+				NewRef(ta.t, kubeClient, ta.ns).JobLogs(ta.Context(), ta.ns, ta.bc.Name)
 				ta.t.Log("dump namespace pod logs")
 				dumpPods(ta)
 				watcher.Stop()
@@ -734,6 +735,7 @@ func generateName(base string) string {
 
 type testArgs struct {
 	t              *testing.T
+	ctx            context.Context
 	ns             string
 	template       string
 	templateNs     string
@@ -742,13 +744,20 @@ type testArgs struct {
 	skipBCCreate   bool
 }
 
+func (ta *testArgs) Context() context.Context {
+	if ta.ctx == nil {
+		ta.ctx = context.Background()
+	}
+	return ta.ctx
+}
+
 func basicPipelineInvocationAndValidation(ta *testArgs) {
 	setupClients(ta.t)
 
 	randomTestNamespaceName := generateName(testNamespace)
 	ta.ns = randomTestNamespaceName
-	defer projectClient.ProjectV1().Projects().Delete(context.Background(), randomTestNamespaceName, metav1.DeleteOptions{})
-	_, err := projectClient.ProjectV1().ProjectRequests().Create(context.Background(), &projectv1.ProjectRequest{
+	defer projectClient.ProjectV1().Projects().Delete(ta.Context(), randomTestNamespaceName, metav1.DeleteOptions{})
+	_, err := projectClient.ProjectV1().ProjectRequests().Create(ta.Context(), &projectv1.ProjectRequest{
 		ObjectMeta: metav1.ObjectMeta{Name: randomTestNamespaceName},
 	}, metav1.CreateOptions{})
 
@@ -866,8 +875,8 @@ func TestVerifyHeadlessService(t *testing.T) {
 
 	randomTestNamespaceName := generateName(testNamespace)
 	ta.ns = randomTestNamespaceName
-	defer projectClient.ProjectV1().Projects().Delete(context.Background(), randomTestNamespaceName, metav1.DeleteOptions{})
-	_, err := projectClient.ProjectV1().ProjectRequests().Create(context.Background(), &projectv1.ProjectRequest{
+	defer projectClient.ProjectV1().Projects().Delete(ta.Context(), randomTestNamespaceName, metav1.DeleteOptions{})
+	_, err := projectClient.ProjectV1().ProjectRequests().Create(ta.Context(), &projectv1.ProjectRequest{
 		ObjectMeta: metav1.ObjectMeta{Name: randomTestNamespaceName},
 	}, metav1.CreateOptions{})
 
@@ -902,7 +911,7 @@ func TestVerifyHeadlessService(t *testing.T) {
 			ClusterIP: "None",
 		},
 	}
-	_, err = kubeClient.CoreV1().Services(randomTestNamespaceName).Create(context.Background(), headless, metav1.CreateOptions{})
+	_, err = kubeClient.CoreV1().Services(randomTestNamespaceName).Create(ta.Context(), headless, metav1.CreateOptions{})
 	if err != nil {
 		t.Fatalf("%s", err.Error())
 	}
@@ -924,18 +933,19 @@ func TestVerifyHeadlessService(t *testing.T) {
 
 func TestMultiNamespaceTemplates(t *testing.T) {
 	setupClients(t)
+	testCtx := context.Background()
 
 	randomTestNamespaceName1 := generateName(testNamespace)
 	randomTestNamespaceName2 := generateName(testNamespace)
 	randomTestNamespaceName3 := generateName(testNamespace)
-	defer projectClient.ProjectV1().Projects().Delete(context.Background(), randomTestNamespaceName1, metav1.DeleteOptions{})
-	defer projectClient.ProjectV1().Projects().Delete(context.Background(), randomTestNamespaceName2, metav1.DeleteOptions{})
-	defer projectClient.ProjectV1().Projects().Delete(context.Background(), randomTestNamespaceName3, metav1.DeleteOptions{})
+	defer projectClient.ProjectV1().Projects().Delete(testCtx, randomTestNamespaceName1, metav1.DeleteOptions{})
+	defer projectClient.ProjectV1().Projects().Delete(testCtx, randomTestNamespaceName2, metav1.DeleteOptions{})
+	defer projectClient.ProjectV1().Projects().Delete(testCtx, randomTestNamespaceName3, metav1.DeleteOptions{})
 
 	testNamespaces := []string{randomTestNamespaceName1, randomTestNamespaceName2, randomTestNamespaceName3}
 
 	for _, randomTestNamespaceName := range testNamespaces {
-		_, err := projectClient.ProjectV1().ProjectRequests().Create(context.Background(), &projectv1.ProjectRequest{
+		_, err := projectClient.ProjectV1().ProjectRequests().Create(testCtx, &projectv1.ProjectRequest{
 			ObjectMeta: metav1.ObjectMeta{Name: randomTestNamespaceName},
 		}, metav1.CreateOptions{})
 
@@ -946,6 +956,7 @@ func TestMultiNamespaceTemplates(t *testing.T) {
 
 	ta1 := &testArgs{
 		t:              t,
+		ctx:            testCtx,
 		ns:             randomTestNamespaceName1,
 		template:       "jenkins-ephemeral",
 		templateNs:     "openshift",
@@ -953,7 +964,7 @@ func TestMultiNamespaceTemplates(t *testing.T) {
 	}
 	instantiateTemplate(ta1)
 
-	_, err := kubeClient.RbacV1().RoleBindings(randomTestNamespaceName2).Create(context.Background(), &rbacv1.RoleBinding{
+	_, err := kubeClient.RbacV1().RoleBindings(randomTestNamespaceName2).Create(testCtx, &rbacv1.RoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "binding2",
 		},
@@ -973,7 +984,7 @@ func TestMultiNamespaceTemplates(t *testing.T) {
 	if err != nil {
 		t.Fatalf("%#v", err)
 	}
-	_, err = kubeClient.RbacV1().RoleBindings(randomTestNamespaceName3).Create(context.Background(), &rbacv1.RoleBinding{
+	_, err = kubeClient.RbacV1().RoleBindings(randomTestNamespaceName3).Create(testCtx, &rbacv1.RoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "binding3",
 		},
@@ -1071,7 +1082,7 @@ func TestMultiNamespaceTemplates(t *testing.T) {
 			"template": "multi-namespace-template",
 		},
 	}
-	_, err = templateClient.TemplateV1().Templates(randomTestNamespaceName1).Create(context.Background(), testTemplateTemplate, metav1.CreateOptions{})
+	_, err = templateClient.TemplateV1().Templates(randomTestNamespaceName1).Create(testCtx, testTemplateTemplate, metav1.CreateOptions{})
 	if err != nil {
 		t.Fatalf("%s", err.Error())
 	}
@@ -1177,13 +1188,14 @@ func TestMultiNamespaceTemplates(t *testing.T) {
 		},
 	}
 
-	_, err = templateClient.TemplateV1().Templates(randomTestNamespaceName1).Create(context.Background(), testPipelineTemplate, metav1.CreateOptions{})
+	_, err = templateClient.TemplateV1().Templates(randomTestNamespaceName1).Create(testCtx, testPipelineTemplate, metav1.CreateOptions{})
 	if err != nil {
 		t.Fatalf("%s", err.Error())
 	}
 
 	ta2 := &testArgs{
 		t:              t,
+		ctx:            testCtx,
 		ns:             randomTestNamespaceName1,
 		template:       "multi-namespace-pipeline",
 		templateNs:     randomTestNamespaceName1,
@@ -1191,7 +1203,7 @@ func TestMultiNamespaceTemplates(t *testing.T) {
 	}
 	instantiateTemplate(ta2)
 
-	bc, err := buildClient.BuildV1().BuildConfigs(randomTestNamespaceName1).Get(context.Background(), "multi-namespace-pipeline", metav1.GetOptions{})
+	bc, err := buildClient.BuildV1().BuildConfigs(randomTestNamespaceName1).Get(testCtx, "multi-namespace-pipeline", metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("%s", err.Error())
 	}
@@ -1203,15 +1215,15 @@ func TestMultiNamespaceTemplates(t *testing.T) {
 	}
 	instantiateBuild(ta3)
 
-	_, err = kubeClient.CoreV1().Secrets(randomTestNamespaceName1).Get(context.Background(), "mariadb", metav1.GetOptions{})
+	_, err = kubeClient.CoreV1().Secrets(randomTestNamespaceName1).Get(testCtx, "mariadb", metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("%s", err.Error())
 	}
-	_, err = kubeClient.CoreV1().Secrets(randomTestNamespaceName2).Get(context.Background(), "mariadb", metav1.GetOptions{})
+	_, err = kubeClient.CoreV1().Secrets(randomTestNamespaceName2).Get(testCtx, "mariadb", metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("%s", err.Error())
 	}
-	_, err = kubeClient.CoreV1().Services(randomTestNamespaceName3).Get(context.Background(), "mariadb", metav1.GetOptions{})
+	_, err = kubeClient.CoreV1().Services(randomTestNamespaceName3).Get(testCtx, "mariadb", metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("%s", err.Error())
 	}

@@ -38,9 +38,9 @@ func NewRef(t *testing.T, kubeClient *kubeset.Clientset, testNamespace string) *
 	return j
 }
 
-func (j *JenkinsRef) JobLogs(namespace, bcName string) {
+func (j *JenkinsRef) JobLogs(ctx context.Context, namespace string, bcName string) {
 	fullURL := fmt.Sprintf("http://%s:%v/job/%s/job/%s-%s/lastBuild/consoleText", j.host, j.port, namespace, namespace, bcName)
 	j.t.Logf("full URL %s\n", fullURL)
 	cmd := fmt.Sprintf("TOKEN=`cat /var/run/secrets/kubernetes.io/serviceaccount/token` && curl -X GET -H \"Authorization: Bearer $TOKEN\" %s", fullURL)
-	j.uri_tester.CreateExecPod("curl-job-pod", cmd)
+	j.uri_tester.CreateExecPod(ctx, "curl-job-pod", cmd)
 }
