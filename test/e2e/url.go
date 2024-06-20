@@ -84,7 +84,7 @@ func (ut *Tester) CreateExecPod(ctx context.Context, name string, cmd string) {
 				return true, nil
 			}
 			if status.State.Waiting != nil {
-				ut.t.Logf("waiting on pod: %s", status.State.Waiting.Reason)
+				ut.t.Logf("waiting on pod: %s: %s", status.State.Waiting.Reason, status.State.Waiting.Message)
 			}
 			if status.State.Running != nil {
 				ut.t.Logf("pod is running since %s", status.State.Running.StartedAt)
