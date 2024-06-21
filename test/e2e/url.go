@@ -12,20 +12,17 @@ import (
 )
 
 type Tester struct {
-	client           kclientset.Interface
-	namespace        string
-	podName          string
-	errorPassThrough bool
-	t                *testing.T
+	client    kclientset.Interface
+	namespace string
+	t         *testing.T
 }
 
 func NewTester(client kclientset.Interface, ns string, t *testing.T) *Tester {
 	return &Tester{client: client, namespace: ns, t: t}
 }
 
-// createExecPod creates a simple centos:7 pod in a sleep loop used as a
-// vessel for kubectl exec commands.
-// Returns the name of the created pod.
+// CreateExecPod creates a simple UBI 9 pod with the given name and runs the provided command
+// script. All programs invoked by the command script must be provided by the standard UBI 9 image.
 func (ut *Tester) CreateExecPod(ctx context.Context, name string, cmd string) {
 	client := ut.client.CoreV1()
 	_, err := client.Pods(ut.namespace).Get(ctx, name, metav1.GetOptions{})
@@ -49,7 +46,7 @@ func (ut *Tester) CreateExecPod(ctx context.Context, name string, cmd string) {
 				{
 					Command:         []string{"/bin/bash", "-c", cmd},
 					Name:            "hostexec",
-					Image:           "quay.io/redhat-developer/test-build-simples2i:latest",
+					Image:           "registry.redhat.io/ubi9/ubi:9.4",
 					ImagePullPolicy: v1.PullIfNotPresent,
 					SecurityContext: &v1.SecurityContext{
 						AllowPrivilegeEscalation: &falVal,
@@ -64,6 +61,7 @@ func (ut *Tester) CreateExecPod(ctx context.Context, name string, cmd string) {
 					},
 				},
 			},
+			RestartPolicy:                 v1.RestartPolicyNever,
 			HostNetwork:                   false,
 			TerminationGracePeriodSeconds: &immediate,
 		},
@@ -90,7 +88,7 @@ func (ut *Tester) CreateExecPod(ctx context.Context, name string, cmd string) {
 				ut.t.Logf("pod is running since %s", status.State.Running.StartedAt)
 			}
 		}
-		ut.t.Logf("done with container state, still cehcking")
+		ut.t.Logf("done with container state, still checking")
 		return false, nil
 	})
 	if err != nil {
