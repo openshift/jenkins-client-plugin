@@ -1,0 +1,19 @@
+# This Dockerfile creates a test image that builds the openshift-client plugin and installs it into
+# the latest Jenkins image, replacing the official relased version of the OCP client plugin.
+# The image is intended to be used by the CI system to test changes.
+
+FROM registry.redhat.io/ubi8/openjdk-17:1.20 AS builder
+WORKDIR /java/src/github.com/openshift/jenkins-client-plugin
+# openjdk-17 image defaults the USER to jboss. Use --chown flag to set the owner of the copied
+# files to jboss. Otherwise the files will be owned by root and the maven build will fail.
+COPY --chown=jboss:jboss . .
+RUN mvn --version && \
+    mvn clean package
+
+# Use the latest Jenkins image as the base for the "runtime" image.
+# The tag should be updated to reflect the appropriate OCP version being tested - often this
+# will lag the current version of OCP under development.
+FROM registry.redhat.io/ocp-tools-4/jenkins-rhel8:v4.14.0
+RUN rm /opt/openshift/plugins/openshift-client.jpi
+COPY --from=builder /java/src/github.com/openshift/jenkins-client-plugin/target/openshift-client.hpi /opt/openshift/plugins
+RUN mv /opt/openshift/plugins/openshift-client.hpi /opt/openshift/plugins/openshift-client.jpi
