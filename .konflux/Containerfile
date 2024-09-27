@@ -1,0 +1,29 @@
+FROM registry.redhat.io/openshift4/ose-cli-rhel9:v4.16 as oc
+
+FROM registry.access.redhat.com/ubi9/openjdk-21:1.20-2.1721752936 as builder
+
+# Jenkins plugins requires git to be present for the build.
+USER root
+RUN microdnf install -y git
+
+USER 185
+
+# The "package" goal creates the Jenkins .hpi that lets it be installed as a plugin.
+ENV MAVEN_S2I_ARTIFACT_DIRS="target" \
+    MAVEN_S2I_GOALS="clean package" \
+    S2I_SOURCE_DEPLOYMENTS_FILTER="*.hpi"
+
+# Copying in source code. Red Hat OpenJDK S2I buiders expect source content in /tmp/src by default
+COPY --chown=185:0 . /tmp/src
+
+RUN /usr/local/s2i/assemble
+
+# Start from base "core controller" image on Konflux
+FROM quay.io/redhat-user-workloads/rh-openshift-builds-tenant/openshift-jenkins-2-462/jenkins-core-controller-2-462@sha256:910cc4f57c8ba10472d08d7edf01f9d32ef5f04c3708b58b2bd49182da90d95e
+
+# OpenShift Client plugin requires a copy of the `oc` binary to be installed at root
+COPY --from=oc --chown=root:root /usr/bin/oc /usr/bin/
+# For Jenkins, plugins should be installed using the `jenkins-plugin-cli` script. This installs the
+# plugin and their dependencies.
+COPY --from=builder --chown=jenkins:jenkins /deployments/openshift-client.hpi /tmp/openshift-client.hpi
+RUN jenkins-plugin-cli -p openshift-client:latest:file:///tmp/openshift-client.hpi
