@@ -7,10 +7,11 @@ import hudson.Launcher;
 import hudson.Proc;
 import hudson.remoting.FastPipedInputStream;
 import hudson.remoting.FastPipedOutputStream;
+import jakarta.annotation.Nonnull;
+
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.LineIterator;
 
-import javax.annotation.Nonnull;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;

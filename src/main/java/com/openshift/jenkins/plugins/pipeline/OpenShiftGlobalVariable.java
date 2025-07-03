@@ -2,10 +2,10 @@ package com.openshift.jenkins.plugins.pipeline;
 
 import groovy.lang.Binding;
 import hudson.Extension;
+import jakarta.annotation.Nonnull;
+
 import org.jenkinsci.plugins.workflow.cps.CpsScript;
 import org.jenkinsci.plugins.workflow.cps.GlobalVariable;
-
-import javax.annotation.Nonnull;
 
 /**
  * Defines the "openshift" global variable in pipeline DSL scripts. It's
