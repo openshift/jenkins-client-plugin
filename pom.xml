@@ -5,7 +5,7 @@
   <parent>
     <groupId>org.jenkins-ci.plugins</groupId>
     <artifactId>plugin</artifactId>
-    <version>4.77</version>
+    <version>5.18</version>
     <relativePath />
   </parent>
   <groupId>com.openshift.jenkins.plugins</groupId>
@@ -16,7 +16,7 @@
   <properties>
     <revision>1.1.0</revision>
     <changelist>999999-SNAPSHOT</changelist>
-    <jenkins.version>2.426.2</jenkins.version>
+    <jenkins.version>2.504.2</jenkins.version>
     <log.level>INFO</log.level>
   </properties>
 
@@ -84,39 +84,39 @@
 
   <dependencyManagement>
     <dependencies>
-      <!-- https://mvnrepository.com/artifact/io.jenkins.tools.bom/bom-2.303.x -->
+      <!-- https://mvnrepository.com/artifact/io.jenkins.tools.bom/bom-2.504.x -->
       <dependency>
         <groupId>io.jenkins.tools.bom</groupId>
-        <artifactId>bom-2.426.x</artifactId>
-        <version>2705.vf5c48c31285b_</version>
+        <artifactId>bom-2.504.x</artifactId>
+        <version>4969.v6ffa_18d90c9f</version>
         <scope>import</scope>
         <type>pom</type>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>credentials</artifactId>
-      <version>1311.vcf0a_900b_37c2</version>
+      <version>1415.v831096eb_5534</version>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>command-launcher</artifactId>
-      <version>100.v2f6722292ee8</version>
+      <version>123.v37cfdc92ef67</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>script-security</artifactId>
-      <version>1313.v7a_6067dc7087</version>
+      <version>1373.vb_b_4a_a_c26fa_00</version>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-step-api</artifactId>
-      <version>639.v6eca_cd8c04a_a_</version>
+      <version>700.v6e45cb_a_5a_a_21</version>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-cps</artifactId>
-      <version>3837.v305192405b_c0</version>
+      <version>4106.v7a_8a_8176d450</version>
     </dependency>
   </dependencies>
   </dependencyManagement>
@@ -125,7 +125,7 @@
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>versions-maven-plugin</artifactId>
-        <version>2.16.0</version>
+        <version>2.18.0</version>
         <configuration>
           <excludes>
             <exclude>org.apache.commons:commons-collections4</exclude>
@@ -135,7 +135,7 @@
       <plugin>
         <groupId>com.github.spotbugs</groupId>
         <artifactId>spotbugs-maven-plugin</artifactId>
-        <version>4.8.2.0</version>
+        <version>4.9.3.1</version>
         <configuration>
             <failOnError>false</failOnError>
         </configuration>
@@ -144,14 +144,14 @@
             <dependency>
                 <groupId>com.github.spotbugs</groupId>
                 <artifactId>spotbugs</artifactId>
-                <version>4.8.3</version>
+                <version>4.9.3</version>
             </dependency>
         </dependencies>
     </plugin>
       <plugin>
         <groupId>org.jenkins-ci.tools</groupId>
         <artifactId>maven-hpi-plugin</artifactId>
-        <version>3.47</version>
+        <version>3.65</version>
         <configuration>
           <pluginFirstClassLoader>true</pluginFirstClassLoader>
           <loggers>
@@ -183,7 +183,7 @@
       <plugin>
         <groupId>com.mycila</groupId>
         <artifactId>license-maven-plugin</artifactId>
-        <version>4.2</version>
+        <version>5.0.0</version>
         <configuration>
           <aggregate>true</aggregate>
           <header>header.txt</header>
@@ -215,7 +215,7 @@
           <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-gpg-plugin</artifactId>
-            <version>3.1.0</version>
+            <version>3.2.7</version>
             <executions>
               <execution>
                 <id>sign-artifacts</id>
@@ -229,7 +229,7 @@
           <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-enforcer-plugin</artifactId>
-            <version>3.4.1</version>
+            <version>3.5.0</version>
             <executions>
                 <execution>
                     <id>enforce-no-snapshots</id>
@@ -251,7 +251,7 @@
           <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-javadoc-plugin</artifactId>
-            <version>3.5.0</version>
+            <version>3.11.2</version>
             <executions>
               <execution>
                 <id>attach-javadocs</id>
@@ -264,7 +264,7 @@
           <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-source-plugin</artifactId>
-            <version>3.3.0</version>
+            <version>3.3.1</version>
             <executions>
               <execution>
                 <id>attach-sources</id>
