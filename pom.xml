@@ -151,7 +151,7 @@
       <plugin>
         <groupId>org.jenkins-ci.tools</groupId>
         <artifactId>maven-hpi-plugin</artifactId>
-        <version>3.65</version>
+        <version>3.66</version>
         <configuration>
           <pluginFirstClassLoader>true</pluginFirstClassLoader>
           <loggers>
